@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>X-Corp | Vehicle Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* ===== RESET ===== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+/* ===== TOKENS — X-Corp navy/purple palette ===== */
+:root{
+  --navy:       #1a2454;
+  --navy-dk:    #111838;
+  --navy-lt:    #243068;
+  --purple:     #7b3fa0;
+  --purple-lt:  #9b5fc0;
+  --purple-dim: rgba(123,63,160,0.15);
+  --bg:         #0e1120;
+  --surface:    #141829;
+  --surface2:   #1b2038;
+  --surface3:   #222843;
+  --border:     #252d4a;
+  --border2:    #2e3860;
+  --text:       #eef0f8;
+  --text-muted: #7880a8;
+  --text-sub:   #4a5075;
+  --warn:       #f59e0b;
+  --warn-dim:   rgba(245,158,11,0.12);
+  --success:    #22c55e;
+  --success-dim:rgba(34,197,94,0.1);
+  --danger:     #ef4444;
+  --danger-dim: rgba(239,68,68,0.12);
+  --radius:     8px;
+  --radius-lg:  12px;
+  --shadow:     0 8px 40px rgba(0,0,0,0.7);
+  --font:       'Inter',sans-serif;
+  --mono:       'JetBrains Mono',monospace;
+  --sidebar-w:  240px;
+}
+
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+
+/* ===== PAGE SYSTEM ===== */
+.page{display:none}
+.page.active{display:flex}
+.section{display:none}
+.section.active{display:block}
+
+/* ===================================================
+   LOGIN
+=================================================== */
+#login-page{
+  min-height:100vh;
+  align-items:center;
+  justify-content:center;
+  background:
+    radial-gradient(ellipse 100% 60% at 50% -5%, rgba(26,36,84,0.9) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 40% at 80% 80%, rgba(123,63,160,0.12) 0%, transparent 60%),
+    var(--bg);
+}
+
+.login-wrap{width:100%;max-width:420px;padding:1.5rem}
+
+.login-brand{text-align:center;margin-bottom:2rem}
+.login-brand img{height:80px;object-fit:contain;margin-bottom:0.75rem}
+.login-brand .sys-name{
+  font-size:0.72rem;
+  font-weight:600;
+  letter-spacing:0.14em;
+  text-transform:uppercase;
+  color:var(--text-muted);
+  margin-top:0.25rem;
+}
+
+.login-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  padding:2rem;
+  box-shadow:var(--shadow);
+}
+.login-card-header{
+  display:flex;align-items:center;gap:0.75rem;
+  margin-bottom:1.5rem;
+  padding-bottom:1.25rem;
+  border-bottom:1px solid var(--border);
+}
+.lock-icon{
+  width:36px;height:36px;
+  background:var(--purple-dim);
+  border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1rem;
+  flex-shrink:0;
+}
+.login-card-header h2{font-size:1rem;font-weight:700;letter-spacing:-0.2px}
+.login-card-header p{font-size:0.76rem;color:var(--text-muted);margin-top:1px}
+
+/* ===================================================
+   APP LAYOUT
+=================================================== */
+#app-page{min-height:100vh}
+
+/* SIDEBAR */
+.sidebar{
+  width:var(--sidebar-w);
+  min-height:100vh;
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;flex-shrink:0;
+  position:sticky;top:0;height:100vh;
+}
+
+.sidebar-brand{
+  padding:1.25rem 1.25rem 1rem;
+  border-bottom:1px solid var(--border);
+}
+.sidebar-brand img{height:42px;object-fit:contain}
+.sidebar-app-tag{
+  font-size:0.6rem;font-weight:700;
+  letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--text-sub);margin-top:0.6rem;
+}
+.sidebar-app-name{
+  font-size:0.82rem;font-weight:700;
+  color:var(--text);letter-spacing:-0.1px;margin-top:1px;
+}
+
+.sidebar-nav{flex:1;padding:0.5rem 0}
+
+.nav-item{
+  display:flex;align-items:center;gap:0.65rem;
+  padding:0.6rem 1.25rem;
+  color:var(--text-muted);text-decoration:none;
+  font-size:0.82rem;font-weight:500;
+  transition:all 0.15s;
+  border-left:2px solid transparent;
+  cursor:pointer;position:relative;
+}
+.nav-item:hover{color:var(--text);background:var(--surface2)}
+.nav-item.active{color:var(--purple-lt);background:var(--purple-dim);border-left-color:var(--purple)}
+.nav-icon{font-size:0.95rem;width:1.1rem;flex-shrink:0}
+
+.alert-badge{
+  background:var(--danger);color:#fff;
+  border-radius:999px;font-size:0.65rem;font-weight:700;
+  padding:1px 6px;margin-left:auto;display:none;
+}
+
+.sidebar-footer{
+  padding:1rem 1.25rem;
+  border-top:1px solid var(--border);
+}
+.viewer-banner{
+  background:rgba(245,158,11,0.08);
+  border:1px solid rgba(245,158,11,0.2);
+  border-radius:6px;
+  padding:0.5rem 0.75rem;
+  font-size:0.72rem;
+  color:var(--warn);
+  margin-bottom:0.75rem;
+  display:none;
+}
+.user-pill{display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem}
+.role-pip{width:6px;height:6px;border-radius:50%;background:var(--purple);flex-shrink:0}
+.role-pip.viewer{background:var(--text-sub)}
+.user-email-sm{font-size:0.72rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.role-chip{
+  font-size:0.62rem;font-weight:700;
+  text-transform:uppercase;letter-spacing:0.08em;
+  padding:2px 7px;border-radius:999px;
+  background:var(--purple-dim);color:var(--purple-lt);
+  white-space:nowrap;
+}
+.role-chip.viewer{background:rgba(255,255,255,0.04);color:var(--text-sub)}
+
+/* MAIN */
+.main-content{flex:1;padding:2rem 2.5rem;overflow-y:auto;min-width:0}
+
+.section-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:1.75rem;
+  padding-bottom:1.25rem;
+  border-bottom:1px solid var(--border);
+}
+.section-header h2{font-size:1.3rem;font-weight:700;letter-spacing:-0.3px}
+.section-sub{font-size:0.78rem;color:var(--text-muted);margin-top:0.15rem}
+
+/* ===================================================
+   STAT CARDS
+=================================================== */
+.stats-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:1rem;
+  margin-bottom:2rem;
+}
+.stat-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-lg);padding:1.25rem 1.4rem;
+  position:relative;overflow:hidden;
+}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--border2)}
+.stat-card.c-purple::before{background:var(--purple)}
+.stat-card.c-ok::before{background:var(--success)}
+.stat-card.c-warn::before{background:var(--warn)}
+.stat-card.c-danger::before{background:var(--danger)}
+
+.stat-value{
+  font-size:2.5rem;font-weight:800;
+  font-family:var(--mono);line-height:1;
+  margin-bottom:0.4rem;letter-spacing:-1px;
+  color:var(--text);
+}
+.stat-card.c-warn .stat-value{color:var(--warn)}
+.stat-card.c-danger .stat-value{color:var(--danger)}
+.stat-card.c-ok .stat-value{color:var(--success)}
+.stat-label{font-size:0.75rem;color:var(--text-muted);font-weight:500;text-transform:uppercase;letter-spacing:0.06em}
+
+/* ===================================================
+   ALERTS
+=================================================== */
+.alerts-section-title{
+  font-size:0.75rem;font-weight:700;
+  text-transform:uppercase;letter-spacing:0.08em;
+  color:var(--text-muted);margin-bottom:0.85rem;
+}
+.alert-list{display:flex;flex-direction:column;gap:0.5rem}
+.alert-item{
+  display:flex;align-items:center;gap:1rem;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:0.85rem 1.25rem;
+  border-left:3px solid var(--border2);
+}
+.alert-item.lvl-warn{border-left-color:var(--warn);background:linear-gradient(90deg,rgba(245,158,11,0.06) 0%,var(--surface) 60%)}
+.alert-item.lvl-danger{border-left-color:var(--danger);background:linear-gradient(90deg,rgba(239,68,68,0.06) 0%,var(--surface) 60%)}
+.alert-icon{font-size:1.1rem;flex-shrink:0}
+.alert-body{flex:1;min-width:0}
+.alert-title{font-weight:600;font-size:0.85rem}
+.alert-sub{font-size:0.76rem;color:var(--text-muted);margin-top:2px}
+.alert-chip{
+  font-size:0.68rem;font-weight:700;
+  padding:3px 8px;border-radius:999px;
+  text-transform:uppercase;letter-spacing:0.06em;flex-shrink:0;
+}
+.alert-chip.warn{background:var(--warn-dim);color:var(--warn)}
+.alert-chip.danger{background:var(--danger-dim);color:var(--danger)}
+
+/* ===================================================
+   TABLE
+=================================================== */
+.table-wrap{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-lg);overflow:hidden;
+}
+.data-table{width:100%;border-collapse:collapse}
+.data-table thead tr{background:var(--surface2)}
+.data-table th{
+  padding:0.75rem 1rem;text-align:left;
+  font-size:0.7rem;font-weight:700;
+  text-transform:uppercase;letter-spacing:0.08em;
+  color:var(--text-sub);border-bottom:1px solid var(--border);
+  white-space:nowrap;
+}
+.data-table td{
+  padding:0.85rem 1rem;border-bottom:1px solid var(--border);
+  font-size:0.84rem;vertical-align:middle;
+}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tbody tr:hover td{background:rgba(255,255,255,0.015)}
+
+.reg-pill{
+  font-family:var(--mono);font-size:0.77rem;font-weight:600;
+  background:var(--surface3);border:1px solid var(--border2);
+  padding:3px 9px;border-radius:5px;letter-spacing:0.06em;white-space:nowrap;
+}
+.status-chip{
+  font-size:0.68rem;font-weight:700;
+  padding:3px 9px;border-radius:999px;
+  text-transform:uppercase;letter-spacing:0.06em;white-space:nowrap;
+}
+.s-ok{background:var(--success-dim);color:var(--success)}
+.s-warn{background:var(--warn-dim);color:var(--warn)}
+.s-danger{background:var(--danger-dim);color:var(--danger)}
+
+/* ===================================================
+   FORMS
+=================================================== */
+.form-group{display:flex;flex-direction:column;gap:0.35rem;margin-bottom:1rem}
+.form-group:last-child{margin-bottom:0}
+.form-group label{font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.07em}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+
+input[type=text],input[type=email],input[type=password],
+input[type=tel],input[type=number],input[type=date],
+select,textarea{
+  background:var(--surface2);border:1px solid var(--border2);
+  color:var(--text);padding:0.6rem 0.8rem;
+  border-radius:var(--radius);font-family:var(--font);
+  font-size:0.85rem;width:100%;
+  transition:border-color 0.15s,box-shadow 0.15s;-webkit-appearance:none;
+}
+input:focus,select:focus,textarea:focus{
+  outline:none;border-color:var(--purple);
+  box-shadow:0 0 0 3px rgba(123,63,160,0.15);
+}
+input::placeholder,textarea::placeholder{color:var(--text-sub)}
+textarea{min-height:80px;resize:vertical}
+select option{background:var(--surface2);color:var(--text)}
+input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
+
+/* ===================================================
+   BUTTONS
+=================================================== */
+.btn-primary{
+  background:var(--purple);color:#fff;border:none;
+  padding:0.6rem 1.25rem;border-radius:var(--radius);
+  font-weight:600;font-size:0.85rem;cursor:pointer;
+  transition:background 0.15s,transform 0.1s;
+  font-family:var(--font);white-space:nowrap;
+}
+.btn-primary:hover{background:var(--purple-lt)}
+.btn-primary:active{transform:scale(0.98)}
+.btn-primary.full-w{width:100%;padding:0.75rem;font-size:0.95rem}
+
+.btn-ghost{
+  background:transparent;color:var(--text-muted);
+  border:1px solid var(--border2);padding:0.55rem 1rem;
+  border-radius:var(--radius);font-weight:500;
+  font-size:0.84rem;cursor:pointer;
+  transition:all 0.15s;font-family:var(--font);
+}
+.btn-ghost:hover{color:var(--text);border-color:var(--text-muted)}
+
+.btn-danger-solid{
+  background:var(--danger);color:#fff;border:none;
+  padding:0.6rem 1.25rem;border-radius:var(--radius);
+  font-weight:600;font-size:0.85rem;cursor:pointer;
+  font-family:var(--font);transition:background 0.15s;
+}
+.btn-danger-solid:hover{background:#c93636}
+
+.btn-icon{
+  background:transparent;border:none;cursor:pointer;
+  padding:0.3rem 0.45rem;border-radius:5px;
+  font-size:0.95rem;transition:background 0.15s;line-height:1;
+}
+.btn-icon:hover{background:var(--surface3)}
+
+/* ===================================================
+   MODALS
+=================================================== */
+.modal{
+  position:fixed;inset:0;background:rgba(0,0,0,0.75);
+  display:flex;align-items:center;justify-content:center;
+  z-index:999;padding:1rem;backdrop-filter:blur(3px);
+  opacity:0;pointer-events:none;transition:opacity 0.2s;
+}
+.modal.open{opacity:1;pointer-events:all}
+
+.modal-card{
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:var(--radius-lg);width:100%;max-width:600px;
+  box-shadow:var(--shadow);max-height:90vh;overflow-y:auto;
+  transform:translateY(8px);transition:transform 0.2s;
+}
+.modal.open .modal-card{transform:translateY(0)}
+.modal-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);
+}
+.modal-header-inner{display:flex;flex-direction:column;gap:4px}
+.modal-header h3{font-size:1rem;font-weight:700;letter-spacing:-0.2px}
+.modal-accent-line{width:1.75rem;height:2px;background:var(--purple);border-radius:2px}
+.modal-close{
+  background:none;border:none;color:var(--text-muted);cursor:pointer;
+  font-size:1rem;padding:0.25rem;line-height:1;transition:color 0.15s;
+}
+.modal-close:hover{color:var(--text)}
+.modal-body{padding:1.5rem}
+.modal-footer{
+  display:flex;justify-content:flex-end;gap:0.75rem;
+  padding:1rem 1.5rem;border-top:1px solid var(--border);
+}
+
+/* ===================================================
+   UTIL
+=================================================== */
+.hidden{display:none!important}
+.empty-state{text-align:center;color:var(--text-sub);padding:2.5rem 1rem;font-size:0.85rem}
+.error-msg{
+  background:var(--danger-dim);border:1px solid rgba(239,68,68,0.3);
+  color:var(--danger);padding:0.6rem 0.8rem;
+  border-radius:var(--radius);font-size:0.84rem;margin-bottom:1rem;
+}
+/* POPIA footer */
+.popia-note{
+  font-size:0.68rem;color:var(--text-sub);
+  text-align:center;margin-top:1.25rem;line-height:1.5;
+}
+.login-footer{
+  text-align:center;font-size:0.72rem;color:var(--text-sub);margin-top:1.5rem;
+}
+
+/* Viewer hides admin controls */
+.viewer-mode .admin-only{display:none!important}
+
+/* ===================================================
+   RESPONSIVE
+=================================================== */
+@media(max-width:768px){
+  .sidebar{width:100%;height:auto;flex-direction:row;min-height:unset;position:fixed;bottom:0;left:0;right:0;z-index:100;border-right:none;border-top:1px solid var(--border)}
+  .sidebar-brand,.sidebar-footer,.sidebar-app-tag,.sidebar-app-name{display:none}
+  .sidebar-nav{display:flex;flex-direction:row;padding:0;width:100%;overflow-x:auto}
+  .nav-item{flex-direction:column;gap:0.2rem;padding:0.5rem;font-size:0.62rem;text-align:center;border-left:none;border-top:2px solid transparent;flex:1;justify-content:center}
+  .nav-item.active{border-top-color:var(--purple);border-left:none}
+  #app-page{flex-direction:column}
+  .main-content{padding:1.25rem;padding-bottom:5rem}
+  .form-row{grid-template-columns:1fr}
+  .stats-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ===================== LOGIN ===================== -->
+<div id="login-page" class="page active">
+  <div class="login-wrap">
+    <div class="login-brand">
+      <img src="https://lirp.cdn-website.com/c706051a/dms3rep/multi/opt/cropped-Xcorp-new-logo-1920w.png" alt="X-Corp"/>
+      <div class="sys-name">Vehicle Tracker · Fleet Management</div>
+    </div>
+
+    <div class="login-card">
+      <div class="login-card-header">
+        <div class="lock-icon">🔐</div>
+        <div>
+          <h2>Secure Sign In</h2>
+          <p>X-Corp Business Solutions</p>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" id="login-email" placeholder="you@almestar.co.za" autocomplete="email"/>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password"
+               onkeydown="if(event.key==='Enter') doLogin()"/>
+      </div>
+      <div id="login-error" class="error-msg hidden"></div>
+      <button class="btn-primary full-w" onclick="doLogin()">Sign In →</button>
+
+      <p class="popia-note">
+        By signing in you acknowledge that this system processes personal information in accordance
+        with the POPIA Notice and Privacy Policy of X-Corp Business Solutions.
+      </p>
+    </div>
+
+    <div class="login-footer">X-Corp Business Solutions © 2024 · Secure Login</div>
+  </div>
+</div>
+
+<!-- ===================== APP ===================== -->
+<div id="app-page" class="page hidden">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <img src="https://lirp.cdn-website.com/c706051a/dms3rep/multi/opt/cropped-Xcorp-new-logo-1920w.png" alt="X-Corp"/>
+      <div class="sidebar-app-tag">Module</div>
+      <div class="sidebar-app-name">Vehicle Tracker</div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a class="nav-item active" onclick="navTo('dashboard',this)">
+        <span class="nav-icon">📊</span> Dashboard
+      </a>
+      <a class="nav-item" onclick="navTo('vehicles',this)">
+        <span class="nav-icon">🚘</span> Vehicles
+      </a>
+      <a class="nav-item" onclick="navTo('drivers',this)">
+        <span class="nav-icon">👤</span> Drivers
+      </a>
+      <a class="nav-item" onclick="navTo('alerts',this)">
+        <span class="nav-icon">🔔</span> Alerts
+        <span class="alert-badge" id="alert-badge">0</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="viewer-banner" id="viewer-banner">
+        👁 View Only — No edit access
+      </div>
+      <div class="user-pill">
+        <div class="role-pip" id="role-pip"></div>
+        <div class="user-email-sm" id="user-email-lbl"></div>
+        <span class="role-chip" id="role-chip">Admin</span>
+      </div>
+      <button class="btn-ghost" style="width:100%;font-size:0.78rem" onclick="doLogout()">Sign Out</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main-content">
+
+    <!-- DASHBOARD -->
+    <section id="section-dashboard" class="section active">
+      <div class="section-header">
+        <div>
+          <h2>Dashboard</h2>
+          <div class="section-sub" id="today-date"></div>
+        </div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card c-purple">
+          <div class="stat-value" id="stat-total">0</div>
+          <div class="stat-label">Total Vehicles</div>
+        </div>
+        <div class="stat-card c-ok">
+          <div class="stat-value" id="stat-ok">0</div>
+          <div class="stat-label">All Good</div>
+        </div>
+        <div class="stat-card c-warn">
+          <div class="stat-value" id="stat-warn">0</div>
+          <div class="stat-label">Due Soon</div>
+        </div>
+        <div class="stat-card c-danger">
+          <div class="stat-value" id="stat-overdue">0</div>
+          <div class="stat-label">Overdue</div>
+        </div>
+      </div>
+      <div class="alerts-section-title">Active Alerts</div>
+      <div id="dash-alerts" class="alert-list">
+        <p class="empty-state">Loading...</p>
+      </div>
+    </section>
+
+    <!-- VEHICLES -->
+    <section id="section-vehicles" class="section hidden">
+      <div class="section-header">
+        <div>
+          <h2>Vehicles</h2>
+          <div class="section-sub">Fleet registration &amp; compliance</div>
+        </div>
+        <button class="btn-primary admin-only" onclick="openVehicleModal()">+ Add Vehicle</button>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Registration</th>
+              <th>Make / Model</th>
+              <th>Year</th>
+              <th>Driver</th>
+              <th>Licence Expiry</th>
+              <th>Next Service</th>
+              <th>Status</th>
+              <th class="admin-only">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="vehicles-tbody">
+            <tr><td colspan="8" class="empty-state">No vehicles yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- DRIVERS -->
+    <section id="section-drivers" class="section hidden">
+      <div class="section-header">
+        <div>
+          <h2>Drivers</h2>
+          <div class="section-sub">Driver profiles &amp; vehicle assignments</div>
+        </div>
+        <button class="btn-primary admin-only" onclick="openDriverModal()">+ Add Driver</button>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Phone</th>
+              <th>Email</th>
+              <th>Assigned Vehicle</th>
+              <th class="admin-only">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="drivers-tbody">
+            <tr><td colspan="5" class="empty-state">No drivers yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ALERTS -->
+    <section id="section-alerts" class="section hidden">
+      <div class="section-header">
+        <div>
+          <h2>Alerts</h2>
+          <div class="section-sub">Licence &amp; service warnings</div>
+        </div>
+      </div>
+      <div id="page-alerts" class="alert-list">
+        <p class="empty-state">No alerts right now ✅</p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ===== MODAL: Vehicle ===== -->
+<div id="vehicle-modal" class="modal" onclick="backdropClose(event,'vehicle-modal')">
+  <div style="width:100%;max-width:620px">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-header-inner">
+        <h3 id="vm-title">Add Vehicle</h3>
+        <div class="modal-accent-line"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('vehicle-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="vm-id"/>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Registration *</label>
+          <input type="text" id="vm-reg" placeholder="e.g. CA 123-456"/>
+        </div>
+        <div class="form-group">
+          <label>Make *</label>
+          <input type="text" id="vm-make" placeholder="e.g. Toyota"/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Model *</label>
+          <input type="text" id="vm-model" placeholder="e.g. Hilux"/>
+        </div>
+        <div class="form-group">
+          <label>Year</label>
+          <input type="number" id="vm-year" placeholder="e.g. 2022"/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Licence Expiry Date *</label>
+          <input type="date" id="vm-licence"/>
+        </div>
+        <div class="form-group">
+          <label>Next Service Date *</label>
+          <input type="date" id="vm-service"/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Last Service Date</label>
+          <input type="date" id="vm-lastservice"/>
+        </div>
+        <div class="form-group">
+          <label>Assign Driver</label>
+          <select id="vm-driver">
+            <option value="">— Unassigned —</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="vm-notes" placeholder="Optional notes..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('vehicle-modal')">Cancel</button>
+      <button class="btn-primary" onclick="saveVehicle()">Save Vehicle</button>
+    </div>
+  </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: Driver ===== -->
+<div id="driver-modal" class="modal" onclick="backdropClose(event,'driver-modal')">
+  <div style="width:100%;max-width:480px">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-header-inner">
+        <h3 id="dm-title">Add Driver</h3>
+        <div class="modal-accent-line"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('driver-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="dm-id"/>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Full Name *</label>
+          <input type="text" id="dm-name" placeholder="e.g. John Smith"/>
+        </div>
+        <div class="form-group">
+          <label>Phone</label>
+          <input type="tel" id="dm-phone" placeholder="e.g. 082 000 0000"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="dm-email" placeholder="e.g. john@almestar.co.za"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('driver-modal')">Cancel</button>
+      <button class="btn-primary" onclick="saveDriver()">Save Driver</button>
+    </div>
+  </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: Delete ===== -->
+<div id="delete-modal" class="modal" onclick="backdropClose(event,'delete-modal')">
+  <div style="width:100%;max-width:400px">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-header-inner">
+        <h3>Confirm Delete</h3>
+        <div class="modal-accent-line"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('delete-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="delete-msg" style="color:var(--text-muted);font-size:0.88rem;line-height:1.6"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('delete-modal')">Cancel</button>
+      <button class="btn-danger-solid" id="delete-confirm-btn">Delete</button>
+    </div>
+  </div>
+  </div>
+</div>
+
+<!-- ===================== FIREBASE + APP JS ===================== -->
+<script type="module">
+import { initializeApp }  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+/* ── Firebase config ──────────────────────────────────────── */
+const firebaseConfig = {
+  apiKey:            "AIzaSyAZzMydaZ6Dk6qHDygpiGU1umIbxJekcLU",
+  authDomain:        "vehicle-tracker-21af2.firebaseapp.com",
+  databaseURL:       "https://vehicle-tracker-21af2-default-rtdb.firebaseio.com",
+  projectId:         "vehicle-tracker-21af2",
+  storageBucket:     "vehicle-tracker-21af2.firebasestorage.app",
+  messagingSenderId: "266396360257",
+  appId:             "1:266396360257:web:48910da0bfe4920f6a30c0"
+};
+
+/* ── SHA-256 hashed credentials (passwords never stored in plain text) ── */
+const USERS = {
+  "creditors@almestar.co.za": {
+    hash: "0f78c0054fa09c53d7d0ad4a7dc161bb908bd1ac7699dd1cbb21b2f4fac51355",
+    role: "admin"
+  },
+  "accounts01@almestar.co.za": {
+    hash: "fd9c653f918daa65b813f2443254bc43aec0f4f925ad91f799fc7227bf6fed01",
+    role: "viewer"
+  }
+};
+
+async function sha256(str){
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+
+/* ── Init ─────────────────────────────────────────────────── */
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+let currentUser = null, isAdmin = false;
+let vehicles = [], drivers = [];
+let unsubV = null, unsubD = null;
+const WARN_DAYS = 30;
+
+/* ── Login ────────────────────────────────────────────────── */
+window.doLogin = async () => {
+  const email = document.getElementById("login-email").value.trim().toLowerCase();
+  const pass  = document.getElementById("login-password").value;
+  const err   = document.getElementById("login-error");
+  err.classList.add("hidden");
+
+  const record = USERS[email];
+  if(!record){ err.textContent="Incorrect email or password."; err.classList.remove("hidden"); return; }
+
+  const inputHash = await sha256(pass);
+  if(inputHash !== record.hash){ err.textContent="Incorrect email or password."; err.classList.remove("hidden"); return; }
+
+  // Credentials matched — sign in to Firebase
+  try{
+    await signInWithEmailAndPassword(auth, email, pass);
+  } catch(e){
+    err.textContent="Sign-in error: "+e.message; err.classList.remove("hidden");
+  }
+};
+
+window.doLogout = async () => {
+  if(unsubV) unsubV(); if(unsubD) unsubD();
+  await signOut(auth);
+};
+
+/* ── Auth state ───────────────────────────────────────────── */
+onAuthStateChanged(auth, user => {
+  if(user){
+    currentUser = user;
+    const record = USERS[user.email.toLowerCase()];
+    isAdmin = record?.role === "admin";
+    showApp();
+  } else {
+    currentUser = null; isAdmin = false; showLogin();
+  }
+});
+
+function showApp(){
+  document.getElementById("login-page").className = "page hidden";
+  document.getElementById("app-page").className   = "page active";
+  document.getElementById("user-email-lbl").textContent = currentUser.email;
+
+  const pip   = document.getElementById("role-pip");
+  const chip  = document.getElementById("role-chip");
+  const banner= document.getElementById("viewer-banner");
+  if(isAdmin){
+    pip.className="role-pip"; chip.textContent="Admin"; chip.className="role-chip";
+    banner.style.display="none";
+  } else {
+    pip.className="role-pip viewer"; chip.textContent="View Only"; chip.className="role-chip viewer";
+    banner.style.display="block";
+  }
+  document.body.classList.toggle("viewer-mode", !isAdmin);
+  document.getElementById("today-date").textContent =
+    new Date().toLocaleDateString("en-ZA",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
+  startListeners();
+}
+function showLogin(){
+  document.getElementById("app-page").className   = "page hidden";
+  document.getElementById("login-page").className = "page active";
+}
+
+/* ── Navigation ───────────────────────────────────────────── */
+window.navTo = (section, el) => {
+  document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+  el.classList.add("active");
+  document.querySelectorAll(".section").forEach(s=>{
+    s.classList.toggle("active", s.id==="section-"+section);
+    s.classList.toggle("hidden", s.id!=="section-"+section);
+  });
+};
+
+/* ── Firestore ────────────────────────────────────────────── */
+function startListeners(){
+  unsubV = onSnapshot(query(collection(db,"vehicles"),orderBy("reg")), snap=>{
+    vehicles = snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderVehicles(); renderDashboard(); renderAlerts(); syncDriverDropdown();
+  });
+  unsubD = onSnapshot(query(collection(db,"drivers"),orderBy("name")), snap=>{
+    drivers = snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderDrivers(); syncDriverDropdown();
+  });
+}
+
+/* ── Helpers ──────────────────────────────────────────────── */
+function daysUntil(ds){ if(!ds) return null; const t=new Date(); t.setHours(0,0,0,0); return Math.floor((new Date(ds)-t)/86400000); }
+function fmtDate(d){ return d?new Date(d).toLocaleDateString("en-ZA"):"—"; }
+function vStatus(v){ const m=Math.min(daysUntil(v.licenceExpiry)??999,daysUntil(v.serviceDate)??999); return m<0?"danger":m<=WARN_DAYS?"warn":"ok"; }
+
+function buildAlerts(){
+  const out=[];
+  vehicles.forEach(v=>{
+    const ld=daysUntil(v.licenceExpiry), sd=daysUntil(v.serviceDate);
+    if(ld!==null&&ld<=WARN_DAYS) out.push({lvl:ld<0?"danger":"warn",icon:"📋",title:`${v.reg} — Licence ${ld<0?"EXPIRED":"expiring soon"}`,sub:ld<0?`Expired ${Math.abs(ld)} day(s) ago`:`Expires in ${ld} day(s) · ${fmtDate(v.licenceExpiry)}`,chip:ld<0?"Overdue":"Due Soon"});
+    if(sd!==null&&sd<=WARN_DAYS) out.push({lvl:sd<0?"danger":"warn",icon:"🔧",title:`${v.reg} — Service ${sd<0?"OVERDUE":"due soon"}`,sub:sd<0?`Overdue by ${Math.abs(sd)} day(s)`:`Due in ${sd} day(s) · ${fmtDate(v.serviceDate)}`,chip:sd<0?"Overdue":"Due Soon"});
+  });
+  return out;
+}
+function alertHTML(a){ return `<div class="alert-item lvl-${a.lvl}"><span class="alert-icon">${a.icon}</span><div class="alert-body"><div class="alert-title">${a.title}</div><div class="alert-sub">${a.sub}</div></div><span class="alert-chip ${a.lvl}">${a.chip}</span></div>`; }
+
+/* ── Render: Dashboard ────────────────────────────────────── */
+function renderDashboard(){
+  const alerts=buildAlerts();
+  document.getElementById("stat-total").textContent   = vehicles.length;
+  document.getElementById("stat-ok").textContent      = vehicles.filter(v=>vStatus(v)==="ok").length;
+  document.getElementById("stat-warn").textContent    = vehicles.filter(v=>vStatus(v)==="warn").length;
+  document.getElementById("stat-overdue").textContent = vehicles.filter(v=>vStatus(v)==="danger").length;
+  const badge=document.getElementById("alert-badge");
+  badge.style.display=alerts.length?"inline":"none"; badge.textContent=alerts.length;
+  document.getElementById("dash-alerts").innerHTML = alerts.length?alerts.map(alertHTML).join(""):'<p class="empty-state">No alerts right now ✅</p>';
+}
+
+/* ── Render: Alerts ───────────────────────────────────────── */
+function renderAlerts(){
+  const alerts=buildAlerts();
+  document.getElementById("page-alerts").innerHTML = alerts.length?alerts.map(alertHTML).join(""):'<p class="empty-state">No alerts right now ✅</p>';
+}
+
+/* ── Render: Vehicles ─────────────────────────────────────── */
+function renderVehicles(){
+  const tb=document.getElementById("vehicles-tbody");
+  if(!vehicles.length){ tb.innerHTML='<tr><td colspan="8" class="empty-state">No vehicles added yet.</td></tr>'; return; }
+  tb.innerHTML=vehicles.map(v=>{
+    const st=vStatus(v), stL={ok:"OK",warn:"Due Soon",danger:"Overdue"}[st];
+    const driver=drivers.find(d=>d.id===v.driverId);
+    const acts=isAdmin?`<td><button class="btn-icon" onclick="editVehicle('${v.id}')">✏️</button><button class="btn-icon" onclick="delConfirm('vehicles','${v.id}','${v.reg}')">🗑️</button></td>`:`<td class="admin-only"></td>`;
+    return `<tr><td><span class="reg-pill">${v.reg}</span></td><td>${v.make} ${v.model}</td><td>${v.year||"—"}</td><td>${driver?driver.name:"—"}</td><td>${fmtDate(v.licenceExpiry)}</td><td>${fmtDate(v.serviceDate)}</td><td><span class="status-chip s-${st}">${stL}</span></td>${acts}</tr>`;
+  }).join("");
+}
+
+/* ── Render: Drivers ──────────────────────────────────────── */
+function renderDrivers(){
+  const tb=document.getElementById("drivers-tbody");
+  if(!drivers.length){ tb.innerHTML='<tr><td colspan="5" class="empty-state">No drivers added yet.</td></tr>'; return; }
+  tb.innerHTML=drivers.map(d=>{
+    const av=vehicles.find(v=>v.driverId===d.id);
+    const acts=isAdmin?`<td><button class="btn-icon" onclick="editDriver('${d.id}')">✏️</button><button class="btn-icon" onclick="delConfirm('drivers','${d.id}','${d.name}')">🗑️</button></td>`:`<td class="admin-only"></td>`;
+    return `<tr><td>${d.name}</td><td>${d.phone||"—"}</td><td>${d.email||"—"}</td><td>${av?`<span class="reg-pill">${av.reg}</span>`:"—"}</td>${acts}</tr>`;
+  }).join("");
+}
+
+function syncDriverDropdown(){
+  const sel=document.getElementById("vm-driver"), cur=sel.value;
+  sel.innerHTML='<option value="">— Unassigned —</option>'+drivers.map(d=>`<option value="${d.id}">${d.name}</option>`).join("");
+  sel.value=cur;
+}
+
+/* ── Vehicle CRUD ─────────────────────────────────────────── */
+window.openVehicleModal = ()=>{
+  document.getElementById("vm-title").textContent="Add Vehicle";
+  document.getElementById("vm-id").value="";
+  ["vm-reg","vm-make","vm-model","vm-year","vm-licence","vm-service","vm-lastservice","vm-notes"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("vm-driver").value="";
+  openModal("vehicle-modal");
+};
+window.editVehicle = id=>{
+  const v=vehicles.find(x=>x.id===id); if(!v) return;
+  document.getElementById("vm-title").textContent="Edit Vehicle";
+  document.getElementById("vm-id").value=v.id;
+  document.getElementById("vm-reg").value=v.reg||"";
+  document.getElementById("vm-make").value=v.make||"";
+  document.getElementById("vm-model").value=v.model||"";
+  document.getElementById("vm-year").value=v.year||"";
+  document.getElementById("vm-licence").value=v.licenceExpiry||"";
+  document.getElementById("vm-service").value=v.serviceDate||"";
+  document.getElementById("vm-lastservice").value=v.lastService||"";
+  document.getElementById("vm-notes").value=v.notes||"";
+  document.getElementById("vm-driver").value=v.driverId||"";
+  openModal("vehicle-modal");
+};
+window.saveVehicle = async()=>{
+  const id=document.getElementById("vm-id").value;
+  const data={
+    reg:           document.getElementById("vm-reg").value.trim().toUpperCase(),
+    make:          document.getElementById("vm-make").value.trim(),
+    model:         document.getElementById("vm-model").value.trim(),
+    year:          document.getElementById("vm-year").value.trim(),
+    licenceExpiry: document.getElementById("vm-licence").value,
+    serviceDate:   document.getElementById("vm-service").value,
+    lastService:   document.getElementById("vm-lastservice").value,
+    driverId:      document.getElementById("vm-driver").value,
+    notes:         document.getElementById("vm-notes").value.trim(),
+    updatedAt:     new Date().toISOString()
+  };
+  if(!data.reg||!data.make||!data.model){ alert("Registration, Make and Model are required."); return; }
+  try{
+    if(id) await updateDoc(doc(db,"vehicles",id),data);
+    else{ data.createdAt=new Date().toISOString(); await addDoc(collection(db,"vehicles"),data); }
+    closeModal("vehicle-modal");
+  } catch(e){ alert("Save failed: "+e.message); }
+};
+
+/* ── Driver CRUD ──────────────────────────────────────────── */
+window.openDriverModal = ()=>{
+  document.getElementById("dm-title").textContent="Add Driver";
+  document.getElementById("dm-id").value="";
+  ["dm-name","dm-phone","dm-email"].forEach(id=>document.getElementById(id).value="");
+  openModal("driver-modal");
+};
+window.editDriver = id=>{
+  const d=drivers.find(x=>x.id===id); if(!d) return;
+  document.getElementById("dm-title").textContent="Edit Driver";
+  document.getElementById("dm-id").value=d.id;
+  document.getElementById("dm-name").value=d.name||"";
+  document.getElementById("dm-phone").value=d.phone||"";
+  document.getElementById("dm-email").value=d.email||"";
+  openModal("driver-modal");
+};
+window.saveDriver = async()=>{
+  const id=document.getElementById("dm-id").value;
+  const data={name:document.getElementById("dm-name").value.trim(),phone:document.getElementById("dm-phone").value.trim(),email:document.getElementById("dm-email").value.trim(),updatedAt:new Date().toISOString()};
+  if(!data.name){ alert("Driver name is required."); return; }
+  try{
+    if(id) await updateDoc(doc(db,"drivers",id),data);
+    else{ data.createdAt=new Date().toISOString(); await addDoc(collection(db,"drivers"),data); }
+    closeModal("driver-modal");
+  } catch(e){ alert("Save failed: "+e.message); }
+};
+
+/* ── Delete ───────────────────────────────────────────────── */
+window.delConfirm = (col,id,name)=>{
+  document.getElementById("delete-msg").textContent=`Delete "${name}"? This cannot be undone.`;
+  document.getElementById("delete-confirm-btn").onclick=async()=>{
+    try{ await deleteDoc(doc(db,col,id)); closeModal("delete-modal"); }
+    catch(e){ alert("Delete failed: "+e.message); }
+  };
+  openModal("delete-modal");
+};
+
+/* ── Modal helpers ────────────────────────────────────────── */
+function openModal(id){ document.getElementById(id).classList.add("open"); }
+window.closeModal = id=>document.getElementById(id).classList.remove("open");
+window.backdropClose = (e,id)=>{ if(e.target===document.getElementById(id)) closeModal(id); };
+</script>
+
+</body>
+</html>
