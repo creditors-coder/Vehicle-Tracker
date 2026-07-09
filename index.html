@@ -366,6 +366,16 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
 .empty-state{text-align:center;color:#4a5a80;padding:2.5rem 1rem;font-size:0.85rem}
 .viewer-mode .admin-only{display:none!important}
 
+/* ── Service History ── */
+.service-type-chip{
+  font-size:0.72rem;font-weight:600;
+  padding:3px 8px;border-radius:5px;
+  background:var(--navy-2);border:1px solid var(--border);
+  white-space:nowrap;
+}
+.history-vehicle{font-family:var(--mono);font-size:0.77rem;font-weight:600;color:var(--text-sub)}
+.cost-cell{font-family:var(--mono);font-size:0.82rem;color:var(--success)}
+
 /* ── Export buttons ── */
 .btn-export{background:transparent;color:var(--text-sub);border:1px solid var(--border);padding:0.5rem 0.9rem;border-radius:var(--radius);font-weight:500;font-size:0.8rem;cursor:pointer;transition:all 0.15s;font-family:var(--font);display:inline-flex;align-items:center;gap:0.4rem;white-space:nowrap}
 .btn-export:hover{color:var(--text);border-color:var(--text-sub)}
@@ -479,6 +489,9 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
       <a class="nav-item" onclick="navTo('drivers',this)">
         <span class="nav-icon">👤</span> Drivers
       </a>
+      <a class="nav-item" onclick="navTo('history',this)">
+        <span class="nav-icon">🔧</span> Service History
+      </a>
       <a class="nav-item" onclick="navTo('alerts',this)">
         <span class="nav-icon">🔔</span> Alerts
         <span class="alert-badge" id="alert-badge">0</span>
@@ -532,11 +545,11 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
       <div class="table-wrap">
         <table class="data-table">
           <thead><tr>
-            <th>Registration</th><th>Make / Model</th><th>Year</th><th>Driver</th>
+            <th>Registration</th><th>Make / Model</th><th>Year</th><th>Type</th><th>Driver</th>
             <th>Licence Expiry</th><th>Next Service</th><th>Status</th>
             <th class="admin-only">Actions</th>
           </tr></thead>
-          <tbody id="vehicles-tbody"><tr><td colspan="8" class="empty-state">No vehicles yet.</td></tr></tbody>
+          <tbody id="vehicles-tbody"><tr><td colspan="9" class="empty-state">No vehicles yet.</td></tr></tbody>
         </table>
       </div>
     </section>
@@ -554,6 +567,30 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
             <th class="admin-only">Actions</th>
           </tr></thead>
           <tbody id="drivers-tbody"><tr><td colspan="5" class="empty-state">No drivers yet.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SERVICE HISTORY -->
+    <section id="section-history" class="section hidden">
+      <div class="section-header">
+        <div><h2>Service History</h2><div class="section-sub">Full service log per vehicle</div></div>
+        <button class="btn-primary admin-only" onclick="openServiceModal()">+ Log Service</button>
+      </div>
+      <!-- Vehicle filter -->
+      <div style="margin-bottom:1rem">
+        <select id="history-filter" onchange="renderHistory()" style="max-width:280px;background:var(--navy-2);border:1px solid var(--border);color:var(--text);padding:0.55rem 0.8rem;border-radius:var(--radius);font-family:var(--font);font-size:0.85rem">
+          <option value="">All Vehicles</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr>
+            <th>Date</th><th>Vehicle</th><th>Service Type</th><th>Mileage (km)</th>
+            <th>Cost (R)</th><th>Workshop</th><th>Next Service Date</th><th>Notes</th>
+            <th class="admin-only">Actions</th>
+          </tr></thead>
+          <tbody id="history-tbody"><tr><td colspan="9" class="empty-state">No service records yet.</td></tr></tbody>
         </table>
       </div>
     </section>
@@ -598,9 +635,30 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
         </div>
       </div>
       <div class="form-group"><label>Notes</label><textarea id="vm-notes" placeholder="Optional notes..."></textarea></div>
+
+      <!-- Vehicle type & tracking options -->
+      <div style="border-top:1px solid var(--border);margin-top:0.5rem;padding-top:1rem">
+        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-sub);margin-bottom:0.75rem">Vehicle Type & Tracking</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Vehicle Type</label>
+            <select id="vm-vtype">
+              <option value="company">Company Vehicle</option>
+              <option value="private">Private Vehicle</option>
+            </select>
+          </div>
+          <div class="form-group" style="justify-content:flex-end">
+            <label>&nbsp;</label>
+            <label style="display:flex;align-items:center;gap:0.6rem;cursor:pointer;text-transform:none;letter-spacing:0;font-size:0.85rem;font-weight:500;color:var(--text);margin-top:0.1rem">
+              <input type="checkbox" id="vm-servicetrack" style="width:16px;height:16px;accent-color:var(--red);cursor:pointer"/>
+              Enable Service History tracking
+            </label>
+          </div>
+        </div>
+      </div>
+      </div>
     </div>
     <div class="modal-footer">
-      <button class="btn-ghost" onclick="closeModal('vehicle-modal')">Cancel</button>
       <button class="btn-primary" onclick="saveVehicle()">Save Vehicle</button>
     </div>
   </div></div>
@@ -625,6 +683,70 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
     <div class="modal-footer">
       <button class="btn-ghost" onclick="closeModal('driver-modal')">Cancel</button>
       <button class="btn-primary" onclick="saveDriver()">Save Driver</button>
+    </div>
+  </div></div>
+</div>
+
+<!-- MODAL: Service History -->
+<div id="service-modal" class="modal" onclick="backdropClose(event,'service-modal')">
+  <div style="width:100%;max-width:580px">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-header-inner"><h3 id="sm-title">Log Service</h3><div class="modal-accent-line"></div></div>
+      <button class="modal-close" onclick="closeModal('service-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="sm-id"/>
+      <div class="form-row">
+        <div class="form-group"><label>Vehicle *</label>
+          <select id="sm-vehicle"><option value="">— Select Vehicle —</option></select>
+        </div>
+        <div class="form-group"><label>Service Date *</label>
+          <input type="date" id="sm-date"/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Service Type *</label>
+          <select id="sm-type">
+            <option value="">— Select Type —</option>
+            <option>Major Service</option>
+            <option>Minor Service</option>
+            <option>Oil Change</option>
+            <option>Tyre Replacement</option>
+            <option>Brake Service</option>
+            <option>Licence Renewal</option>
+            <option>Roadworthy</option>
+            <option>Repairs</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Mileage (km)</label>
+          <input type="number" id="sm-mileage" placeholder="e.g. 85000"/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Cost (R)</label>
+          <input type="number" id="sm-cost" placeholder="e.g. 2500"/>
+        </div>
+        <div class="form-group"><label>Workshop / Garage</label>
+          <input type="text" id="sm-workshop" placeholder="e.g. Toyota Dealer"/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Next Service Date</label>
+          <input type="date" id="sm-nextservice"/>
+        </div>
+        <div class="form-group"><label>Invoice Number</label>
+          <input type="text" id="sm-invoice" placeholder="e.g. INV-00123"/>
+        </div>
+      </div>
+      <div class="form-group"><label>Notes</label>
+        <textarea id="sm-notes" placeholder="Work done, parts replaced, etc..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('service-modal')">Cancel</button>
+      <button class="btn-primary" onclick="saveService()">Save Record</button>
     </div>
   </div></div>
 </div>
@@ -674,7 +796,7 @@ const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db   = getFirestore(app);
 
-let currentUser=null,isAdmin=false,vehicles=[],drivers=[],unsubV=null,unsubD=null;
+let currentUser=null,isAdmin=false,vehicles=[],drivers=[],serviceRecords=[],unsubV=null,unsubD=null,unsubS=null;
 const WARN_DAYS=30;
 
 /* ── Login ── */
@@ -690,7 +812,7 @@ window.doLogin = async()=>{
   catch(e){err.textContent="Sign-in error: "+e.message;err.style.display="block"}
 };
 
-window.doLogout=async()=>{if(unsubV)unsubV();if(unsubD)unsubD();await signOut(auth)};
+window.doLogout=async()=>{if(unsubV)unsubV();if(unsubD)unsubD();if(unsubS)unsubS();await signOut(auth)};
 
 window.togglePw=()=>{const i=document.getElementById("login-password");i.type=i.type==="password"?"text":"password"};
 
@@ -739,6 +861,10 @@ function startListeners(){
     drivers=snap.docs.map(d=>({id:d.id,...d.data()}));
     renderDrivers();syncDriverDropdown();
   });
+  unsubS=onSnapshot(query(collection(db,"serviceRecords"),orderBy("date","desc")),snap=>{
+    serviceRecords=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderHistory();syncServiceVehicleDropdown();
+  });
 }
 
 /* ── Helpers ── */
@@ -770,11 +896,15 @@ function renderDashboard(){
 function renderAlerts(){const alerts=buildAlerts();document.getElementById("page-alerts").innerHTML=alerts.length?alerts.map(alertHTML).join(""):'<p class="empty-state">No alerts right now ✅</p>'}
 function renderVehicles(){
   const tb=document.getElementById("vehicles-tbody");
-  if(!vehicles.length){tb.innerHTML='<tr><td colspan="8" class="empty-state">No vehicles added yet.</td></tr>';return}
+  if(!vehicles.length){tb.innerHTML='<tr><td colspan="9" class="empty-state">No vehicles added yet.</td></tr>';return}
   tb.innerHTML=vehicles.map(v=>{
     const st=vStatus(v),stL={ok:"OK",warn:"Due Soon",danger:"Overdue"}[st],driver=drivers.find(d=>d.id===v.driverId);
+    const typeChip=v.vtype==="private"
+      ?`<span class="status-chip" style="background:rgba(123,63,160,0.15);color:#9b5fc0">Private</span>`
+      :`<span class="status-chip" style="background:rgba(26,36,84,0.4);color:#8899bb">Company</span>`;
+    const svcIcon=v.serviceTracking!==false?`<span title="Service tracking ON" style="color:var(--success);font-size:0.8rem">🔧</span>`:`<span title="Service tracking OFF" style="color:var(--text-sub);font-size:0.8rem">—</span>`;
     const acts=isAdmin?`<td><button class="btn-icon" onclick="editVehicle('${v.id}')">✏️</button><button class="btn-icon" onclick="delConfirm('vehicles','${v.id}','${v.reg}')">🗑️</button></td>`:`<td class="admin-only"></td>`;
-    return`<tr><td><span class="reg-pill">${v.reg}</span></td><td>${v.make} ${v.model}</td><td>${v.year||"—"}</td><td>${driver?driver.name:"—"}</td><td>${fmtDate(v.licenceExpiry)}</td><td>${fmtDate(v.serviceDate)}</td><td><span class="status-chip s-${st}">${stL}</span></td>${acts}</tr>`;
+    return`<tr><td><span class="reg-pill">${v.reg}</span></td><td>${v.make} ${v.model}</td><td>${v.year||"—"}</td><td>${typeChip} ${svcIcon}</td><td>${driver?driver.name:"—"}</td><td>${fmtDate(v.licenceExpiry)}</td><td>${fmtDate(v.serviceDate)}</td><td><span class="status-chip s-${st}">${stL}</span></td>${acts}</tr>`;
   }).join("");
 }
 function renderDrivers(){
@@ -793,7 +923,10 @@ window.openVehicleModal=()=>{
   document.getElementById("vm-title").textContent="Add Vehicle";
   document.getElementById("vm-id").value="";
   ["vm-reg","vm-make","vm-model","vm-year","vm-licence","vm-service","vm-lastservice","vm-notes"].forEach(id=>document.getElementById(id).value="");
-  document.getElementById("vm-driver").value="";openModal("vehicle-modal");
+  document.getElementById("vm-driver").value="";
+  document.getElementById("vm-vtype").value="company";
+  document.getElementById("vm-servicetrack").checked=true;
+  openModal("vehicle-modal");
 };
 window.editVehicle=id=>{
   const v=vehicles.find(x=>x.id===id);if(!v)return;
@@ -803,11 +936,14 @@ window.editVehicle=id=>{
   document.getElementById("vm-model").value=v.model||"";document.getElementById("vm-year").value=v.year||"";
   document.getElementById("vm-licence").value=v.licenceExpiry||"";document.getElementById("vm-service").value=v.serviceDate||"";
   document.getElementById("vm-lastservice").value=v.lastService||"";document.getElementById("vm-notes").value=v.notes||"";
-  document.getElementById("vm-driver").value=v.driverId||"";openModal("vehicle-modal");
+  document.getElementById("vm-driver").value=v.driverId||"";
+  document.getElementById("vm-vtype").value=v.vtype||"company";
+  document.getElementById("vm-servicetrack").checked=v.serviceTracking!==false;
+  openModal("vehicle-modal");
 };
 window.saveVehicle=async()=>{
   const id=document.getElementById("vm-id").value;
-  const data={reg:document.getElementById("vm-reg").value.trim().toUpperCase(),make:document.getElementById("vm-make").value.trim(),model:document.getElementById("vm-model").value.trim(),year:document.getElementById("vm-year").value.trim(),licenceExpiry:document.getElementById("vm-licence").value,serviceDate:document.getElementById("vm-service").value,lastService:document.getElementById("vm-lastservice").value,driverId:document.getElementById("vm-driver").value,notes:document.getElementById("vm-notes").value.trim(),updatedAt:new Date().toISOString()};
+  const data={reg:document.getElementById("vm-reg").value.trim().toUpperCase(),make:document.getElementById("vm-make").value.trim(),model:document.getElementById("vm-model").value.trim(),year:document.getElementById("vm-year").value.trim(),licenceExpiry:document.getElementById("vm-licence").value,serviceDate:document.getElementById("vm-service").value,lastService:document.getElementById("vm-lastservice").value,driverId:document.getElementById("vm-driver").value,notes:document.getElementById("vm-notes").value.trim(),vtype:document.getElementById("vm-vtype").value,serviceTracking:document.getElementById("vm-servicetrack").checked,updatedAt:new Date().toISOString()};
   if(!data.reg||!data.make||!data.model){alert("Registration, Make and Model are required.");return}
   try{if(id)await updateDoc(doc(db,"vehicles",id),data);else{data.createdAt=new Date().toISOString();await addDoc(collection(db,"vehicles"),data)}closeModal("vehicle-modal")}
   catch(e){alert("Save failed: "+e.message)}
@@ -834,6 +970,94 @@ window.delConfirm=(col,id,name)=>{
   document.getElementById("delete-msg").textContent=`Delete "${name}"? This cannot be undone.`;
   document.getElementById("delete-confirm-btn").onclick=async()=>{try{await deleteDoc(doc(db,col,id));closeModal("delete-modal")}catch(e){alert("Delete failed: "+e.message)}};
   openModal("delete-modal");
+};
+
+/* ── Service History ── */
+function syncServiceVehicleDropdown(){
+  const serviceVehicles=vehicles.filter(v=>v.serviceTracking!==false);
+  const sel=document.getElementById("sm-vehicle"),cur=sel.value;
+  sel.innerHTML='<option value="">— Select Vehicle —</option>'+serviceVehicles.map(v=>`<option value="${v.id}">${v.reg} — ${v.make} ${v.model}</option>`).join("");
+  sel.value=cur;
+  // Also sync the filter dropdown
+  const fil=document.getElementById("history-filter"),filCur=fil.value;
+  fil.innerHTML='<option value="">All Vehicles</option>'+serviceVehicles.map(v=>`<option value="${v.id}">${v.reg} — ${v.make} ${v.model}</option>`).join("");
+  fil.value=filCur;
+}
+
+window.renderHistory=()=>{
+  const tb=document.getElementById("history-tbody");
+  const filter=document.getElementById("history-filter")?.value||"";
+  const records=filter?serviceRecords.filter(r=>r.vehicleId===filter):serviceRecords;
+  if(!records.length){tb.innerHTML=`<tr><td colspan="9" class="empty-state">No service records yet.</td></tr>`;return}
+  tb.innerHTML=records.map(r=>{
+    const v=vehicles.find(x=>x.id===r.vehicleId);
+    const acts=isAdmin?`<td><button class="btn-icon" onclick="editService('${r.id}')">✏️</button><button class="btn-icon" onclick="delConfirm('serviceRecords','${r.id}','service record')">🗑️</button></td>`:`<td class="admin-only"></td>`;
+    return`<tr>
+      <td>${fmtDate(r.date)}</td>
+      <td><span class="reg-pill">${v?v.reg:"Unknown"}</span></td>
+      <td><span class="service-type-chip">${r.type||"—"}</span></td>
+      <td>${r.mileage?Number(r.mileage).toLocaleString()+" km":"—"}</td>
+      <td class="cost-cell">${r.cost?"R "+Number(r.cost).toLocaleString("en-ZA",{minimumFractionDigits:2}):"—"}</td>
+      <td>${r.workshop||"—"}</td>
+      <td>${fmtDate(r.nextService)}</td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.notes||""}">${r.notes||"—"}</td>
+      ${acts}
+    </tr>`;
+  }).join("");
+};
+
+window.openServiceModal=()=>{
+  document.getElementById("sm-title").textContent="Log Service";
+  document.getElementById("sm-id").value="";
+  ["sm-mileage","sm-cost","sm-workshop","sm-nextservice","sm-invoice","sm-notes"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("sm-vehicle").value="";
+  document.getElementById("sm-type").value="";
+  document.getElementById("sm-date").value=new Date().toISOString().split("T")[0];
+  openModal("service-modal");
+};
+
+window.editService=id=>{
+  const r=serviceRecords.find(x=>x.id===id);if(!r)return;
+  document.getElementById("sm-title").textContent="Edit Service Record";
+  document.getElementById("sm-id").value=r.id;
+  document.getElementById("sm-vehicle").value=r.vehicleId||"";
+  document.getElementById("sm-date").value=r.date||"";
+  document.getElementById("sm-type").value=r.type||"";
+  document.getElementById("sm-mileage").value=r.mileage||"";
+  document.getElementById("sm-cost").value=r.cost||"";
+  document.getElementById("sm-workshop").value=r.workshop||"";
+  document.getElementById("sm-nextservice").value=r.nextService||"";
+  document.getElementById("sm-invoice").value=r.invoice||"";
+  document.getElementById("sm-notes").value=r.notes||"";
+  openModal("service-modal");
+};
+
+window.saveService=async()=>{
+  const id=document.getElementById("sm-id").value;
+  const vehicleId=document.getElementById("sm-vehicle").value;
+  const date=document.getElementById("sm-date").value;
+  const type=document.getElementById("sm-type").value;
+  if(!vehicleId||!date||!type){alert("Vehicle, Date and Service Type are required.");return}
+  const data={
+    vehicleId,date,type,
+    mileage:document.getElementById("sm-mileage").value,
+    cost:document.getElementById("sm-cost").value,
+    workshop:document.getElementById("sm-workshop").value.trim(),
+    nextService:document.getElementById("sm-nextservice").value,
+    invoice:document.getElementById("sm-invoice").value.trim(),
+    notes:document.getElementById("sm-notes").value.trim(),
+    updatedAt:new Date().toISOString()
+  };
+  // If next service date set, also update the vehicle's next service date
+  if(data.nextService){
+    const v=vehicles.find(x=>x.id===vehicleId);
+    if(v) await updateDoc(doc(db,"vehicles",vehicleId),{serviceDate:data.nextService,lastService:date});
+  }
+  try{
+    if(id)await updateDoc(doc(db,"serviceRecords",id),data);
+    else{data.createdAt=new Date().toISOString();await addDoc(collection(db,"serviceRecords"),data);}
+    closeModal("service-modal");
+  }catch(e){alert("Save failed: "+e.message)}
 };
 
 /* ── Export to Excel ── */
