@@ -376,6 +376,14 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
 .history-vehicle{font-family:var(--mono);font-size:0.77rem;font-weight:600;color:var(--text-sub)}
 .cost-cell{font-family:var(--mono);font-size:0.82rem;color:var(--success)}
 
+/* ── Fuel Tracker ── */
+.fuel-limit-bar{width:100%;height:6px;background:var(--border);border-radius:3px;margin-top:4px;overflow:hidden}
+.fuel-limit-fill{height:100%;border-radius:3px;background:var(--success);transition:width 0.3s}
+.fuel-limit-fill.warn{background:var(--warn)}
+.fuel-limit-fill.danger{background:var(--danger)}
+.stat-card.c-purple::before{background:var(--purple)}
+.dept-chip{font-size:0.72rem;font-weight:600;padding:2px 8px;border-radius:4px;background:var(--navy-2);border:1px solid var(--border)}
+
 /* ── Export buttons ── */
 .btn-export{background:transparent;color:var(--text-sub);border:1px solid var(--border);padding:0.5rem 0.9rem;border-radius:var(--radius);font-weight:500;font-size:0.8rem;cursor:pointer;transition:all 0.15s;font-family:var(--font);display:inline-flex;align-items:center;gap:0.4rem;white-space:nowrap}
 .btn-export:hover{color:var(--text);border-color:var(--text-sub)}
@@ -492,6 +500,9 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
       <a class="nav-item" onclick="navTo('history',this)">
         <span class="nav-icon">🔧</span> Service History
       </a>
+      <a class="nav-item" onclick="navTo('fuel',this)">
+        <span class="nav-icon">⛽</span> Fuel Tracker
+      </a>
       <a class="nav-item" onclick="navTo('alerts',this)">
         <span class="nav-icon">🔔</span> Alerts
         <span class="alert-badge" id="alert-badge">0</span>
@@ -591,6 +602,85 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
             <th class="admin-only">Actions</th>
           </tr></thead>
           <tbody id="history-tbody"><tr><td colspan="9" class="empty-state">No service records yet.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- FUEL TRACKER -->
+    <section id="section-fuel" class="section hidden">
+      <div class="section-header">
+        <div><h2>Fuel Tracker</h2><div class="section-sub">Fleet Card Fuel Spend — Month to Date</div></div>
+        <div style="display:flex;gap:0.5rem;align-items:center">
+          <button class="btn-export" onclick="syncGoogleSheet()">🔄 Sync Google Sheet</button>
+          <label class="btn-export" style="cursor:pointer">
+            📁 Upload File <input type="file" id="fuel-upload" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleFuelUpload(event)"/>
+          </label>
+          <button class="btn-export" onclick="exportFuelExcel()">📊 Export Excel</button>
+        </div>
+      </div>
+
+      <!-- Status bar -->
+      <div id="fuel-status" style="display:none;background:var(--navy-2);border:1px solid var(--border);border-radius:var(--radius);padding:0.6rem 1rem;margin-bottom:1rem;font-size:0.8rem;color:var(--text-sub);display:flex;align-items:center;gap:0.5rem">
+        <span id="fuel-status-icon">ℹ️</span>
+        <span id="fuel-status-msg">Ready</span>
+        <span style="margin-left:auto;font-size:0.72rem" id="fuel-last-sync"></span>
+      </div>
+
+      <!-- Stat cards -->
+      <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+        <div class="stat-card c-red">
+          <div class="stat-value" id="fuel-stat-spend">R0</div>
+          <div class="stat-label">Total MTD Spend</div>
+        </div>
+        <div class="stat-card c-purple" style="--c:var(--purple)">
+          <div class="stat-value" id="fuel-stat-vehicles">0</div>
+          <div class="stat-label">Active Vehicles</div>
+        </div>
+        <div class="stat-card c-warn">
+          <div class="stat-value" id="fuel-stat-dept">—</div>
+          <div class="stat-label">Top Department</div>
+        </div>
+        <div class="stat-card c-ok">
+          <div class="stat-value" id="fuel-stat-mileage">0</div>
+          <div class="stat-label">Total Mileage (km)</div>
+        </div>
+      </div>
+
+      <!-- Two column layout -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem">
+
+        <!-- Department summary -->
+        <div>
+          <div class="alerts-section-title">Department Summary</div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Department</th><th>Vehicles</th><th>Total Spend</th><th>% of Total</th></tr></thead>
+              <tbody id="fuel-dept-tbody"><tr><td colspan="4" class="empty-state">No data yet</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Monthly trend -->
+        <div>
+          <div class="alerts-section-title">Monthly Trend</div>
+          <div class="table-wrap" style="max-height:280px;overflow-y:auto">
+            <table class="data-table">
+              <thead><tr><th>Month</th><th>Spend (R)</th><th>Litres</th></tr></thead>
+              <tbody id="fuel-monthly-tbody"><tr><td colspan="3" class="empty-state">No data yet</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vehicle detail table -->
+      <div class="alerts-section-title">Per Vehicle Detail</div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr>
+            <th>Registration</th><th>Vehicle</th><th>Driver</th><th>Department</th>
+            <th>Spend (R)</th><th>Limit (R)</th><th>Mileage (km)</th><th>% of Limit</th>
+          </tr></thead>
+          <tbody id="fuel-vehicles-tbody"><tr><td colspan="8" class="empty-state">No data yet — sync Google Sheet or upload a file</td></tr></tbody>
         </table>
       </div>
     </section>
@@ -1089,6 +1179,219 @@ window.printVehicles=()=>{
   document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
   document.getElementById("section-vehicles").classList.add("active");
   window.print();
+};
+
+/* ══════════════════════════════════════
+   FUEL TRACKER
+══════════════════════════════════════ */
+const SHEET_ID = "1PMoNZOLaYsHDRCeweE4jGV9OpoZ9RFTpMxN1yqTFI4w";
+let fuelData = { vehicles:[], monthly:[] };
+
+function fuelStatus(msg, icon="ℹ️", isError=false){
+  const el=document.getElementById("fuel-status");
+  const msgEl=document.getElementById("fuel-status-msg");
+  const iconEl=document.getElementById("fuel-status-icon");
+  el.style.display="flex";
+  msgEl.textContent=msg;
+  iconEl.textContent=icon;
+  el.style.borderColor=isError?"rgba(239,68,68,0.3)":el.style.borderColor;
+  el.style.color=isError?"var(--danger)":"var(--text-sub)";
+}
+
+/* ── Google Sheet Sync ── */
+window.syncGoogleSheet = async()=>{
+  fuelStatus("Syncing from Google Sheet...","🔄");
+  try{
+    // Fetch main vehicle table (rows 2-17, cols A-G)
+    const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&range=A2:G17`;
+    const res=await fetch(url);
+    const text=await res.text();
+    // Google wraps response in /*O_o*/ google.visualization.Query.setResponse({...})
+    const json=JSON.parse(text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/)[1]);
+    const rows=json.table.rows;
+
+    const vehicles=[];
+    rows.forEach(row=>{
+      const c=row.c;
+      if(!c||!c[0]||!c[0].v||c[0].v==="Registration number"||c[0].v==="Grand Total") return;
+      vehicles.push({
+        reg:   c[0]?.v||"",
+        spend: parseFloat(c[1]?.v)||0,
+        dept:  c[2]?.v||"",
+        driver:c[3]?.v||"",
+        vehicle:c[4]?.v||"",
+        limit: parseFloat(c[5]?.v)||0,
+        mileage:parseFloat(c[6]?.v)||0
+      });
+    });
+
+    // Fetch monthly table (rows 9-20, cols I-K on the right side)
+    const url2=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&range=I9:K21`;
+    const res2=await fetch(url2);
+    const text2=await res2.text();
+    const json2=JSON.parse(text2.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/)[1]);
+    const rows2=json2.table.rows;
+    const monthly=[];
+    rows2.forEach(row=>{
+      const c=row.c;
+      if(!c||!c[0]||!c[0].v||c[0].v==="Month") return;
+      monthly.push({
+        month: c[0]?.v||"",
+        spend: parseFloat(c[1]?.v)||0,
+        litres:parseFloat(c[2]?.v)||0
+      });
+    });
+
+    fuelData={vehicles,monthly};
+    renderFuel();
+    document.getElementById("fuel-last-sync").textContent="Last synced: "+new Date().toLocaleTimeString("en-ZA");
+    fuelStatus("Synced successfully from Google Sheet","✅");
+  } catch(e){
+    fuelStatus("Sync failed — make sure the sheet is set to 'Anyone with link can view'","❌",true);
+    console.error(e);
+  }
+};
+
+/* ── CSV/Excel Upload ── */
+window.handleFuelUpload = async(e)=>{
+  const file=e.target.files[0]; if(!file) return;
+  fuelStatus(`Reading ${file.name}...`,"📁");
+  try{
+    const text=await file.text();
+    const lines=text.split("\n").map(l=>l.split(",").map(c=>c.replace(/^"|"$/g,"").trim()));
+    // Find header row
+    let headerIdx=lines.findIndex(l=>l.some(c=>c.toLowerCase().includes("registration")));
+    if(headerIdx===-1) headerIdx=1;
+    const headers=lines[headerIdx].map(h=>h.toLowerCase());
+    const regI=headers.findIndex(h=>h.includes("registration")||h.includes("reg"));
+    const spendI=headers.findIndex(h=>h.includes("value")||h.includes("spend")||h.includes("amount"));
+    const deptI=headers.findIndex(h=>h.includes("dept")||h.includes("department"));
+    const driverI=headers.findIndex(h=>h.includes("driver"));
+    const vehicleI=headers.findIndex(h=>h.includes("vehicle")||h.includes("make")||h.includes("model"));
+    const limitI=headers.findIndex(h=>h.includes("limit"));
+    const mileageI=headers.findIndex(h=>h.includes("mileage")||h.includes("km")||h.includes("odometer"));
+
+    const vehicles=[];
+    for(let i=headerIdx+1;i<lines.length;i++){
+      const l=lines[i];
+      if(!l||!l[0]||l[0].toLowerCase().includes("grand")||l[0].toLowerCase().includes("total")) continue;
+      if(l.every(c=>!c)) continue;
+      vehicles.push({
+        reg:    regI>=0?l[regI]||"":"",
+        spend:  spendI>=0?parseFloat(l[spendI])||0:0,
+        dept:   deptI>=0?l[deptI]||"":"",
+        driver: driverI>=0?l[driverI]||"":"",
+        vehicle:vehicleI>=0?l[vehicleI]||"":"",
+        limit:  limitI>=0?parseFloat(l[limitI])||0:0,
+        mileage:mileageI>=0?parseFloat(l[mileageI])||0:0
+      });
+    }
+    fuelData.vehicles=vehicles;
+    renderFuel();
+    fuelStatus(`Loaded ${vehicles.length} vehicles from ${file.name}`,"✅");
+  } catch(ex){
+    fuelStatus("Failed to read file — please use CSV or Excel format","❌",true);
+    console.error(ex);
+  }
+  e.target.value="";
+};
+
+/* ── Render Fuel Page ── */
+function renderFuel(){
+  const {vehicles,monthly}=fuelData;
+  if(!vehicles.length) return;
+
+  const totalSpend=vehicles.reduce((s,v)=>s+v.spend,0);
+  const totalMileage=vehicles.reduce((s,v)=>s+v.mileage,0);
+
+  // Department totals
+  const depts={};
+  vehicles.forEach(v=>{
+    if(!v.dept) return;
+    if(!depts[v.dept]) depts[v.dept]={spend:0,count:0};
+    depts[v.dept].spend+=v.spend;
+    depts[v.dept].count++;
+  });
+  const topDept=Object.entries(depts).sort((a,b)=>b[1].spend-a[1].spend)[0];
+
+  // Stat cards
+  document.getElementById("fuel-stat-spend").textContent="R"+totalSpend.toLocaleString("en-ZA",{minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById("fuel-stat-vehicles").textContent=vehicles.length;
+  document.getElementById("fuel-stat-dept").textContent=topDept?topDept[0]:"—";
+  document.getElementById("fuel-stat-mileage").textContent=totalMileage.toLocaleString("en-ZA");
+
+  // Department table
+  const deptTb=document.getElementById("fuel-dept-tbody");
+  const deptColors={"Finance":"#4a7fff","Sales":"#22c55e","Technical":"#f59e0b"};
+  deptTb.innerHTML=Object.entries(depts).sort((a,b)=>b[1].spend-a[1].spend).map(([dept,d])=>{
+    const pct=totalSpend>0?((d.spend/totalSpend)*100).toFixed(1):0;
+    const col=deptColors[dept]||"#8899bb";
+    return`<tr>
+      <td><span class="dept-chip" style="color:${col};border-color:${col}33">${dept}</span></td>
+      <td>${d.count}</td>
+      <td style="font-family:var(--mono);color:var(--success)">R${d.spend.toLocaleString("en-ZA",{minimumFractionDigits:2})}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:0.5rem">
+          <span style="font-family:var(--mono);font-size:0.78rem">${pct}%</span>
+          <div class="fuel-limit-bar" style="width:80px">
+            <div class="fuel-limit-fill${pct>80?" danger":pct>60?" warn":""}" style="width:${Math.min(pct,100)}%"></div>
+          </div>
+        </div>
+      </td>
+    </tr>`;
+  }).join("");
+
+  // Monthly table
+  const monthTb=document.getElementById("fuel-monthly-tbody");
+  if(monthly.length){
+    monthTb.innerHTML=monthly.filter(m=>m.spend>0||m.litres>0).map(m=>`<tr>
+      <td>${m.month}</td>
+      <td style="font-family:var(--mono);color:var(--success)">R${m.spend.toLocaleString("en-ZA",{minimumFractionDigits:2})}</td>
+      <td style="font-family:var(--mono)">${m.litres>0?m.litres.toLocaleString("en-ZA",{minimumFractionDigits:2}):"—"}</td>
+    </tr>`).join("");
+  } else {
+    monthTb.innerHTML='<tr><td colspan="3" class="empty-state">Monthly data not available in uploaded file</td></tr>';
+  }
+
+  // Vehicle detail table
+  const vTb=document.getElementById("fuel-vehicles-tbody");
+  vTb.innerHTML=vehicles.map(v=>{
+    const pct=v.limit>0?Math.min((v.spend/v.limit)*100,100):0;
+    const pctClass=pct>90?"danger":pct>75?"warn":"";
+    return`<tr>
+      <td><span class="reg-pill">${v.reg||"—"}</span></td>
+      <td>${v.vehicle||"—"}</td>
+      <td>${v.driver||"—"}</td>
+      <td><span class="dept-chip">${v.dept||"—"}</span></td>
+      <td style="font-family:var(--mono);color:${v.spend>0?"var(--success)":"var(--text-sub)"}">R${v.spend.toLocaleString("en-ZA",{minimumFractionDigits:2})}</td>
+      <td style="font-family:var(--mono)">R${v.limit.toLocaleString("en-ZA",{minimumFractionDigits:2})}</td>
+      <td style="font-family:var(--mono)">${v.mileage>0?v.mileage.toLocaleString("en-ZA"):"—"}</td>
+      <td style="min-width:120px">
+        ${v.limit>0?`<div style="display:flex;align-items:center;gap:0.5rem">
+          <span style="font-size:0.75rem;font-family:var(--mono)">${pct.toFixed(0)}%</span>
+          <div class="fuel-limit-bar" style="flex:1"><div class="fuel-limit-fill ${pctClass}" style="width:${pct}%"></div></div>
+        </div>`:"—"}
+      </td>
+    </tr>`;
+  }).join("");
+}
+
+/* ── Export Fuel to Excel ── */
+window.exportFuelExcel=()=>{
+  if(!fuelData.vehicles.length){alert("No fuel data to export.");return}
+  const headers=["Registration","Vehicle","Driver","Department","Spend (R)","Limit (R)","Mileage (km)","% of Limit"];
+  const rows=fuelData.vehicles.map(v=>{
+    const pct=v.limit>0?((v.spend/v.limit)*100).toFixed(1):"";
+    return[v.reg,v.vehicle,v.driver,v.dept,v.spend.toFixed(2),v.limit.toFixed(2),v.mileage,pct];
+  });
+  const csv=[headers,...rows].map(r=>r.map(c=>`"${String(c||"").replace(/"/g,'""')}"`).join(",")).join("\n");
+  const blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download=`XCorp-Fuel-Report-${new Date().toLocaleDateString("en-ZA").replace(/\//g,"-")}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 };
 
 /* ── Modals ── */
