@@ -619,6 +619,12 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
             <option value="March 26 Summary">March 2026</option>
             <option value="February 26 Summary">February 2026</option>
             <option value="January 26 Summary">January 2026</option>
+            <option value="December 25 Summary">December 2025</option>
+            <option value="November 25 Summary">November 2025</option>
+            <option value="October 25 Summary">October 2025</option>
+            <option value="September 25 Summary">September 2025</option>
+            <option value="August 25 Summary">August 2025</option>
+            <option value="July 25 Summary">July 2025</option>
           </select>
           <button class="btn-export" onclick="syncGoogleSheet()">🔄 Sync</button>
           <label class="btn-export" style="cursor:pointer">
@@ -1210,90 +1216,104 @@ function fuelStatus(msg, icon="ℹ️", isError=false){
 /* ── Google Sheet Sync ── */
 window.syncGoogleSheet = async()=>{
   const sheetTab = document.getElementById("fuel-month-select")?.value || "July 26 Summary";
-  const tabEncoded = encodeURIComponent(sheetTab);
-  fuelStatus(`Syncing ${sheetTab}...`,"🔄");
+  fuelStatus(`Syncing "${sheetTab}"...`,"🔄");
   try{
-    // ── Vehicle data: Row 1=title, Row 2=headers, Rows 3-16=data, Row 17=Grand Total
-    // Cols: A=Reg, B=Value, C=Dept, D=Driver, E=Vehicle, F=Limit, G=Mileage
-    const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${tabEncoded}&range=A3:G16`;
-    const res=await fetch(url);
-    if(!res.ok) throw new Error("Sheet not accessible");
-    const text=await res.text();
-    const match=text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/);
-    if(!match) throw new Error("Invalid response from Google Sheets");
-    const json=JSON.parse(match[1]);
-    const rows=json.table?.rows||[];
+    const sid = "1PMoNZOLaYsHDRCeweE4jGV9OpoZ9RFTpMxN1yqTFI4w";
+    // Use sheet name in URL — must exactly match tab name
+    const tab = encodeURIComponent(sheetTab);
 
+    async function fetchRange(range){
+      // headers=0 tells Google NOT to treat first row as headers
+      const url=`https://docs.google.com/spreadsheets/d/${sid}/gviz/tq?tqx=out:json&sheet=${tab}&range=${range}&headers=0`;
+      const r=await fetch(url);
+      if(!r.ok) throw new Error(`HTTP ${r.status} — sheet may not be public`);
+      const t=await r.text();
+      const m=t.match(/google\.visualization\.Query\.setResponse\(([\s\S]*?)\);?\s*$/);
+      if(!m) throw new Error("Unexpected response from Google");
+      const parsed=JSON.parse(m[1]);
+      if(parsed.status==="error") throw new Error(parsed.errors?.[0]?.detailed_message||"Sheet error");
+      return parsed.table?.rows||[];
+    }
+
+    function val(cell){
+      // Google sometimes puts the value in .v or formatted in .f
+      if(!cell) return "";
+      if(cell.v!==null&&cell.v!==undefined) return cell.v;
+      if(cell.f!==null&&cell.f!==undefined) return cell.f;
+      return "";
+    }
+    function num(cell){
+      const v=val(cell);
+      if(typeof v==="number") return v;
+      return parseFloat(String(v).replace(/[^0-9.-]/g,""))||0;
+    }
+    function str(cell){ return String(val(cell)).trim(); }
+
+    // ── VEHICLE DATA: A3:G16
+    // Row 1 = "Fleet Card Fuel Spend MTD" (title, merged)
+    // Row 2 = headers (Registration number, Value of transaction, Department, Driver, Vehicle, Limit, Mileage)
+    // Rows 3-16 = data
+    // Row 17 = Grand Total
+    const vRows=await fetchRange("A3:G16");
     const fuelVehicles=[];
-    rows.forEach(row=>{
-      const c=row.c;
-      if(!c||!c[0]||c[0].v===null||c[0].v==="") return;
-      const reg=String(c[0]?.v||"").trim();
+    vRows.forEach(row=>{
+      const c=row.c||[];
+      const reg=str(c[0]);
       if(!reg||reg.toLowerCase().includes("grand")||reg.toLowerCase().includes("total")) return;
       fuelVehicles.push({
         reg,
-        spend:   parseFloat(c[1]?.v)||0,
-        dept:    String(c[2]?.v||"").trim(),
-        driver:  String(c[3]?.v||"").trim(),
-        vehicle: String(c[4]?.v||"").trim(),
-        limit:   parseFloat(c[5]?.v)||0,
-        mileage: parseFloat(c[6]?.v)||0
+        spend:   num(c[1]),
+        dept:    str(c[2]),
+        driver:  str(c[3]),
+        vehicle: str(c[4]),
+        limit:   num(c[5]),
+        mileage: num(c[6])
       });
     });
 
-    // ── Monthly trend: Col I=Month, Col J=Value Fuel Card, Col K=Litres
-    // Starts at row 9 (index 8), header at row 8
-    const url2=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${tabEncoded}&range=I9:K22`;
-    const res2=await fetch(url2);
-    const text2=await res2.text();
-    const match2=text2.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/);
-    const monthly=[];
-    if(match2){
-      const json2=JSON.parse(match2[1]);
-      const rows2=json2.table?.rows||[];
-      rows2.forEach(row=>{
-        const c=row.c;
-        if(!c||!c[0]||!c[0].v) return;
-        const month=String(c[0].v).trim();
-        if(!month||month==="Month") return;
-        monthly.push({
-          month,
-          spend:  parseFloat(c[1]?.v)||0,
-          litres: parseFloat(c[2]?.v)||0
-        });
-      });
-    }
+    if(!fuelVehicles.length) throw new Error(`No vehicles found in "${sheetTab}" — check tab name matches exactly`);
 
-    // ── Department summary: Col I=Dept, Col J=Fleet Card Value — rows 3-6
-    const url3=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${tabEncoded}&range=I3:L6`;
-    const res3=await fetch(url3);
-    const text3=await res3.text();
-    const match3=text3.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/);
+    // ── DEPARTMENT SUMMARY: I3:L6
+    // Row 2 (col I) = "Department", J = "Value of transaction" (Fleet Card), K = "Value of Transaction" (COD), L = "Total"
+    // Rows 3-5 = Finance, Sales, Technical
+    // Row 6 = Grand Total
+    const dRows=await fetchRange("I3:L6");
     const deptSummary=[];
-    if(match3){
-      const json3=JSON.parse(match3[1]);
-      const rows3=json3.table?.rows||[];
-      rows3.forEach(row=>{
-        const c=row.c;
-        if(!c||!c[0]||!c[0].v) return;
-        const dept=String(c[0].v).trim();
-        if(!dept||dept==="Department"||dept.toLowerCase().includes("grand")) return;
-        deptSummary.push({
-          dept,
-          fleetCard: parseFloat(c[1]?.v)||0,
-          cod:       parseFloat(c[2]?.v)||0,
-          total:     parseFloat(c[3]?.v)||0
-        });
+    dRows.forEach(row=>{
+      const c=row.c||[];
+      const dept=str(c[0]);
+      if(!dept||dept==="Department"||dept.toLowerCase().includes("grand")) return;
+      deptSummary.push({
+        dept,
+        fleetCard: num(c[1]),
+        cod:       num(c[2]),
+        total:     num(c[3])
       });
-    }
+    });
+
+    // ── MONTHLY TREND: I9:K22
+    // Row 8 = headers (Month, Value Fuel Card, Litres)
+    // Rows 9+ = July 25, August 25 ... July 26
+    const mRows=await fetchRange("I9:K22");
+    const monthly=[];
+    mRows.forEach(row=>{
+      const c=row.c||[];
+      const month=str(c[0]);
+      if(!month||month==="Month") return;
+      monthly.push({
+        month,
+        spend:  num(c[1]),
+        litres: num(c[2])
+      });
+    });
 
     fuelData={vehicles:fuelVehicles, monthly, deptSummary, sheetTab};
     renderFuel();
     document.getElementById("fuel-last-sync").textContent="Synced: "+new Date().toLocaleTimeString("en-ZA");
-    fuelStatus(`✅ Loaded ${fuelVehicles.length} vehicles from ${sheetTab}`,"✅");
+    fuelStatus(`✅ Loaded ${fuelVehicles.length} vehicles from "${sheetTab}"`, "✅");
   } catch(e){
-    fuelStatus("Sync failed — check the sheet is set to 'Anyone with link can view'","❌",true);
-    console.error(e);
+    fuelStatus(`❌ ${e.message}`,"❌",true);
+    console.error("Fuel sync error:",e);
   }
 };
 
