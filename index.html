@@ -1207,57 +1207,74 @@ function fuelStatus(msg, icon="ℹ️", isError=false){
 
 /* ── Auto-discover all sheet tabs ── */
 async function loadSheetTabs(){
-  try{
-    // Fetch the sheet's HTML to extract tab names and GIDs
-    const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit`;
-    // Use the sheets API to list sheets via gviz — fetch sheet 0 metadata
-    // We use the feeds URL which lists all sheets
-    const metaUrl=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=0&range=A1&headers=0`;
-    const r=await fetch(metaUrl);
-    const t=await r.text();
-    // Extract sheet names from the response — Google embeds them in the JSON
-    const sheetsMatch=t.match(/"sheets":\[(.*?)\]/s) ||
-                      t.match(/\{"label":"(.*?)"/g);
+  // Known months and their GIDs — July 26 confirmed, others use tab name fallback
+  const KNOWN_MONTHS = [
+    { label:"July 2026",      gid:"348279363",  name:"July 26 Summary" },
+    { label:"June 2026",      gid:"",           name:"June 26 Summary" },
+    { label:"May 2026",       gid:"",           name:"May 26 Summary" },
+    { label:"April 2026",     gid:"",           name:"April 26 Summary" },
+    { label:"March 2026",     gid:"",           name:"March 26 Summary" },
+    { label:"February 2026",  gid:"",           name:"February 26 Summary" },
+    { label:"January 2026",   gid:"",           name:"January 26 Summary" },
+    { label:"December 2025",  gid:"",           name:"December 25 Summary" },
+    { label:"November 2025",  gid:"",           name:"November 25 Summary" },
+    { label:"October 2025",   gid:"",           name:"October 25 Summary" },
+    { label:"September 2025", gid:"",           name:"September 25 Summary" },
+    { label:"August 2025",    gid:"",           name:"August 25 Summary" },
+    { label:"July 2025",      gid:"",           name:"July 25 Summary" },
+  ];
 
-    // Alternative: use the Sheets API v4 public endpoint for sheet metadata
-    const metaUrl2=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?fields=sheets.properties&key=AIzaSyAZzMydaZ6Dk6qHDygpiGU1umIbxJekcLU`;
-    const r2=await fetch(metaUrl2);
-    if(!r2.ok) throw new Error("metadata fetch failed");
-    const meta=await r2.json();
-    const sheets=meta.sheets||[];
+  // Test each month by trying to fetch 1 cell — if it returns data the tab exists
+  fuelStatus("Discovering available months...","🔄");
+  const sel=document.getElementById("fuel-month-select");
+  sel.innerHTML="";
+  const available=[];
 
-    // Filter to only "Summary" tabs (exclude Weekly Inspection etc)
-    const summaryTabs=sheets
-      .map(s=>({name:s.properties.title, gid:String(s.properties.sheetId)}))
-      .filter(s=>s.name.toLowerCase().includes("summary"))
-      .reverse(); // newest first
-
-    if(!summaryTabs.length) throw new Error("No Summary tabs found");
-
-    const sel=document.getElementById("fuel-month-select");
-    sel.innerHTML=summaryTabs.map(s=>`<option value="${s.gid}" data-name="${s.name}">${s.name.replace(" Summary","")}</option>`).join("");
-
-    // Auto-sync the first (most recent) tab
-    syncGoogleSheet();
-  } catch(e){
-    console.error("Tab discovery failed:",e);
-    // Fallback to known GID
-    const sel=document.getElementById("fuel-month-select");
-    sel.innerHTML=`<option value="348279363" data-name="July 26 Summary">July 2026</option>`;
-    syncGoogleSheet();
+  for(const m of KNOWN_MONTHS){
+    try{
+      // Use gid if known, otherwise try by sheet name
+      const param = m.gid ? `gid=${m.gid}` : `sheet=${encodeURIComponent(m.name)}`;
+      const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&${param}&range=A3&headers=0`;
+      const r=await fetch(url);
+      const t=await r.text();
+      const match=t.match(/google\.visualization\.Query\.setResponse\(([\s\S]*?)\);?\s*$/);
+      if(!match) continue;
+      const parsed=JSON.parse(match[1]);
+      // If status is error or no rows, tab doesn't exist
+      if(parsed.status==="error") continue;
+      const rows=parsed.table?.rows||[];
+      if(!rows.length||!rows[0]?.c?.[0]?.v) continue;
+      // Tab exists! Add to dropdown
+      const identifier = m.gid || m.name;
+      available.push({...m, identifier});
+      sel.innerHTML+=`<option value="${identifier}" data-name="${m.name}">${m.label}</option>`;
+    } catch(e){ continue; }
   }
+
+  if(!available.length){
+    // Fallback to just July 26
+    sel.innerHTML=`<option value="348279363" data-name="July 26 Summary">July 2026</option>`;
+  }
+
+  fuelStatus(`Found ${available.length} month(s)`,"✅");
+  // Auto sync most recent
+  syncGoogleSheet();
 }
 
 /* ── Google Sheet Sync ── */
 window.syncGoogleSheet = async()=>{
   const sel=document.getElementById("fuel-month-select");
-  const gid=sel.value||"348279363";
-  const sheetTab=sel.options[sel.selectedIndex]?.dataset?.name||sel.options[sel.selectedIndex]?.text||"Summary";
+  const identifier=sel.value||"348279363";
+  const sheetTab=sel.options[sel.selectedIndex]?.dataset?.name||identifier;
   fuelStatus(`Syncing "${sheetTab}"...`,"🔄");
+
+  // Build param — if identifier is numeric it's a GID, otherwise it's a sheet name
+  const isGid=/^\d+$/.test(identifier);
+  const param=isGid?`gid=${identifier}`:`sheet=${encodeURIComponent(identifier)}`;
 
   try{
     async function fetchRange(range){
-      const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${gid}&range=${range}&headers=0`;
+      const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&${param}&range=${range}&headers=0`;
       const r=await fetch(url);
       if(!r.ok) throw new Error(`HTTP ${r.status}`);
       const t=await r.text();
