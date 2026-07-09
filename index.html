@@ -610,12 +610,21 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
     <section id="section-fuel" class="section hidden">
       <div class="section-header">
         <div><h2>Fuel Tracker</h2><div class="section-sub">Fleet Card Fuel Spend — Month to Date</div></div>
-        <div style="display:flex;gap:0.5rem;align-items:center">
-          <button class="btn-export" onclick="syncGoogleSheet()">🔄 Sync Google Sheet</button>
+        <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">
+          <select id="fuel-month-select" onchange="syncGoogleSheet()" style="background:var(--navy-2);border:1px solid var(--border);color:var(--text);padding:0.5rem 0.8rem;border-radius:var(--radius);font-family:var(--font);font-size:0.82rem">
+            <option value="July 26 Summary">July 2026</option>
+            <option value="June 26 Summary">June 2026</option>
+            <option value="May 26 Summary">May 2026</option>
+            <option value="April 26 Summary">April 2026</option>
+            <option value="March 26 Summary">March 2026</option>
+            <option value="February 26 Summary">February 2026</option>
+            <option value="January 26 Summary">January 2026</option>
+          </select>
+          <button class="btn-export" onclick="syncGoogleSheet()">🔄 Sync</button>
           <label class="btn-export" style="cursor:pointer">
             📁 Upload File <input type="file" id="fuel-upload" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleFuelUpload(event)"/>
           </label>
-          <button class="btn-export" onclick="exportFuelExcel()">📊 Export Excel</button>
+          <button class="btn-export" onclick="exportFuelExcel()">📊 Export</button>
         </div>
       </div>
 
@@ -1200,54 +1209,90 @@ function fuelStatus(msg, icon="ℹ️", isError=false){
 
 /* ── Google Sheet Sync ── */
 window.syncGoogleSheet = async()=>{
-  fuelStatus("Syncing from Google Sheet...","🔄");
+  const sheetTab = document.getElementById("fuel-month-select")?.value || "July 26 Summary";
+  const tabEncoded = encodeURIComponent(sheetTab);
+  fuelStatus(`Syncing ${sheetTab}...`,"🔄");
   try{
-    // Fetch main vehicle table (rows 2-17, cols A-G)
-    const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&range=A2:G17`;
+    // ── Vehicle data: Row 1=title, Row 2=headers, Rows 3-16=data, Row 17=Grand Total
+    // Cols: A=Reg, B=Value, C=Dept, D=Driver, E=Vehicle, F=Limit, G=Mileage
+    const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${tabEncoded}&range=A3:G16`;
     const res=await fetch(url);
+    if(!res.ok) throw new Error("Sheet not accessible");
     const text=await res.text();
-    // Google wraps response in /*O_o*/ google.visualization.Query.setResponse({...})
-    const json=JSON.parse(text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/)[1]);
-    const rows=json.table.rows;
+    const match=text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/);
+    if(!match) throw new Error("Invalid response from Google Sheets");
+    const json=JSON.parse(match[1]);
+    const rows=json.table?.rows||[];
 
-    const vehicles=[];
+    const fuelVehicles=[];
     rows.forEach(row=>{
       const c=row.c;
-      if(!c||!c[0]||!c[0].v||c[0].v==="Registration number"||c[0].v==="Grand Total") return;
-      vehicles.push({
-        reg:   c[0]?.v||"",
-        spend: parseFloat(c[1]?.v)||0,
-        dept:  c[2]?.v||"",
-        driver:c[3]?.v||"",
-        vehicle:c[4]?.v||"",
-        limit: parseFloat(c[5]?.v)||0,
-        mileage:parseFloat(c[6]?.v)||0
+      if(!c||!c[0]||c[0].v===null||c[0].v==="") return;
+      const reg=String(c[0]?.v||"").trim();
+      if(!reg||reg.toLowerCase().includes("grand")||reg.toLowerCase().includes("total")) return;
+      fuelVehicles.push({
+        reg,
+        spend:   parseFloat(c[1]?.v)||0,
+        dept:    String(c[2]?.v||"").trim(),
+        driver:  String(c[3]?.v||"").trim(),
+        vehicle: String(c[4]?.v||"").trim(),
+        limit:   parseFloat(c[5]?.v)||0,
+        mileage: parseFloat(c[6]?.v)||0
       });
     });
 
-    // Fetch monthly table (rows 9-20, cols I-K on the right side)
-    const url2=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&range=I9:K21`;
+    // ── Monthly trend: Col I=Month, Col J=Value Fuel Card, Col K=Litres
+    // Starts at row 9 (index 8), header at row 8
+    const url2=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${tabEncoded}&range=I9:K22`;
     const res2=await fetch(url2);
     const text2=await res2.text();
-    const json2=JSON.parse(text2.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/)[1]);
-    const rows2=json2.table.rows;
+    const match2=text2.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/);
     const monthly=[];
-    rows2.forEach(row=>{
-      const c=row.c;
-      if(!c||!c[0]||!c[0].v||c[0].v==="Month") return;
-      monthly.push({
-        month: c[0]?.v||"",
-        spend: parseFloat(c[1]?.v)||0,
-        litres:parseFloat(c[2]?.v)||0
+    if(match2){
+      const json2=JSON.parse(match2[1]);
+      const rows2=json2.table?.rows||[];
+      rows2.forEach(row=>{
+        const c=row.c;
+        if(!c||!c[0]||!c[0].v) return;
+        const month=String(c[0].v).trim();
+        if(!month||month==="Month") return;
+        monthly.push({
+          month,
+          spend:  parseFloat(c[1]?.v)||0,
+          litres: parseFloat(c[2]?.v)||0
+        });
       });
-    });
+    }
 
-    fuelData={vehicles,monthly};
+    // ── Department summary: Col I=Dept, Col J=Fleet Card Value — rows 3-6
+    const url3=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${tabEncoded}&range=I3:L6`;
+    const res3=await fetch(url3);
+    const text3=await res3.text();
+    const match3=text3.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/);
+    const deptSummary=[];
+    if(match3){
+      const json3=JSON.parse(match3[1]);
+      const rows3=json3.table?.rows||[];
+      rows3.forEach(row=>{
+        const c=row.c;
+        if(!c||!c[0]||!c[0].v) return;
+        const dept=String(c[0].v).trim();
+        if(!dept||dept==="Department"||dept.toLowerCase().includes("grand")) return;
+        deptSummary.push({
+          dept,
+          fleetCard: parseFloat(c[1]?.v)||0,
+          cod:       parseFloat(c[2]?.v)||0,
+          total:     parseFloat(c[3]?.v)||0
+        });
+      });
+    }
+
+    fuelData={vehicles:fuelVehicles, monthly, deptSummary, sheetTab};
     renderFuel();
-    document.getElementById("fuel-last-sync").textContent="Last synced: "+new Date().toLocaleTimeString("en-ZA");
-    fuelStatus("Synced successfully from Google Sheet","✅");
+    document.getElementById("fuel-last-sync").textContent="Synced: "+new Date().toLocaleTimeString("en-ZA");
+    fuelStatus(`✅ Loaded ${fuelVehicles.length} vehicles from ${sheetTab}`,"✅");
   } catch(e){
-    fuelStatus("Sync failed — make sure the sheet is set to 'Anyone with link can view'","❌",true);
+    fuelStatus("Sync failed — check the sheet is set to 'Anyone with link can view'","❌",true);
     console.error(e);
   }
 };
@@ -1298,20 +1343,25 @@ window.handleFuelUpload = async(e)=>{
 
 /* ── Render Fuel Page ── */
 function renderFuel(){
-  const {vehicles,monthly}=fuelData;
+  const {vehicles,monthly,deptSummary}=fuelData;
   if(!vehicles.length) return;
 
   const totalSpend=vehicles.reduce((s,v)=>s+v.spend,0);
   const totalMileage=vehicles.reduce((s,v)=>s+v.mileage,0);
 
-  // Department totals
-  const depts={};
-  vehicles.forEach(v=>{
-    if(!v.dept) return;
-    if(!depts[v.dept]) depts[v.dept]={spend:0,count:0};
-    depts[v.dept].spend+=v.spend;
-    depts[v.dept].count++;
-  });
+  // Department totals — use sheet summary if available, else calculate from vehicles
+  let depts={};
+  if(deptSummary&&deptSummary.length){
+    deptSummary.forEach(d=>{ depts[d.dept]={spend:d.fleetCard,count:0,total:d.total}; });
+    vehicles.forEach(v=>{ if(depts[v.dept]) depts[v.dept].count++; });
+  } else {
+    vehicles.forEach(v=>{
+      if(!v.dept) return;
+      if(!depts[v.dept]) depts[v.dept]={spend:0,count:0};
+      depts[v.dept].spend+=v.spend;
+      depts[v.dept].count++;
+    });
+  }
   const topDept=Object.entries(depts).sort((a,b)=>b[1].spend-a[1].spend)[0];
 
   // Stat cards
@@ -1323,8 +1373,9 @@ function renderFuel(){
   // Department table
   const deptTb=document.getElementById("fuel-dept-tbody");
   const deptColors={"Finance":"#4a7fff","Sales":"#22c55e","Technical":"#f59e0b"};
+  const grandTotal=Object.values(depts).reduce((s,d)=>s+d.spend,0)||totalSpend;
   deptTb.innerHTML=Object.entries(depts).sort((a,b)=>b[1].spend-a[1].spend).map(([dept,d])=>{
-    const pct=totalSpend>0?((d.spend/totalSpend)*100).toFixed(1):0;
+    const pct=grandTotal>0?((d.spend/grandTotal)*100).toFixed(1):0;
     const col=deptColors[dept]||"#8899bb";
     return`<tr>
       <td><span class="dept-chip" style="color:${col};border-color:${col}33">${dept}</span></td>
@@ -1339,18 +1390,18 @@ function renderFuel(){
         </div>
       </td>
     </tr>`;
-  }).join("");
+  }).join("")||'<tr><td colspan="4" class="empty-state">No department data</td></tr>';
 
   // Monthly table
   const monthTb=document.getElementById("fuel-monthly-tbody");
-  if(monthly.length){
-    monthTb.innerHTML=monthly.filter(m=>m.spend>0||m.litres>0).map(m=>`<tr>
-      <td>${m.month}</td>
-      <td style="font-family:var(--mono);color:var(--success)">R${m.spend.toLocaleString("en-ZA",{minimumFractionDigits:2})}</td>
+  if(monthly&&monthly.length){
+    monthTb.innerHTML=monthly.map(m=>`<tr>
+      <td style="font-weight:500">${m.month}</td>
+      <td style="font-family:var(--mono);color:var(--success)">${m.spend>0?"R"+m.spend.toLocaleString("en-ZA",{minimumFractionDigits:2}):"—"}</td>
       <td style="font-family:var(--mono)">${m.litres>0?m.litres.toLocaleString("en-ZA",{minimumFractionDigits:2}):"—"}</td>
     </tr>`).join("");
   } else {
-    monthTb.innerHTML='<tr><td colspan="3" class="empty-state">Monthly data not available in uploaded file</td></tr>';
+    monthTb.innerHTML='<tr><td colspan="3" class="empty-state">No monthly data</td></tr>';
   }
 
   // Vehicle detail table
@@ -1358,17 +1409,18 @@ function renderFuel(){
   vTb.innerHTML=vehicles.map(v=>{
     const pct=v.limit>0?Math.min((v.spend/v.limit)*100,100):0;
     const pctClass=pct>90?"danger":pct>75?"warn":"";
+    const col={"Finance":"#4a7fff","Sales":"#22c55e","Technical":"#f59e0b"}[v.dept]||"#8899bb";
     return`<tr>
       <td><span class="reg-pill">${v.reg||"—"}</span></td>
-      <td>${v.vehicle||"—"}</td>
+      <td style="font-size:0.82rem">${v.vehicle||"—"}</td>
       <td>${v.driver||"—"}</td>
-      <td><span class="dept-chip">${v.dept||"—"}</span></td>
+      <td><span class="dept-chip" style="color:${col};border-color:${col}33">${v.dept||"—"}</span></td>
       <td style="font-family:var(--mono);color:${v.spend>0?"var(--success)":"var(--text-sub)"}">R${v.spend.toLocaleString("en-ZA",{minimumFractionDigits:2})}</td>
       <td style="font-family:var(--mono)">R${v.limit.toLocaleString("en-ZA",{minimumFractionDigits:2})}</td>
       <td style="font-family:var(--mono)">${v.mileage>0?v.mileage.toLocaleString("en-ZA"):"—"}</td>
-      <td style="min-width:120px">
+      <td style="min-width:130px">
         ${v.limit>0?`<div style="display:flex;align-items:center;gap:0.5rem">
-          <span style="font-size:0.75rem;font-family:var(--mono)">${pct.toFixed(0)}%</span>
+          <span style="font-size:0.75rem;font-family:var(--mono);min-width:2.5rem">${pct.toFixed(0)}%</span>
           <div class="fuel-limit-bar" style="flex:1"><div class="fuel-limit-fill ${pctClass}" style="width:${pct}%"></div></div>
         </div>`:"—"}
       </td>
