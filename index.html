@@ -1386,21 +1386,25 @@ function renderFuel(){
   if(!vehicles.length) return;
 
   const totalSpend=vehicles.reduce((s,v)=>s+v.spend,0);
-  const totalMileage=vehicles.reduce((s,v)=>s+v.mileage,0);
 
-  // Department totals — use sheet summary if available, else calculate from vehicles
-  let depts={};
-  if(deptSummary&&deptSummary.length){
-    deptSummary.forEach(d=>{ depts[d.dept]={spend:d.fleetCard,count:0,total:d.total}; });
-    vehicles.forEach(v=>{ if(depts[v.dept]) depts[v.dept].count++; });
-  } else {
-    vehicles.forEach(v=>{
-      if(!v.dept) return;
-      if(!depts[v.dept]) depts[v.dept]={spend:0,count:0};
-      depts[v.dept].spend+=v.spend;
-      depts[v.dept].count++;
+  // ALWAYS calculate departments from vehicle data — more reliable than sheet summary
+  const depts={};
+  vehicles.forEach(v=>{
+    if(!v.dept||typeof v.dept!=="string"||!isNaN(v.dept)) return; // skip if dept is a number
+    if(!depts[v.dept]) depts[v.dept]={spend:0,count:0};
+    depts[v.dept].spend+=v.spend;
+    depts[v.dept].count++;
+  });
+
+  // If no dept names found from vehicles, try the sheet summary but only if names are text
+  if(!Object.keys(depts).length && deptSummary&&deptSummary.length){
+    deptSummary.forEach(d=>{
+      if(!d.dept||!isNaN(d.dept)) return; // skip numeric "dept" names
+      depts[d.dept]={spend:d.fleetCard,count:0};
     });
+    vehicles.forEach(v=>{ if(depts[v.dept]) depts[v.dept].count++; });
   }
+
   const topDept=Object.entries(depts).sort((a,b)=>b[1].spend-a[1].spend)[0];
 
   // Stat cards
@@ -1412,28 +1416,31 @@ function renderFuel(){
   const deptTb=document.getElementById("fuel-dept-tbody");
   const deptColors={"Finance":"#4a7fff","Sales":"#22c55e","Technical":"#f59e0b"};
   const grandTotal=Object.values(depts).reduce((s,d)=>s+d.spend,0)||totalSpend;
-  deptTb.innerHTML=Object.entries(depts).sort((a,b)=>b[1].spend-a[1].spend).map(([dept,d])=>{
-    const pct=grandTotal>0?((d.spend/grandTotal)*100).toFixed(1):0;
-    const col=deptColors[dept]||"#8899bb";
-    return`<tr>
-      <td><span class="dept-chip" style="color:${col};border-color:${col}33">${dept}</span></td>
-      <td>${d.count}</td>
-      <td style="font-family:var(--mono);color:var(--success)">R${d.spend.toLocaleString("en-ZA",{minimumFractionDigits:2})}</td>
-      <td>
-        <div style="display:flex;align-items:center;gap:0.5rem">
-          <span style="font-family:var(--mono);font-size:0.78rem">${pct}%</span>
-          <div class="fuel-limit-bar" style="width:80px">
-            <div class="fuel-limit-fill${pct>80?" danger":pct>60?" warn":""}" style="width:${Math.min(pct,100)}%"></div>
-          </div>
-        </div>
-      </td>
-    </tr>`;
-  }).join("")||'<tr><td colspan="4" class="empty-state">No department data</td></tr>';
+  deptTb.innerHTML=Object.keys(depts).length
+    ? Object.entries(depts).sort((a,b)=>b[1].spend-a[1].spend).map(([dept,d])=>{
+        const pct=grandTotal>0?((d.spend/grandTotal)*100).toFixed(1):0;
+        const col=deptColors[dept]||"#8899bb";
+        return`<tr>
+          <td><span class="dept-chip" style="color:${col};border-color:${col}33">${dept}</span></td>
+          <td>${d.count}</td>
+          <td style="font-family:var(--mono);color:var(--success)">R${d.spend.toLocaleString("en-ZA",{minimumFractionDigits:2})}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:0.5rem">
+              <span style="font-family:var(--mono);font-size:0.78rem">${pct}%</span>
+              <div class="fuel-limit-bar" style="width:80px">
+                <div class="fuel-limit-fill${pct>80?" danger":pct>60?" warn":""}" style="width:${Math.min(pct,100)}%"></div>
+              </div>
+            </div>
+          </td>
+        </tr>`;
+      }).join("")
+    : '<tr><td colspan="4" class="empty-state">No department data</td></tr>';
 
-  // Monthly table
+  // Monthly table — filter out rows where month is a number, reverse for newest first
   const monthTb=document.getElementById("fuel-monthly-tbody");
-  if(monthly&&monthly.length){
-    monthTb.innerHTML=[...monthly].reverse().map(m=>`<tr>
+  const validMonthly=(monthly||[]).filter(m=>m.month&&isNaN(m.month)&&!m.month.toLowerCase().includes("average"));
+  if(validMonthly.length){
+    monthTb.innerHTML=[...validMonthly].reverse().map(m=>`<tr>
       <td style="font-weight:500">${m.month}</td>
       <td style="font-family:var(--mono);color:var(--success)">${m.spend>0?"R"+m.spend.toLocaleString("en-ZA",{minimumFractionDigits:2}):"—"}</td>
       <td style="font-family:var(--mono)">${m.litres>0?m.litres.toLocaleString("en-ZA",{minimumFractionDigits:2}):"—"}</td>
