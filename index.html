@@ -643,10 +643,6 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
           <div class="stat-value" id="fuel-stat-dept">—</div>
           <div class="stat-label">Top Department</div>
         </div>
-        <div class="stat-card c-ok">
-          <div class="stat-value" id="fuel-stat-mileage">0</div>
-          <div class="stat-label">Total Mileage (km)</div>
-        </div>
       </div>
 
       <!-- Two column layout -->
@@ -1411,7 +1407,6 @@ function renderFuel(){
   document.getElementById("fuel-stat-spend").textContent="R"+totalSpend.toLocaleString("en-ZA",{minimumFractionDigits:2,maximumFractionDigits:2});
   document.getElementById("fuel-stat-vehicles").textContent=vehicles.length;
   document.getElementById("fuel-stat-dept").textContent=topDept?topDept[0]:"—";
-  document.getElementById("fuel-stat-mileage").textContent=totalMileage.toLocaleString("en-ZA");
 
   // Department table
   const deptTb=document.getElementById("fuel-dept-tbody");
@@ -1438,7 +1433,7 @@ function renderFuel(){
   // Monthly table
   const monthTb=document.getElementById("fuel-monthly-tbody");
   if(monthly&&monthly.length){
-    monthTb.innerHTML=monthly.map(m=>`<tr>
+    monthTb.innerHTML=[...monthly].reverse().map(m=>`<tr>
       <td style="font-weight:500">${m.month}</td>
       <td style="font-family:var(--mono);color:var(--success)">${m.spend>0?"R"+m.spend.toLocaleString("en-ZA",{minimumFractionDigits:2}):"—"}</td>
       <td style="font-family:var(--mono)">${m.litres>0?m.litres.toLocaleString("en-ZA",{minimumFractionDigits:2}):"—"}</td>
