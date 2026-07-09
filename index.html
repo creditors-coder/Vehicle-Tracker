@@ -612,19 +612,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
         <div><h2>Fuel Tracker</h2><div class="section-sub">Fleet Card Fuel Spend — Month to Date</div></div>
         <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">
           <select id="fuel-month-select" onchange="syncGoogleSheet()" style="background:var(--navy-2);border:1px solid var(--border);color:var(--text);padding:0.5rem 0.8rem;border-radius:var(--radius);font-family:var(--font);font-size:0.82rem">
-            <option value="July 26 Summary">July 2026</option>
-            <option value="June 26 Summary">June 2026</option>
-            <option value="May 26 Summary">May 2026</option>
-            <option value="April 26 Summary">April 2026</option>
-            <option value="March 26 Summary">March 2026</option>
-            <option value="February 26 Summary">February 2026</option>
-            <option value="January 26 Summary">January 2026</option>
-            <option value="December 25 Summary">December 2025</option>
-            <option value="November 25 Summary">November 2025</option>
-            <option value="October 25 Summary">October 2025</option>
-            <option value="September 25 Summary">September 2025</option>
-            <option value="August 25 Summary">August 2025</option>
-            <option value="July 25 Summary">July 2025</option>
+            <option value="">Loading months...</option>
           </select>
           <button class="btn-export" onclick="syncGoogleSheet()">🔄 Sync</button>
           <label class="btn-export" style="cursor:pointer">
@@ -947,6 +935,7 @@ function showLogin(){
 }
 
 /* ── Nav ── */
+let fuelTabsLoaded=false;
 window.navTo=(section,el)=>{
   document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
   el.classList.add("active");
@@ -954,6 +943,11 @@ window.navTo=(section,el)=>{
     s.classList.toggle("active",s.id==="section-"+section);
     s.classList.toggle("hidden",s.id!=="section-"+section);
   });
+  // Auto-load fuel tabs first time user opens Fuel Tracker
+  if(section==="fuel"&&!fuelTabsLoaded){
+    fuelTabsLoaded=true;
+    loadSheetTabs();
+  }
 };
 
 /* ── Firestore ── */
@@ -1200,33 +1194,155 @@ window.printVehicles=()=>{
    FUEL TRACKER
 ══════════════════════════════════════ */
 const SHEET_ID = "1PMoNZOLaYsHDRCeweE4jGV9OpoZ9RFTpMxN1yqTFI4w";
-let fuelData = { vehicles:[], monthly:[] };
+let fuelData = { vehicles:[], monthly:[], deptSummary:[], sheetTab:"" };
 
 function fuelStatus(msg, icon="ℹ️", isError=false){
   const el=document.getElementById("fuel-status");
-  const msgEl=document.getElementById("fuel-status-msg");
-  const iconEl=document.getElementById("fuel-status-icon");
   el.style.display="flex";
-  msgEl.textContent=msg;
-  iconEl.textContent=icon;
-  el.style.borderColor=isError?"rgba(239,68,68,0.3)":el.style.borderColor;
+  document.getElementById("fuel-status-msg").textContent=msg;
+  document.getElementById("fuel-status-icon").textContent=icon;
   el.style.color=isError?"var(--danger)":"var(--text-sub)";
+  el.style.borderColor=isError?"rgba(239,68,68,0.3)":"var(--border)";
 }
+
+/* ── Auto-discover all sheet tabs ── */
+async function loadSheetTabs(){
+  try{
+    // Fetch the sheet's HTML to extract tab names and GIDs
+    const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit`;
+    // Use the sheets API to list sheets via gviz — fetch sheet 0 metadata
+    // We use the feeds URL which lists all sheets
+    const metaUrl=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=0&range=A1&headers=0`;
+    const r=await fetch(metaUrl);
+    const t=await r.text();
+    // Extract sheet names from the response — Google embeds them in the JSON
+    const sheetsMatch=t.match(/"sheets":\[(.*?)\]/s) ||
+                      t.match(/\{"label":"(.*?)"/g);
+
+    // Alternative: use the Sheets API v4 public endpoint for sheet metadata
+    const metaUrl2=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?fields=sheets.properties&key=AIzaSyAZzMydaZ6Dk6qHDygpiGU1umIbxJekcLU`;
+    const r2=await fetch(metaUrl2);
+    if(!r2.ok) throw new Error("metadata fetch failed");
+    const meta=await r2.json();
+    const sheets=meta.sheets||[];
+
+    // Filter to only "Summary" tabs (exclude Weekly Inspection etc)
+    const summaryTabs=sheets
+      .map(s=>({name:s.properties.title, gid:String(s.properties.sheetId)}))
+      .filter(s=>s.name.toLowerCase().includes("summary"))
+      .reverse(); // newest first
+
+    if(!summaryTabs.length) throw new Error("No Summary tabs found");
+
+    const sel=document.getElementById("fuel-month-select");
+    sel.innerHTML=summaryTabs.map(s=>`<option value="${s.gid}" data-name="${s.name}">${s.name.replace(" Summary","")}</option>`).join("");
+
+    // Auto-sync the first (most recent) tab
+    syncGoogleSheet();
+  } catch(e){
+    console.error("Tab discovery failed:",e);
+    // Fallback to known GID
+    const sel=document.getElementById("fuel-month-select");
+    sel.innerHTML=`<option value="348279363" data-name="July 26 Summary">July 2026</option>`;
+    syncGoogleSheet();
+  }
+}
+
+/* ── Google Sheet Sync ── */
+window.syncGoogleSheet = async()=>{
+  const sel=document.getElementById("fuel-month-select");
+  const gid=sel.value||"348279363";
+  const sheetTab=sel.options[sel.selectedIndex]?.dataset?.name||sel.options[sel.selectedIndex]?.text||"Summary";
+  fuelStatus(`Syncing "${sheetTab}"...`,"🔄");
+
+  try{
+    async function fetchRange(range){
+      const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${gid}&range=${range}&headers=0`;
+      const r=await fetch(url);
+      if(!r.ok) throw new Error(`HTTP ${r.status}`);
+      const t=await r.text();
+      const m=t.match(/google\.visualization\.Query\.setResponse\(([\s\S]*?)\);?\s*$/);
+      if(!m) throw new Error("Unexpected response");
+      const parsed=JSON.parse(m[1]);
+      if(parsed.status==="error") throw new Error(parsed.errors?.[0]?.detailed_message||"Sheet error");
+      return parsed.table?.rows||[];
+    }
+
+    function val(c){ if(!c) return ""; return c.v!==null&&c.v!==undefined?c.v:(c.f||""); }
+    function num(c){ const v=val(c); return typeof v==="number"?v:parseFloat(String(v).replace(/[^0-9.-]/g,""))||0; }
+    function str(c){ return String(val(c)).trim(); }
+
+    // ── VEHICLE DATA: A3:G16
+    const vRows=await fetchRange("A3:G16");
+    const fuelVehicles=[];
+    vRows.forEach(row=>{
+      const c=row.c||[];
+      const reg=str(c[0]);
+      if(!reg||reg.toLowerCase().includes("grand")||reg.toLowerCase().includes("total")) return;
+      fuelVehicles.push({ reg, spend:num(c[1]), dept:str(c[2]), driver:str(c[3]), vehicle:str(c[4]), limit:num(c[5]), mileage:num(c[6]) });
+    });
+    if(!fuelVehicles.length) throw new Error("No vehicle data found in this tab");
+
+    // ── DEPARTMENT SUMMARY: I3:L6
+    const dRows=await fetchRange("I3:L6");
+    const deptSummary=[];
+    dRows.forEach(row=>{
+      const c=row.c||[];
+      const dept=str(c[0]);
+      if(!dept||dept==="Department"||dept.toLowerCase().includes("grand")) return;
+      deptSummary.push({ dept, fleetCard:num(c[1]), cod:num(c[2]), total:num(c[3]) });
+    });
+
+    // ── MONTHLY TREND: I9:K22
+    const mRows=await fetchRange("I9:K22");
+    const monthly=[];
+    mRows.forEach(row=>{
+      const c=row.c||[];
+      const month=str(c[0]);
+      if(!month||month==="Month") return;
+      monthly.push({ month, spend:num(c[1]), litres:num(c[2]) });
+    });
+
+    fuelData={vehicles:fuelVehicles, monthly, deptSummary, sheetTab};
+    renderFuel();
+    document.getElementById("fuel-last-sync").textContent="Synced: "+new Date().toLocaleTimeString("en-ZA");
+    fuelStatus(`✅ Loaded ${fuelVehicles.length} vehicles from "${sheetTab}"`, "✅");
+  } catch(e){
+    fuelStatus(`❌ ${e.message}`,"❌",true);
+    console.error("Fuel sync error:",e);
+  }
+};
 
 /* ── Google Sheet Sync ── */
 window.syncGoogleSheet = async()=>{
   const sheetTab = document.getElementById("fuel-month-select")?.value || "July 26 Summary";
   fuelStatus(`Syncing "${sheetTab}"...`,"🔄");
-  try{
-    const sid = "1PMoNZOLaYsHDRCeweE4jGV9OpoZ9RFTpMxN1yqTFI4w";
-    // Use sheet name in URL — must exactly match tab name
-    const tab = encodeURIComponent(sheetTab);
 
+  // GID map — each tab's permanent numeric ID
+  const GID_MAP = {
+    "July 26 Summary":      "348279363",
+    "June 26 Summary":      "", // add GIDs as needed
+    "May 26 Summary":       "",
+    "April 26 Summary":     "",
+    "March 26 Summary":     "",
+    "February 26 Summary":  "",
+    "January 26 Summary":   "",
+    "December 25 Summary":  "",
+    "November 25 Summary":  "",
+    "October 25 Summary":   "",
+    "September 25 Summary": "",
+    "August 25 Summary":    "",
+    "July 25 Summary":      ""
+  };
+
+  const gid = GID_MAP[sheetTab] || "348279363";
+  const sid = "1PMoNZOLaYsHDRCeweE4jGV9OpoZ9RFTpMxN1yqTFI4w";
+
+  try{
     async function fetchRange(range){
-      // headers=0 tells Google NOT to treat first row as headers
-      const url=`https://docs.google.com/spreadsheets/d/${sid}/gviz/tq?tqx=out:json&sheet=${tab}&range=${range}&headers=0`;
+      const url=`https://docs.google.com/spreadsheets/d/${sid}/gviz/tq?tqx=out:json&gid=${gid}&range=${range}&headers=0`;
       const r=await fetch(url);
-      if(!r.ok) throw new Error(`HTTP ${r.status} — sheet may not be public`);
+      if(!r.ok) throw new Error(`HTTP ${r.status}`);
       const t=await r.text();
       const m=t.match(/google\.visualization\.Query\.setResponse\(([\s\S]*?)\);?\s*$/);
       if(!m) throw new Error("Unexpected response from Google");
@@ -1235,25 +1351,11 @@ window.syncGoogleSheet = async()=>{
       return parsed.table?.rows||[];
     }
 
-    function val(cell){
-      // Google sometimes puts the value in .v or formatted in .f
-      if(!cell) return "";
-      if(cell.v!==null&&cell.v!==undefined) return cell.v;
-      if(cell.f!==null&&cell.f!==undefined) return cell.f;
-      return "";
-    }
-    function num(cell){
-      const v=val(cell);
-      if(typeof v==="number") return v;
-      return parseFloat(String(v).replace(/[^0-9.-]/g,""))||0;
-    }
+    function val(cell){ if(!cell) return ""; if(cell.v!==null&&cell.v!==undefined) return cell.v; return cell.f||""; }
+    function num(cell){ const v=val(cell); if(typeof v==="number") return v; return parseFloat(String(v).replace(/[^0-9.-]/g,""))||0; }
     function str(cell){ return String(val(cell)).trim(); }
 
     // ── VEHICLE DATA: A3:G16
-    // Row 1 = "Fleet Card Fuel Spend MTD" (title, merged)
-    // Row 2 = headers (Registration number, Value of transaction, Department, Driver, Vehicle, Limit, Mileage)
-    // Rows 3-16 = data
-    // Row 17 = Grand Total
     const vRows=await fetchRange("A3:G16");
     const fuelVehicles=[];
     vRows.forEach(row=>{
@@ -1271,40 +1373,26 @@ window.syncGoogleSheet = async()=>{
       });
     });
 
-    if(!fuelVehicles.length) throw new Error(`No vehicles found in "${sheetTab}" — check tab name matches exactly`);
+    if(!fuelVehicles.length) throw new Error(`No vehicles found — check GID for "${sheetTab}"`);
 
     // ── DEPARTMENT SUMMARY: I3:L6
-    // Row 2 (col I) = "Department", J = "Value of transaction" (Fleet Card), K = "Value of Transaction" (COD), L = "Total"
-    // Rows 3-5 = Finance, Sales, Technical
-    // Row 6 = Grand Total
     const dRows=await fetchRange("I3:L6");
     const deptSummary=[];
     dRows.forEach(row=>{
       const c=row.c||[];
       const dept=str(c[0]);
       if(!dept||dept==="Department"||dept.toLowerCase().includes("grand")) return;
-      deptSummary.push({
-        dept,
-        fleetCard: num(c[1]),
-        cod:       num(c[2]),
-        total:     num(c[3])
-      });
+      deptSummary.push({ dept, fleetCard:num(c[1]), cod:num(c[2]), total:num(c[3]) });
     });
 
     // ── MONTHLY TREND: I9:K22
-    // Row 8 = headers (Month, Value Fuel Card, Litres)
-    // Rows 9+ = July 25, August 25 ... July 26
     const mRows=await fetchRange("I9:K22");
     const monthly=[];
     mRows.forEach(row=>{
       const c=row.c||[];
       const month=str(c[0]);
       if(!month||month==="Month") return;
-      monthly.push({
-        month,
-        spend:  num(c[1]),
-        litres: num(c[2])
-      });
+      monthly.push({ month, spend:num(c[1]), litres:num(c[2]) });
     });
 
     fuelData={vehicles:fuelVehicles, monthly, deptSummary, sheetTab};
