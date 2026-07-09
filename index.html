@@ -1270,10 +1270,20 @@ window.syncGoogleSheet = async()=>{
 
     function val(c){ if(!c) return ""; return c.v!==null&&c.v!==undefined?c.v:(c.f||""); }
     function num(c){ const v=val(c); return typeof v==="number"?v:parseFloat(String(v).replace(/[^0-9.-]/g,""))||0; }
-    function str(c){ return String(val(c)).trim(); }
+    function str(c){
+      const v=val(c);
+      const s=String(v).trim();
+      // Fix Google date format: Date(2026,5,26) → formatted date
+      const dm=s.match(/^Date\((\d+),(\d+),(\d+)\)$/);
+      if(dm){
+        const d=new Date(parseInt(dm[1]),parseInt(dm[2]),parseInt(dm[3]));
+        return d.toLocaleDateString("en-ZA");
+      }
+      return s;
+    }
 
-    // ── VEHICLE DATA: A3:G16
-    const vRows=await fetchRange("A3:G16");
+    // ── VEHICLE DATA: A3:G25 (extended to catch all vehicles up to row 25)
+    const vRows=await fetchRange("A3:G25");
     const fuelVehicles=[];
     vRows.forEach(row=>{
       const c=row.c||[];
@@ -1283,8 +1293,8 @@ window.syncGoogleSheet = async()=>{
     });
     if(!fuelVehicles.length) throw new Error("No vehicle data found in this tab");
 
-    // ── DEPARTMENT SUMMARY: I3:L6
-    const dRows=await fetchRange("I3:L6");
+    // ── DEPARTMENT SUMMARY: I3:L7 (extended for safety)
+    const dRows=await fetchRange("I3:L7");
     const deptSummary=[];
     dRows.forEach(row=>{
       const c=row.c||[];
@@ -1293,13 +1303,13 @@ window.syncGoogleSheet = async()=>{
       deptSummary.push({ dept, fleetCard:num(c[1]), cod:num(c[2]), total:num(c[3]) });
     });
 
-    // ── MONTHLY TREND: I9:K22
-    const mRows=await fetchRange("I9:K22");
+    // ── MONTHLY TREND: I9:K25 (extended to catch all months)
+    const mRows=await fetchRange("I9:K25");
     const monthly=[];
     mRows.forEach(row=>{
       const c=row.c||[];
       const month=str(c[0]);
-      if(!month||month==="Month") return;
+      if(!month||month==="Month"||month.toLowerCase().includes("average")) return;
       monthly.push({ month, spend:num(c[1]), litres:num(c[2]) });
     });
 
@@ -1353,10 +1363,15 @@ window.syncGoogleSheet = async()=>{
 
     function val(cell){ if(!cell) return ""; if(cell.v!==null&&cell.v!==undefined) return cell.v; return cell.f||""; }
     function num(cell){ const v=val(cell); if(typeof v==="number") return v; return parseFloat(String(v).replace(/[^0-9.-]/g,""))||0; }
-    function str(cell){ return String(val(cell)).trim(); }
+    function str(cell){
+      const v=val(cell); const s=String(v).trim();
+      const dm=s.match(/^Date\((\d+),(\d+),(\d+)\)$/);
+      if(dm){ const d=new Date(parseInt(dm[1]),parseInt(dm[2]),parseInt(dm[3])); return d.toLocaleDateString("en-ZA"); }
+      return s;
+    }
 
-    // ── VEHICLE DATA: A3:G16
-    const vRows=await fetchRange("A3:G16");
+    // ── VEHICLE DATA: A3:G25 (extended to catch all vehicles)
+    const vRows=await fetchRange("A3:G25");
     const fuelVehicles=[];
     vRows.forEach(row=>{
       const c=row.c||[];
@@ -1375,8 +1390,8 @@ window.syncGoogleSheet = async()=>{
 
     if(!fuelVehicles.length) throw new Error(`No vehicles found — check GID for "${sheetTab}"`);
 
-    // ── DEPARTMENT SUMMARY: I3:L6
-    const dRows=await fetchRange("I3:L6");
+    // ── DEPARTMENT SUMMARY: I3:L7
+    const dRows=await fetchRange("I3:L7");
     const deptSummary=[];
     dRows.forEach(row=>{
       const c=row.c||[];
@@ -1385,13 +1400,13 @@ window.syncGoogleSheet = async()=>{
       deptSummary.push({ dept, fleetCard:num(c[1]), cod:num(c[2]), total:num(c[3]) });
     });
 
-    // ── MONTHLY TREND: I9:K22
-    const mRows=await fetchRange("I9:K22");
+    // ── MONTHLY TREND: I9:K25
+    const mRows=await fetchRange("I9:K25");
     const monthly=[];
     mRows.forEach(row=>{
       const c=row.c||[];
       const month=str(c[0]);
-      if(!month||month==="Month") return;
+      if(!month||month==="Month"||month.toLowerCase().includes("average")) return;
       monthly.push({ month, spend:num(c[1]), litres:num(c[2]) });
     });
 
