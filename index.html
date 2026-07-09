@@ -366,6 +366,39 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
 .empty-state{text-align:center;color:#4a5a80;padding:2.5rem 1rem;font-size:0.85rem}
 .viewer-mode .admin-only{display:none!important}
 
+/* ── Export buttons ── */
+.btn-export{background:transparent;color:var(--text-sub);border:1px solid var(--border);padding:0.5rem 0.9rem;border-radius:var(--radius);font-weight:500;font-size:0.8rem;cursor:pointer;transition:all 0.15s;font-family:var(--font);display:inline-flex;align-items:center;gap:0.4rem;white-space:nowrap}
+.btn-export:hover{color:var(--text);border-color:var(--text-sub)}
+.export-group{display:flex;gap:0.5rem;align-items:center}
+
+/* ── Print styles ── */
+@media print{
+  body{background:#fff!important;color:#000!important}
+  .sidebar,.section-header .export-group,#login-page,button,.modal{display:none!important}
+  .main-content{padding:0!important}
+  .table-wrap{border:1px solid #ccc!important;border-radius:0!important}
+  .data-table th{background:#1a2454!important;color:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .data-table td{color:#000!important;border-bottom:1px solid #ddd!important}
+  .reg-pill{background:#eee!important;color:#000!important;border:1px solid #ccc!important}
+  .status-chip{border:1px solid #ccc!important}
+  .s-ok{background:#d4edda!important;color:#155724!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .s-warn{background:#fff3cd!important;color:#856404!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .s-danger{background:#f8d7da!important;color:#721c24!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .print-header{display:block!important}
+  .admin-only{display:none!important}
+  #section-vehicles{display:block!important}
+  #section-dashboard,#section-drivers,#section-alerts{display:none!important}
+}
+.print-header{
+  display:none;
+  text-align:center;
+  margin-bottom:1.5rem;
+  padding-bottom:1rem;
+  border-bottom:2px solid #1a2454;
+}
+.print-header h1{font-size:1.4rem;color:#1a2454;font-weight:700}
+.print-header p{font-size:0.85rem;color:#555;margin-top:0.25rem}
+
 @media(max-width:768px){
   .sidebar{width:100%;height:auto;flex-direction:row;min-height:unset;position:fixed;bottom:0;left:0;right:0;z-index:100;border-right:none;border-top:1px solid var(--border)}
   .sidebar-brand,.sidebar-footer,.sidebar-app-tag,.sidebar-app-name{display:none}
@@ -481,9 +514,20 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
 
     <!-- VEHICLES -->
     <section id="section-vehicles" class="section hidden">
+      <!-- Print header (only shows when printing) -->
+      <div class="print-header">
+        <h1>X-Corp Vehicle Tracker — Fleet Report</h1>
+        <p id="print-date"></p>
+      </div>
       <div class="section-header">
         <div><h2>Vehicles</h2><div class="section-sub">Fleet registration &amp; compliance</div></div>
-        <button class="btn-primary admin-only" onclick="openVehicleModal()">+ Add Vehicle</button>
+        <div style="display:flex;gap:0.5rem;align-items:center">
+          <div class="export-group">
+            <button class="btn-export" onclick="exportExcel()">📊 Export Excel</button>
+            <button class="btn-export" onclick="printVehicles()">🖨️ Print</button>
+          </div>
+          <button class="btn-primary admin-only" onclick="openVehicleModal()">+ Add Vehicle</button>
+        </div>
       </div>
       <div class="table-wrap">
         <table class="data-table">
@@ -790,6 +834,37 @@ window.delConfirm=(col,id,name)=>{
   document.getElementById("delete-msg").textContent=`Delete "${name}"? This cannot be undone.`;
   document.getElementById("delete-confirm-btn").onclick=async()=>{try{await deleteDoc(doc(db,col,id));closeModal("delete-modal")}catch(e){alert("Delete failed: "+e.message)}};
   openModal("delete-modal");
+};
+
+/* ── Export to Excel ── */
+window.exportExcel=()=>{
+  if(!vehicles.length){alert("No vehicles to export.");return}
+  const headers=["Registration","Make","Model","Year","Driver","Licence Expiry","Next Service","Last Service","Status","Notes"];
+  const rows=vehicles.map(v=>{
+    const driver=drivers.find(d=>d.id===v.driverId);
+    const st=vStatus(v);
+    const stL={ok:"OK",warn:"Due Soon",danger:"Overdue"}[st];
+    return[v.reg||"",v.make||"",v.model||"",v.year||"",driver?driver.name:"",fmtDate(v.licenceExpiry),fmtDate(v.serviceDate),fmtDate(v.lastService),stL,v.notes||""];
+  });
+  // Build CSV
+  const csv=[headers,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download=`XCorp-Vehicle-Tracker-${new Date().toLocaleDateString("en-ZA").replace(/\//g,"-")}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+/* ── Print ── */
+window.printVehicles=()=>{
+  document.getElementById("print-date").textContent=
+    "Generated: "+new Date().toLocaleDateString("en-ZA",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
+  // Make sure vehicles section is visible for print
+  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+  document.getElementById("section-vehicles").classList.add("active");
+  window.print();
 };
 
 /* ── Modals ── */
