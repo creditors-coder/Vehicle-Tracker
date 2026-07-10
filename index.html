@@ -651,7 +651,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
       </div>
 
       <!-- Two column layout -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem">
+      <div id="fuel-two-col" style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem">
 
         <!-- Department summary -->
         <div>
@@ -1437,6 +1437,20 @@ function renderFuel(){
   // Show sales filter notice
   const notice=document.getElementById("sales-filter-notice");
   if(notice) notice.style.display=fuelDeptFilter?"block":"none";
+
+  // Hide monthly trend for sales mode, show full layout for admin/viewer
+  const twoCol=document.getElementById("fuel-two-col");
+  if(twoCol){
+    if(fuelDeptFilter){
+      twoCol.style.gridTemplateColumns="1fr";
+      const monthlyCol=twoCol.children[1];
+      if(monthlyCol) monthlyCol.style.display="none";
+    } else {
+      twoCol.style.gridTemplateColumns="1fr 1fr";
+      const monthlyCol=twoCol.children[1];
+      if(monthlyCol) monthlyCol.style.display="block";
+    }
+  }
 
   const totalSpend=vehicles.reduce((s,v)=>s+v.spend,0);
 
