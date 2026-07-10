@@ -622,6 +622,11 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
         </div>
       </div>
 
+      <!-- Sales filter notice -->
+      <div id="sales-filter-notice" style="display:none;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:var(--radius);padding:0.6rem 1rem;margin-bottom:1rem;font-size:0.8rem;color:var(--success)">
+        ✅ Showing Sales department vehicles only
+      </div>
+
       <!-- Status bar -->
       <div id="fuel-status" style="display:none;background:var(--navy-2);border:1px solid var(--border);border-radius:var(--radius);padding:0.6rem 1rem;margin-bottom:1rem;font-size:0.8rem;color:var(--text-sub);display:flex;align-items:center;gap:0.5rem">
         <span id="fuel-status-icon">ℹ️</span>
@@ -877,7 +882,8 @@ const firebaseConfig = {
 /* ── SHA-256 hashed passwords ── */
 const USERS = {
   "creditors@almestar.co.za":  { hash:"0f78c0054fa09c53d7d0ad4a7dc161bb908bd1ac7699dd1cbb21b2f4fac51355", role:"admin" },
-  "accounts01@almestar.co.za": { hash:"fd9c653f918daa65b813f2443254bc43aec0f4f925ad91f799fc7227bf6fed01", role:"viewer" }
+  "accounts01@almestar.co.za": { hash:"fd9c653f918daa65b813f2443254bc43aec0f4f925ad91f799fc7227bf6fed01", role:"viewer" },
+  "sales@almestar.co.za":      { hash:"8526f9a84da0f9b0c9a52cbdd2cd7b1f7b4d91df20b29efbf169c1dac0e4906b", role:"sales" }
 };
 async function sha256(s){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,"0")).join("")}
 
@@ -909,7 +915,8 @@ window.togglePw=()=>{const i=document.getElementById("login-password");i.type=i.
 onAuthStateChanged(auth,user=>{
   if(user){
     currentUser=user;
-    isAdmin=USERS[user.email.toLowerCase()]?.role==="admin";
+    const record=USERS[user.email.toLowerCase()];
+    isAdmin=record?.role==="admin";
     showApp();
   }else{currentUser=null;isAdmin=false;showLogin()}
 });
@@ -918,12 +925,46 @@ function showApp(){
   document.getElementById("login-page").className="page hidden";
   document.getElementById("app-page").className="page active";
   document.getElementById("user-email-lbl").textContent=currentUser.email;
+
+  const record=USERS[currentUser.email.toLowerCase()];
+  isAdmin=record?.role==="admin";
+  const isSales=record?.role==="sales";
+
   const pip=document.getElementById("role-pip"),chip=document.getElementById("role-chip"),banner=document.getElementById("viewer-banner");
-  if(isAdmin){pip.className="role-pip";chip.textContent="Admin";chip.className="role-chip";banner.style.display="none"}
-  else{pip.className="role-pip viewer";chip.textContent="View Only";chip.className="role-chip viewer";banner.style.display="block"}
+  if(isAdmin){
+    pip.className="role-pip";chip.textContent="Admin";chip.className="role-chip";banner.style.display="none";
+  } else if(isSales){
+    pip.className="role-pip viewer";chip.textContent="Sales";chip.className="role-chip viewer";
+    banner.textContent="⛽ Fuel Tracker — Sales View";banner.style.display="block";
+  } else {
+    pip.className="role-pip viewer";chip.textContent="View Only";chip.className="role-chip viewer";
+    banner.textContent="👁 View Only — No edit access";banner.style.display="block";
+  }
+
   document.body.classList.toggle("viewer-mode",!isAdmin);
-  document.getElementById("today-date").textContent=new Date().toLocaleDateString("en-ZA",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
-  startListeners();
+  document.body.classList.toggle("sales-mode",isSales);
+
+  // Sales — hide all nav except fuel
+  document.querySelectorAll(".nav-item").forEach(nav=>{
+    nav.style.display=isSales?(nav.getAttribute("onclick")?.includes("fuel")?"flex":"none"):"flex";
+  });
+
+  document.getElementById("today-date").textContent=
+    new Date().toLocaleDateString("en-ZA",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
+
+  if(isSales){
+    // Go straight to fuel tracker, filter to Sales only
+    document.querySelectorAll(".section").forEach(s=>{
+      s.classList.toggle("active",s.id==="section-fuel");
+      s.classList.toggle("hidden",s.id!=="section-fuel");
+    });
+    document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+    document.querySelector(".nav-item[onclick*='fuel']")?.classList.add("active");
+    fuelTabsLoaded=true;
+    loadSheetTabs("Sales");
+  } else {
+    startListeners();
+  }
 }
 function showLogin(){
   document.getElementById("app-page").className="page hidden";
@@ -1201,8 +1242,11 @@ function fuelStatus(msg, icon="ℹ️", isError=false){
   el.style.borderColor=isError?"rgba(239,68,68,0.3)":"var(--border)";
 }
 
+let fuelDeptFilter=""; // empty = show all, "Sales" = sales only
+
 /* ── Auto-discover all sheet tabs ── */
-async function loadSheetTabs(){
+async function loadSheetTabs(deptFilter=""){
+  fuelDeptFilter=deptFilter;
   // Known months and their GIDs — July 26 confirmed, others use tab name fallback
   const KNOWN_MONTHS = [
     { label:"July 2026",      gid:"348279363",  name:"July 26 Summary" },
@@ -1382,8 +1426,17 @@ window.handleFuelUpload = async(e)=>{
 
 /* ── Render Fuel Page ── */
 function renderFuel(){
-  const {vehicles,monthly,deptSummary}=fuelData;
-  if(!vehicles.length) return;
+  const {vehicles:allVehicles,monthly,deptSummary}=fuelData;
+  if(!allVehicles.length) return;
+
+  // Filter by dept if sales mode
+  const vehicles=fuelDeptFilter
+    ? allVehicles.filter(v=>v.dept===fuelDeptFilter)
+    : allVehicles;
+
+  // Show sales filter notice
+  const notice=document.getElementById("sales-filter-notice");
+  if(notice) notice.style.display=fuelDeptFilter?"block":"none";
 
   const totalSpend=vehicles.reduce((s,v)=>s+v.spend,0);
 
