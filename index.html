@@ -7,268 +7,80 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-
 :root{
-  /* ── Exact Asset Register palette ── */
-  --bg-outer:   #0d1829;
-  --bg-card:    #16213e;
-  --bg-card2:   #1a2748;
-  --bg-input:   #f0f4ff;
-  --bg-popia:   #0f1a35;
-  --border:     #2a3a60;
-  --border-inp: #c8d4f0;
-  --text:       #ffffff;
-  --text-sub:   #8899bb;
-  --text-label: #8899cc;
-  --text-input: #1a2040;
-  --red:        #e03a2f;
-  --red-dk:     #c42e24;
-  /* ── App sidebar palette ── */
-  --navy:       #0d1829;
-  --navy-lt:    #16213e;
-  --navy-2:     #1a2748;
-  --purple:     #7b3fa0;
-  --purple-lt:  #9b5fc0;
-  --purple-dim: rgba(123,63,160,0.15);
-  --warn:       #f59e0b;
-  --warn-dim:   rgba(245,158,11,0.12);
-  --success:    #22c55e;
-  --success-dim:rgba(34,197,94,0.1);
-  --danger:     #ef4444;
-  --danger-dim: rgba(239,68,68,0.12);
-  --radius:     8px;
-  --radius-lg:  14px;
-  --shadow:     0 24px 60px rgba(0,0,0,0.6);
-  --font:       'Inter',sans-serif;
-  --mono:       'JetBrains Mono',monospace;
-  --sidebar-w:  240px;
+  --bg-outer:#0d1829;--bg-card:#16213e;--bg-card2:#1a2748;--bg-input:#f0f4ff;--bg-popia:#0f1a35;
+  --border:#2a3a60;--border-inp:#c8d4f0;--text:#ffffff;--text-sub:#8899bb;--text-label:#8899cc;
+  --text-input:#1a2040;--red:#e03a2f;--red-dk:#c42e24;
+  --navy:#0d1829;--navy-lt:#16213e;--navy-2:#1a2748;
+  --purple:#7b3fa0;--purple-lt:#9b5fc0;--purple-dim:rgba(123,63,160,0.15);
+  --warn:#f59e0b;--warn-dim:rgba(245,158,11,0.12);
+  --success:#22c55e;--success-dim:rgba(34,197,94,0.1);
+  --danger:#ef4444;--danger-dim:rgba(239,68,68,0.12);
+  --radius:8px;--radius-lg:14px;--shadow:0 24px 60px rgba(0,0,0,0.6);
+  --font:'Inter',sans-serif;--mono:'JetBrains Mono',monospace;--sidebar-w:240px;
 }
-
 body{font-family:var(--font);background:var(--bg-outer);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.page{display:none}.page.active{display:flex}.section{display:none}.section.active{display:block}
 
-/* ── PAGE SYSTEM ── */
-.page{display:none}
-.page.active{display:flex}
-.section{display:none}
-.section.active{display:block}
-
-/* ══════════════════════════════════════
-   LOGIN — exact Asset Register style
-══════════════════════════════════════ */
-#login-page{
-  min-height:100vh;
-  align-items:center;
-  justify-content:center;
-  /* deep navy with very subtle radial texture */
-  background:
-    radial-gradient(ellipse 120% 80% at 50% 0%, #1a2d5a 0%, transparent 65%),
-    radial-gradient(ellipse 80% 60% at 100% 100%, #0a1528 0%, transparent 60%),
-    #0d1829;
-}
-
+/* LOGIN */
+#login-page{min-height:100vh;align-items:center;justify-content:center;background:radial-gradient(ellipse 120% 80% at 50% 0%,#1a2d5a 0%,transparent 65%),radial-gradient(ellipse 80% 60% at 100% 100%,#0a1528 0%,transparent 60%),#0d1829}
 .login-wrap{width:100%;max-width:480px;padding:1.5rem}
-
-.login-card{
-  background:var(--bg-card);
-  border:1px solid var(--border);
-  border-radius:var(--radius-lg);
-  padding:2.5rem 2.5rem 2rem;
-  box-shadow:var(--shadow);
-  text-align:center;
-}
-
-/* Logo */
-.login-logo{
-  margin-bottom:1.5rem;
-}
-.login-logo img{
-  height:72px;
-  object-fit:contain;
-  /* logo is navy/purple on white — invert to white for dark bg */
-  filter: brightness(0) invert(1);
-}
-
-/* Title */
-.login-title{
-  font-size:1.3rem;
-  font-weight:700;
-  color:#fff;
-  margin-bottom:0.3rem;
-  letter-spacing:-0.2px;
-}
-.login-subtitle{
-  font-size:0.82rem;
-  color:var(--text-sub);
-  margin-bottom:2rem;
-}
-
-/* Divider */
-.login-divider{
-  border:none;
-  border-top:1px solid var(--border);
-  margin-bottom:1.75rem;
-}
-
-/* Form — left-aligned labels */
+.login-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:2.5rem 2.5rem 2rem;box-shadow:var(--shadow);text-align:center}
+.login-logo{margin-bottom:1.5rem}
+.login-logo img{height:72px;object-fit:contain;filter:brightness(0) invert(1)}
+.login-title{font-size:1.3rem;font-weight:700;color:#fff;margin-bottom:0.3rem;letter-spacing:-0.2px}
+.login-subtitle{font-size:0.82rem;color:var(--text-sub);margin-bottom:2rem}
+.login-divider{border:none;border-top:1px solid var(--border);margin-bottom:1.75rem}
 .lform{text-align:left}
 .lform .form-group{margin-bottom:1.1rem}
-.lform label{
-  display:block;
-  font-size:0.7rem;
-  font-weight:700;
-  letter-spacing:0.1em;
-  text-transform:uppercase;
-  color:var(--text-label);
-  margin-bottom:0.4rem;
-}
-.lform input{
-  width:100%;
-  background:var(--bg-input);
-  border:1.5px solid var(--border-inp);
-  color:var(--text-input);
-  padding:0.7rem 1rem;
-  border-radius:8px;
-  font-family:var(--font);
-  font-size:0.9rem;
-  transition:border-color 0.15s,box-shadow 0.15s;
-  -webkit-appearance:none;
-}
-.lform input:focus{
-  outline:none;
-  border-color:#4a7fff;
-  box-shadow:0 0 0 3px rgba(74,127,255,0.15);
-}
+.lform label{display:block;font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-label);margin-bottom:0.4rem}
+.lform input{width:100%;background:var(--bg-input);border:1.5px solid var(--border-inp);color:var(--text-input);padding:0.7rem 1rem;border-radius:8px;font-family:var(--font);font-size:0.9rem;transition:border-color 0.15s,box-shadow 0.15s;-webkit-appearance:none}
+.lform input:focus{outline:none;border-color:#4a7fff;box-shadow:0 0 0 3px rgba(74,127,255,0.15)}
 .lform input::placeholder{color:#9aaac8}
-
-/* Password wrapper */
 .pw-wrap{position:relative}
 .pw-wrap input{padding-right:2.8rem}
-.pw-toggle{
-  position:absolute;right:0.85rem;top:50%;transform:translateY(-50%);
-  background:none;border:none;cursor:pointer;
-  color:var(--text-sub);font-size:1rem;line-height:1;padding:0.2rem;
-}
-
-/* Sign in button */
-.btn-signin{
-  width:100%;
-  background:var(--red);
-  color:#fff;
-  border:none;
-  padding:0.8rem;
-  border-radius:8px;
-  font-family:var(--font);
-  font-size:1rem;
-  font-weight:600;
-  cursor:pointer;
-  letter-spacing:0.01em;
-  transition:background 0.15s,transform 0.1s;
-  margin-top:0.5rem;
-}
-.btn-signin:hover{background:var(--red-dk)}
-.btn-signin:active{transform:scale(0.99)}
-
-/* Error */
-.login-error{
-  background:rgba(224,58,47,0.1);
-  border:1px solid rgba(224,58,47,0.35);
-  color:#ff7b73;
-  padding:0.6rem 0.9rem;
-  border-radius:7px;
-  font-size:0.83rem;
-  margin-bottom:1rem;
-  text-align:left;
-  display:none;
-}
-
-/* Forgot */
-.forgot-link{
-  display:block;
-  text-align:center;
-  color:var(--text-sub);
-  font-size:0.8rem;
-  margin-top:1rem;
-  text-decoration:none;
-  cursor:default;
-}
-
-/* Footer */
-.login-footer-line{
-  text-align:center;
-  color:var(--text-sub);
-  font-size:0.72rem;
-  margin-top:1rem;
-  margin-bottom:0.75rem;
-}
-
-/* POPIA box */
-.popia-box{
-  background:var(--bg-popia);
-  border:1px solid var(--border);
-  border-radius:8px;
-  padding:0.9rem 1.1rem;
-  font-size:0.72rem;
-  color:var(--text-sub);
-  line-height:1.6;
-  text-align:center;
-  margin-top:0.75rem;
-}
+.pw-toggle{position:absolute;right:0.85rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-sub);font-size:1rem;line-height:1;padding:0.2rem}
+.btn-signin{width:100%;background:var(--red);color:#fff;border:none;padding:0.8rem;border-radius:8px;font-family:var(--font);font-size:1rem;font-weight:600;cursor:pointer;letter-spacing:0.01em;transition:background 0.15s,transform 0.1s;margin-top:0.5rem}
+.btn-signin:hover{background:var(--red-dk)}.btn-signin:active{transform:scale(0.99)}
+.login-error{background:rgba(224,58,47,0.1);border:1px solid rgba(224,58,47,0.35);color:#ff7b73;padding:0.6rem 0.9rem;border-radius:7px;font-size:0.83rem;margin-bottom:1rem;text-align:left;display:none}
+.forgot-link{display:block;text-align:center;color:var(--text-sub);font-size:0.8rem;margin-top:1rem;text-decoration:none;cursor:default}
+.login-footer-line{text-align:center;color:var(--text-sub);font-size:0.72rem;margin-top:1rem;margin-bottom:0.75rem}
+.popia-box{background:var(--bg-popia);border:1px solid var(--border);border-radius:8px;padding:0.9rem 1.1rem;font-size:0.72rem;color:var(--text-sub);line-height:1.6;text-align:center;margin-top:0.75rem}
 .popia-box a{color:#6a8fd8;text-decoration:underline}
 
-/* ══════════════════════════════════════
-   APP LAYOUT
-══════════════════════════════════════ */
-#app-page{min-height:100vh}
+/* TIMEOUT MODAL */
+#timeout-modal{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:none;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(4px)}
+#timeout-modal.show{display:flex}
+.timeout-card{background:var(--navy-lt);border:1px solid var(--border);border-radius:var(--radius-lg);padding:2rem;max-width:380px;width:100%;text-align:center;box-shadow:var(--shadow)}
+.timeout-icon{font-size:2.5rem;margin-bottom:1rem}
+.timeout-card h3{font-size:1.1rem;font-weight:700;margin-bottom:0.5rem}
+.timeout-card p{color:var(--text-sub);font-size:0.85rem;margin-bottom:1.5rem;line-height:1.6}
+.timeout-countdown{font-size:2rem;font-weight:800;font-family:var(--mono);color:var(--warn);margin-bottom:1.5rem}
+.timeout-btns{display:flex;gap:0.75rem;justify-content:center}
 
-/* SIDEBAR */
-.sidebar{
-  width:var(--sidebar-w);min-height:100vh;
-  background:var(--navy-lt);
-  border-right:1px solid var(--border);
-  display:flex;flex-direction:column;flex-shrink:0;
-  position:sticky;top:0;height:100vh;
-}
-.sidebar-brand{
-  padding:1.25rem 1.25rem 1rem;
-  border-bottom:1px solid var(--border);
-}
-.sidebar-brand img{
-  height:40px;object-fit:contain;
-  filter:brightness(0) invert(1);
-}
+/* APP LAYOUT */
+#app-page{min-height:100vh}
+.sidebar{width:var(--sidebar-w);min-height:100vh;background:var(--navy-lt);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh}
+.sidebar-brand{padding:1.25rem 1.25rem 1rem;border-bottom:1px solid var(--border)}
+.sidebar-brand img{height:40px;object-fit:contain;filter:brightness(0) invert(1)}
 .sidebar-app-tag{font-size:0.6rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#4a5a80;margin-top:0.6rem}
 .sidebar-app-name{font-size:0.82rem;font-weight:700;color:var(--text);letter-spacing:-0.1px;margin-top:1px}
-
 .sidebar-nav{flex:1;padding:0.5rem 0}
-.nav-item{
-  display:flex;align-items:center;gap:0.65rem;
-  padding:0.6rem 1.25rem;color:#8899bb;
-  text-decoration:none;font-size:0.82rem;font-weight:500;
-  transition:all 0.15s;border-left:2px solid transparent;cursor:pointer;
-}
+.nav-item{display:flex;align-items:center;gap:0.65rem;padding:0.6rem 1.25rem;color:#8899bb;text-decoration:none;font-size:0.82rem;font-weight:500;transition:all 0.15s;border-left:2px solid transparent;cursor:pointer}
 .nav-item:hover{color:var(--text);background:var(--navy-2)}
 .nav-item.active{color:#fff;background:rgba(224,58,47,0.12);border-left-color:var(--red)}
 .nav-icon{font-size:0.95rem;width:1.1rem;flex-shrink:0}
-
-.alert-badge{
-  background:var(--danger);color:#fff;border-radius:999px;
-  font-size:0.65rem;font-weight:700;padding:1px 6px;margin-left:auto;display:none;
-}
-
-.sidebar-footer{
-  padding:1rem 1.25rem;border-top:1px solid var(--border);
-}
-.viewer-banner{
-  background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);
-  border-radius:6px;padding:0.5rem 0.75rem;font-size:0.72rem;
-  color:var(--warn);margin-bottom:0.75rem;display:none;
-}
+.alert-badge{background:var(--danger);color:#fff;border-radius:999px;font-size:0.65rem;font-weight:700;padding:1px 6px;margin-left:auto;display:none}
+.sidebar-footer{padding:1rem 1.25rem;border-top:1px solid var(--border)}
+.viewer-banner{background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:6px;padding:0.5rem 0.75rem;font-size:0.72rem;color:var(--warn);margin-bottom:0.75rem;display:none}
 .user-pill{display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem}
 .role-pip{width:6px;height:6px;border-radius:50%;background:var(--red);flex-shrink:0}
 .role-pip.viewer{background:#4a5a80}
 .user-email-sm{font-size:0.72rem;color:#8899bb;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
 .role-chip{font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;padding:2px 7px;border-radius:999px;background:rgba(224,58,47,0.15);color:#ff7b6b;white-space:nowrap}
 .role-chip.viewer{background:rgba(255,255,255,0.06);color:#4a5a80}
+.session-timer{font-size:0.65rem;color:var(--text-sub);text-align:center;margin-top:0.5rem;padding-top:0.5rem;border-top:1px solid var(--border)}
+.session-timer span{color:var(--warn);font-weight:600;font-family:var(--mono)}
 
 /* MAIN */
 .main-content{flex:1;padding:2rem 2.5rem;overflow-y:auto;min-width:0;background:var(--bg-outer)}
@@ -280,14 +92,11 @@ body{font-family:var(--font);background:var(--bg-outer);color:var(--text);min-he
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin-bottom:2rem}
 .stat-card{background:var(--navy-lt);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem 1.4rem;position:relative;overflow:hidden}
 .stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--border)}
-.stat-card.c-red::before{background:var(--red)}
-.stat-card.c-ok::before{background:var(--success)}
-.stat-card.c-warn::before{background:var(--warn)}
-.stat-card.c-danger::before{background:var(--danger)}
+.stat-card.c-red::before{background:var(--red)}.stat-card.c-ok::before{background:var(--success)}
+.stat-card.c-warn::before{background:var(--warn)}.stat-card.c-danger::before{background:var(--danger)}
+.stat-card.c-purple::before{background:var(--purple)}
 .stat-value{font-size:2.5rem;font-weight:800;font-family:var(--mono);line-height:1;margin-bottom:0.4rem;letter-spacing:-1px;color:var(--text)}
-.stat-card.c-warn .stat-value{color:var(--warn)}
-.stat-card.c-danger .stat-value{color:var(--danger)}
-.stat-card.c-ok .stat-value{color:var(--success)}
+.stat-card.c-warn .stat-value{color:var(--warn)}.stat-card.c-danger .stat-value{color:var(--danger)}.stat-card.c-ok .stat-value{color:var(--success)}
 .stat-label{font-size:0.75rem;color:#8899bb;font-weight:500;text-transform:uppercase;letter-spacing:0.06em}
 
 /* ALERTS */
@@ -296,13 +105,10 @@ body{font-family:var(--font);background:var(--bg-outer);color:var(--text);min-he
 .alert-item{display:flex;align-items:center;gap:1rem;background:var(--navy-lt);border:1px solid var(--border);border-radius:var(--radius);padding:0.85rem 1.25rem;border-left:3px solid var(--border)}
 .alert-item.lvl-warn{border-left-color:var(--warn);background:linear-gradient(90deg,rgba(245,158,11,0.06) 0%,var(--navy-lt) 60%)}
 .alert-item.lvl-danger{border-left-color:var(--danger);background:linear-gradient(90deg,rgba(239,68,68,0.06) 0%,var(--navy-lt) 60%)}
-.alert-icon{font-size:1.1rem;flex-shrink:0}
-.alert-body{flex:1;min-width:0}
-.alert-title{font-weight:600;font-size:0.85rem}
-.alert-sub{font-size:0.76rem;color:#8899bb;margin-top:2px}
+.alert-icon{font-size:1.1rem;flex-shrink:0}.alert-body{flex:1;min-width:0}
+.alert-title{font-weight:600;font-size:0.85rem}.alert-sub{font-size:0.76rem;color:#8899bb;margin-top:2px}
 .alert-chip{font-size:0.68rem;font-weight:700;padding:3px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:0.06em;flex-shrink:0}
-.alert-chip.warn{background:var(--warn-dim);color:var(--warn)}
-.alert-chip.danger{background:var(--danger-dim);color:var(--danger)}
+.alert-chip.warn{background:var(--warn-dim);color:var(--warn)}.alert-chip.danger{background:var(--danger-dim);color:var(--danger)}
 
 /* TABLE */
 .table-wrap{background:var(--navy-lt);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
@@ -314,38 +120,29 @@ body{font-family:var(--font);background:var(--bg-outer);color:var(--text);min-he
 .data-table tbody tr:hover td{background:rgba(255,255,255,0.02)}
 .reg-pill{font-family:var(--mono);font-size:0.77rem;font-weight:600;background:var(--navy-2);border:1px solid var(--border);padding:3px 9px;border-radius:5px;letter-spacing:0.06em;white-space:nowrap}
 .status-chip{font-size:0.68rem;font-weight:700;padding:3px 9px;border-radius:999px;text-transform:uppercase;letter-spacing:0.06em;white-space:nowrap}
-.s-ok{background:var(--success-dim);color:var(--success)}
-.s-warn{background:var(--warn-dim);color:var(--warn)}
-.s-danger{background:var(--danger-dim);color:var(--danger)}
+.s-ok{background:var(--success-dim);color:var(--success)}.s-warn{background:var(--warn-dim);color:var(--warn)}.s-danger{background:var(--danger-dim);color:var(--danger)}
 
 /* FORMS */
 .form-group{display:flex;flex-direction:column;gap:0.35rem;margin-bottom:1rem}
 .form-group:last-child{margin-bottom:0}
 .form-group label{font-size:0.72rem;font-weight:700;color:#8899bb;text-transform:uppercase;letter-spacing:0.07em}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
-input[type=text],input[type=email],input[type=tel],input[type=number],input[type=date],select,textarea{
-  background:var(--navy-2);border:1px solid var(--border);color:var(--text);
-  padding:0.6rem 0.8rem;border-radius:var(--radius);font-family:var(--font);
-  font-size:0.85rem;width:100%;transition:border-color 0.15s,box-shadow 0.15s;-webkit-appearance:none;
-}
-input[type=text]:focus,input[type=email]:focus,input[type=tel]:focus,
-input[type=number]:focus,input[type=date]:focus,select:focus,textarea:focus{
-  outline:none;border-color:var(--red);box-shadow:0 0 0 3px rgba(224,58,47,0.12);
-}
+input[type=text],input[type=email],input[type=tel],input[type=number],input[type=date],select,textarea{background:var(--navy-2);border:1px solid var(--border);color:var(--text);padding:0.6rem 0.8rem;border-radius:var(--radius);font-family:var(--font);font-size:0.85rem;width:100%;transition:border-color 0.15s,box-shadow 0.15s;-webkit-appearance:none}
+input[type=text]:focus,input[type=email]:focus,input[type=tel]:focus,input[type=number]:focus,input[type=date]:focus,select:focus,textarea:focus{outline:none;border-color:var(--red);box-shadow:0 0 0 3px rgba(224,58,47,0.12)}
 textarea{min-height:80px;resize:vertical}
 select option{background:var(--navy-2);color:var(--text)}
 input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
 
 /* BUTTONS */
 .btn-primary{background:var(--red);color:#fff;border:none;padding:0.6rem 1.25rem;border-radius:var(--radius);font-weight:600;font-size:0.85rem;cursor:pointer;transition:background 0.15s,transform 0.1s;font-family:var(--font);white-space:nowrap}
-.btn-primary:hover{background:var(--red-dk)}
-.btn-primary:active{transform:scale(0.98)}
+.btn-primary:hover{background:var(--red-dk)}.btn-primary:active{transform:scale(0.98)}
 .btn-ghost{background:transparent;color:#8899bb;border:1px solid var(--border);padding:0.55rem 1rem;border-radius:var(--radius);font-weight:500;font-size:0.84rem;cursor:pointer;transition:all 0.15s;font-family:var(--font)}
 .btn-ghost:hover{color:var(--text);border-color:#8899bb}
 .btn-danger-solid{background:var(--danger);color:#fff;border:none;padding:0.6rem 1.25rem;border-radius:var(--radius);font-weight:600;font-size:0.85rem;cursor:pointer;font-family:var(--font);transition:background 0.15s}
 .btn-danger-solid:hover{background:#c93636}
 .btn-icon{background:transparent;border:none;cursor:pointer;padding:0.3rem 0.45rem;border-radius:5px;font-size:0.95rem;transition:background 0.15s;line-height:1}
 .btn-icon:hover{background:var(--navy-2)}
+.btn-warn{background:var(--warn);color:#000;border:none;padding:0.6rem 1.25rem;border-radius:var(--radius);font-weight:600;font-size:0.85rem;cursor:pointer;font-family:var(--font);transition:background 0.15s}
 
 /* MODALS */
 .modal{position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:999;padding:1rem;backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity 0.2s}
@@ -358,65 +155,49 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
 .modal-accent-line{width:1.75rem;height:2px;background:var(--red);border-radius:2px}
 .modal-close{background:none;border:none;color:#8899bb;cursor:pointer;font-size:1rem;padding:0.25rem;line-height:1;transition:color 0.15s}
 .modal-close:hover{color:var(--text)}
-.modal-body{padding:1.5rem}
-.modal-footer{display:flex;justify-content:flex-end;gap:0.75rem;padding:1rem 1.5rem;border-top:1px solid var(--border)}
+.modal-body{padding:1.5rem}.modal-footer{display:flex;justify-content:flex-end;gap:0.75rem;padding:1rem 1.5rem;border-top:1px solid var(--border)}
 
 /* UTIL */
 .hidden{display:none!important}
 .empty-state{text-align:center;color:#4a5a80;padding:2.5rem 1rem;font-size:0.85rem}
 .viewer-mode .admin-only{display:none!important}
 
-/* ── Service History ── */
-.service-type-chip{
-  font-size:0.72rem;font-weight:600;
-  padding:3px 8px;border-radius:5px;
-  background:var(--navy-2);border:1px solid var(--border);
-  white-space:nowrap;
-}
-.history-vehicle{font-family:var(--mono);font-size:0.77rem;font-weight:600;color:var(--text-sub)}
+/* SERVICE HISTORY */
+.service-type-chip{font-size:0.72rem;font-weight:600;padding:3px 8px;border-radius:5px;background:var(--navy-2);border:1px solid var(--border);white-space:nowrap}
 .cost-cell{font-family:var(--mono);font-size:0.82rem;color:var(--success)}
 
-/* ── Fuel Tracker ── */
-.fuel-limit-bar{width:100%;height:6px;background:var(--border);border-radius:3px;margin-top:4px;overflow:hidden}
+/* FUEL TRACKER */
+.fuel-limit-bar{width:100%;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
 .fuel-limit-fill{height:100%;border-radius:3px;background:var(--success);transition:width 0.3s}
-.fuel-limit-fill.warn{background:var(--warn)}
-.fuel-limit-fill.danger{background:var(--danger)}
-.stat-card.c-purple::before{background:var(--purple)}
+.fuel-limit-fill.warn{background:var(--warn)}.fuel-limit-fill.danger{background:var(--danger)}
 .dept-chip{font-size:0.72rem;font-weight:600;padding:2px 8px;border-radius:4px;background:var(--navy-2);border:1px solid var(--border)}
 
-/* ── Export buttons ── */
+/* EXPORT BUTTONS */
 .btn-export{background:transparent;color:var(--text-sub);border:1px solid var(--border);padding:0.5rem 0.9rem;border-radius:var(--radius);font-weight:500;font-size:0.8rem;cursor:pointer;transition:all 0.15s;font-family:var(--font);display:inline-flex;align-items:center;gap:0.4rem;white-space:nowrap}
 .btn-export:hover{color:var(--text);border-color:var(--text-sub)}
-.export-group{display:flex;gap:0.5rem;align-items:center}
 
-/* ── Print styles ── */
+/* PRINT */
 @media print{
   body{background:#fff!important;color:#000!important}
-  .sidebar,.section-header .export-group,#login-page,button,.modal{display:none!important}
+  .sidebar,#login-page,button,.modal,#timeout-modal{display:none!important}
   .main-content{padding:0!important}
   .table-wrap{border:1px solid #ccc!important;border-radius:0!important}
   .data-table th{background:#1a2454!important;color:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .data-table td{color:#000!important;border-bottom:1px solid #ddd!important}
   .reg-pill{background:#eee!important;color:#000!important;border:1px solid #ccc!important}
-  .status-chip{border:1px solid #ccc!important}
   .s-ok{background:#d4edda!important;color:#155724!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .s-warn{background:#fff3cd!important;color:#856404!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .s-danger{background:#f8d7da!important;color:#721c24!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .print-header{display:block!important}
   .admin-only{display:none!important}
   #section-vehicles{display:block!important}
-  #section-dashboard,#section-drivers,#section-alerts{display:none!important}
+  #section-dashboard,#section-drivers,#section-alerts,#section-history,#section-fuel{display:none!important}
 }
-.print-header{
-  display:none;
-  text-align:center;
-  margin-bottom:1.5rem;
-  padding-bottom:1rem;
-  border-bottom:2px solid #1a2454;
-}
+.print-header{display:none;text-align:center;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:2px solid #1a2454}
 .print-header h1{font-size:1.4rem;color:#1a2454;font-weight:700}
 .print-header p{font-size:0.85rem;color:#555;margin-top:0.25rem}
 
+/* RESPONSIVE */
 @media(max-width:768px){
   .sidebar{width:100%;height:auto;flex-direction:row;min-height:unset;position:fixed;bottom:0;left:0;right:0;z-index:100;border-right:none;border-top:1px solid var(--border)}
   .sidebar-brand,.sidebar-footer,.sidebar-app-tag,.sidebar-app-name{display:none}
@@ -432,23 +213,30 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
 </head>
 <body>
 
-<!-- ══════════════ LOGIN ══════════════ -->
+<!-- TIMEOUT WARNING MODAL -->
+<div id="timeout-modal">
+  <div class="timeout-card">
+    <div class="timeout-icon">⏱️</div>
+    <h3>Session Expiring</h3>
+    <p>You've been inactive for 14 minutes. You will be signed out automatically in:</p>
+    <div class="timeout-countdown" id="timeout-countdown">60</div>
+    <div class="timeout-btns">
+      <button class="btn-ghost" onclick="doLogout()">Sign Out Now</button>
+      <button class="btn-primary" onclick="extendSession()">Stay Signed In</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOGIN -->
 <div id="login-page" class="page active">
   <div class="login-wrap">
     <div class="login-card">
-
-      <!-- Logo -->
       <div class="login-logo">
         <img src="https://lirp.cdn-website.com/c706051a/dms3rep/multi/opt/cropped-Xcorp-new-logo-1920w.png" alt="X-Corp"/>
       </div>
-
-      <!-- Title -->
       <div class="login-title">Vehicle Tracker</div>
       <div class="login-subtitle">X-Corp Business Solutions</div>
-
       <hr class="login-divider"/>
-
-      <!-- Form -->
       <div class="lform">
         <div id="login-error" class="login-error"></div>
         <div class="form-group">
@@ -458,29 +246,24 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
         <div class="form-group">
           <label>Password</label>
           <div class="pw-wrap">
-            <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password"
-                   onkeydown="if(event.key==='Enter') doLogin()"/>
+            <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter') doLogin()"/>
             <button class="pw-toggle" type="button" onclick="togglePw()" tabindex="-1">👁</button>
           </div>
         </div>
         <button class="btn-signin" onclick="doLogin()">Sign In</button>
         <a class="forgot-link">Forgot your password?</a>
       </div>
-
       <div class="login-footer-line">X-Corp Business Solutions © 2024 · Secure Login</div>
-
       <div class="popia-box">
         By signing in you acknowledge that this system processes personal information in accordance with the
         <a href="#">POPIA Notice</a> and <a href="#">Privacy Policy</a> of X-Corp Business Solutions.
       </div>
-
     </div>
   </div>
 </div>
 
-<!-- ══════════════ APP ══════════════ -->
+<!-- APP -->
 <div id="app-page" class="page hidden">
-
   <aside class="sidebar">
     <div class="sidebar-brand">
       <img src="https://lirp.cdn-website.com/c706051a/dms3rep/multi/opt/cropped-Xcorp-new-logo-1920w.png" alt="X-Corp"/>
@@ -488,25 +271,12 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
       <div class="sidebar-app-name">Vehicle Tracker</div>
     </div>
     <nav class="sidebar-nav">
-      <a class="nav-item active" onclick="navTo('dashboard',this)">
-        <span class="nav-icon">📊</span> Dashboard
-      </a>
-      <a class="nav-item" onclick="navTo('vehicles',this)">
-        <span class="nav-icon">🚘</span> Vehicles
-      </a>
-      <a class="nav-item" onclick="navTo('drivers',this)">
-        <span class="nav-icon">👤</span> Drivers
-      </a>
-      <a class="nav-item" onclick="navTo('history',this)">
-        <span class="nav-icon">🔧</span> Service History
-      </a>
-      <a class="nav-item" onclick="navTo('fuel',this)">
-        <span class="nav-icon">⛽</span> Fuel Tracker
-      </a>
-      <a class="nav-item" onclick="navTo('alerts',this)">
-        <span class="nav-icon">🔔</span> Alerts
-        <span class="alert-badge" id="alert-badge">0</span>
-      </a>
+      <a class="nav-item active" onclick="navTo('dashboard',this)"><span class="nav-icon">📊</span> Dashboard</a>
+      <a class="nav-item" onclick="navTo('vehicles',this)"><span class="nav-icon">🚘</span> Vehicles</a>
+      <a class="nav-item" onclick="navTo('drivers',this)"><span class="nav-icon">👤</span> Drivers</a>
+      <a class="nav-item" onclick="navTo('history',this)"><span class="nav-icon">🔧</span> Service History</a>
+      <a class="nav-item" onclick="navTo('fuel',this)"><span class="nav-icon">⛽</span> Fuel Tracker</a>
+      <a class="nav-item" onclick="navTo('alerts',this)"><span class="nav-icon">🔔</span> Alerts<span class="alert-badge" id="alert-badge">0</span></a>
     </nav>
     <div class="sidebar-footer">
       <div class="viewer-banner" id="viewer-banner">👁 View Only — No edit access</div>
@@ -515,7 +285,8 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
         <div class="user-email-sm" id="user-email-lbl"></div>
         <span class="role-chip" id="role-chip">Admin</span>
       </div>
-      <button class="btn-ghost" style="width:100%;font-size:0.78rem" onclick="doLogout()">Sign Out</button>
+      <button class="btn-ghost" style="width:100%;font-size:0.78rem;margin-bottom:0.5rem" onclick="doLogout()">Sign Out</button>
+      <div class="session-timer">Session: <span id="session-timer-display">15:00</span></div>
     </div>
   </aside>
 
@@ -538,18 +309,12 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
 
     <!-- VEHICLES -->
     <section id="section-vehicles" class="section hidden">
-      <!-- Print header (only shows when printing) -->
-      <div class="print-header">
-        <h1>X-Corp Vehicle Tracker — Fleet Report</h1>
-        <p id="print-date"></p>
-      </div>
+      <div class="print-header"><h1>X-Corp Vehicle Tracker — Fleet Report</h1><p id="print-date"></p></div>
       <div class="section-header">
         <div><h2>Vehicles</h2><div class="section-sub">Fleet registration &amp; compliance</div></div>
         <div style="display:flex;gap:0.5rem;align-items:center">
-          <div class="export-group">
-            <button class="btn-export" onclick="exportExcel()">📊 Export Excel</button>
-            <button class="btn-export" onclick="printVehicles()">🖨️ Print</button>
-          </div>
+          <button class="btn-export" onclick="exportExcel()">📊 Export Excel</button>
+          <button class="btn-export" onclick="printVehicles()">🖨️ Print</button>
           <button class="btn-primary admin-only" onclick="openVehicleModal()">+ Add Vehicle</button>
         </div>
       </div>
@@ -573,10 +338,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
       </div>
       <div class="table-wrap">
         <table class="data-table">
-          <thead><tr>
-            <th>Name</th><th>Phone</th><th>Email</th><th>Assigned Vehicle</th>
-            <th class="admin-only">Actions</th>
-          </tr></thead>
+          <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Assigned Vehicle</th><th class="admin-only">Actions</th></tr></thead>
           <tbody id="drivers-tbody"><tr><td colspan="5" class="empty-state">No drivers yet.</td></tr></tbody>
         </table>
       </div>
@@ -588,7 +350,6 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
         <div><h2>Service History</h2><div class="section-sub">Full service log per vehicle</div></div>
         <button class="btn-primary admin-only" onclick="openServiceModal()">+ Log Service</button>
       </div>
-      <!-- Vehicle filter -->
       <div style="margin-bottom:1rem">
         <select id="history-filter" onchange="renderHistory()" style="max-width:280px;background:var(--navy-2);border:1px solid var(--border);color:var(--text);padding:0.55rem 0.8rem;border-radius:var(--radius);font-family:var(--font);font-size:0.85rem">
           <option value="">All Vehicles</option>
@@ -621,39 +382,20 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
           <button class="btn-export" onclick="exportFuelExcel()">📊 Export</button>
         </div>
       </div>
-
-      <!-- Sales filter notice -->
       <div id="sales-filter-notice" style="display:none;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:var(--radius);padding:0.6rem 1rem;margin-bottom:1rem;font-size:0.8rem;color:var(--success)">
         ✅ Showing Sales department vehicles only
       </div>
-
-      <!-- Status bar -->
-      <div id="fuel-status" style="display:none;background:var(--navy-2);border:1px solid var(--border);border-radius:var(--radius);padding:0.6rem 1rem;margin-bottom:1rem;font-size:0.8rem;color:var(--text-sub);display:flex;align-items:center;gap:0.5rem">
+      <div id="fuel-status" style="display:none;background:var(--navy-2);border:1px solid var(--border);border-radius:var(--radius);padding:0.6rem 1rem;margin-bottom:1rem;font-size:0.8rem;color:var(--text-sub);align-items:center;gap:0.5rem">
         <span id="fuel-status-icon">ℹ️</span>
         <span id="fuel-status-msg">Ready</span>
         <span style="margin-left:auto;font-size:0.72rem" id="fuel-last-sync"></span>
       </div>
-
-      <!-- Stat cards -->
       <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
-        <div class="stat-card c-red">
-          <div class="stat-value" id="fuel-stat-spend">R0</div>
-          <div class="stat-label">Total MTD Spend</div>
-        </div>
-        <div class="stat-card c-purple" style="--c:var(--purple)">
-          <div class="stat-value" id="fuel-stat-vehicles">0</div>
-          <div class="stat-label">Active Vehicles</div>
-        </div>
-        <div class="stat-card c-warn">
-          <div class="stat-value" id="fuel-stat-dept">—</div>
-          <div class="stat-label">Top Department</div>
-        </div>
+        <div class="stat-card c-red"><div class="stat-value" id="fuel-stat-spend">R0</div><div class="stat-label">Total MTD Spend</div></div>
+        <div class="stat-card c-purple"><div class="stat-value" id="fuel-stat-vehicles">0</div><div class="stat-label">Active Vehicles</div></div>
+        <div class="stat-card c-warn"><div class="stat-value" id="fuel-stat-dept">—</div><div class="stat-label">Top Department</div></div>
       </div>
-
-      <!-- Two column layout -->
       <div id="fuel-two-col" style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem">
-
-        <!-- Department summary -->
         <div>
           <div class="alerts-section-title">Department Summary</div>
           <div class="table-wrap">
@@ -663,8 +405,6 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
             </table>
           </div>
         </div>
-
-        <!-- Monthly trend -->
         <div>
           <div class="alerts-section-title">Monthly Trend</div>
           <div class="table-wrap" style="max-height:280px;overflow-y:auto">
@@ -675,8 +415,6 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
           </div>
         </div>
       </div>
-
-      <!-- Vehicle detail table -->
       <div class="alerts-section-title">Per Vehicle Detail</div>
       <div class="table-wrap">
         <table class="data-table">
@@ -729,10 +467,8 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
         </div>
       </div>
       <div class="form-group"><label>Notes</label><textarea id="vm-notes" placeholder="Optional notes..."></textarea></div>
-
-      <!-- Vehicle type & tracking options -->
       <div style="border-top:1px solid var(--border);margin-top:0.5rem;padding-top:1rem">
-        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-sub);margin-bottom:0.75rem">Vehicle Type & Tracking</div>
+        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-sub);margin-bottom:0.75rem">Vehicle Type &amp; Tracking</div>
         <div class="form-row">
           <div class="form-group">
             <label>Vehicle Type</label>
@@ -750,9 +486,9 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
           </div>
         </div>
       </div>
-      </div>
     </div>
     <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('vehicle-modal')">Cancel</button>
       <button class="btn-primary" onclick="saveVehicle()">Save Vehicle</button>
     </div>
   </div></div>
@@ -795,48 +531,28 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
         <div class="form-group"><label>Vehicle *</label>
           <select id="sm-vehicle"><option value="">— Select Vehicle —</option></select>
         </div>
-        <div class="form-group"><label>Service Date *</label>
-          <input type="date" id="sm-date"/>
-        </div>
+        <div class="form-group"><label>Service Date *</label><input type="date" id="sm-date"/></div>
       </div>
       <div class="form-row">
         <div class="form-group"><label>Service Type *</label>
           <select id="sm-type">
             <option value="">— Select Type —</option>
-            <option>Major Service</option>
-            <option>Minor Service</option>
-            <option>Oil Change</option>
-            <option>Tyre Replacement</option>
-            <option>Brake Service</option>
-            <option>Licence Renewal</option>
-            <option>Roadworthy</option>
-            <option>Repairs</option>
-            <option>Other</option>
+            <option>Major Service</option><option>Minor Service</option><option>Oil Change</option>
+            <option>Tyre Replacement</option><option>Brake Service</option><option>Licence Renewal</option>
+            <option>Roadworthy</option><option>Repairs</option><option>Other</option>
           </select>
         </div>
-        <div class="form-group"><label>Mileage (km)</label>
-          <input type="number" id="sm-mileage" placeholder="e.g. 85000"/>
-        </div>
+        <div class="form-group"><label>Mileage (km)</label><input type="number" id="sm-mileage" placeholder="e.g. 85000"/></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>Cost (R)</label>
-          <input type="number" id="sm-cost" placeholder="e.g. 2500"/>
-        </div>
-        <div class="form-group"><label>Workshop / Garage</label>
-          <input type="text" id="sm-workshop" placeholder="e.g. Toyota Dealer"/>
-        </div>
+        <div class="form-group"><label>Cost (R)</label><input type="number" id="sm-cost" placeholder="e.g. 2500"/></div>
+        <div class="form-group"><label>Workshop / Garage</label><input type="text" id="sm-workshop" placeholder="e.g. Toyota Dealer"/></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>Next Service Date</label>
-          <input type="date" id="sm-nextservice"/>
-        </div>
-        <div class="form-group"><label>Invoice Number</label>
-          <input type="text" id="sm-invoice" placeholder="e.g. INV-00123"/>
-        </div>
+        <div class="form-group"><label>Next Service Date</label><input type="date" id="sm-nextservice"/></div>
+        <div class="form-group"><label>Invoice Number</label><input type="text" id="sm-invoice" placeholder="e.g. INV-00123"/></div>
       </div>
-      <div class="form-group"><label>Notes</label>
-        <textarea id="sm-notes" placeholder="Work done, parts replaced, etc..."></textarea>
-      </div>
+      <div class="form-group"><label>Notes</label><textarea id="sm-notes" placeholder="Work done, parts replaced, etc..."></textarea></div>
     </div>
     <div class="modal-footer">
       <button class="btn-ghost" onclick="closeModal('service-modal')">Cancel</button>
@@ -861,7 +577,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
   </div></div>
 </div>
 
-<!-- ══════════════ FIREBASE + JS ══════════════ -->
+<!-- FIREBASE + JS -->
 <script type="module">
 import { initializeApp }  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
@@ -869,201 +585,356 @@ import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
 import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+/* ── Config ── */
 const firebaseConfig = {
-  apiKey:            "AIzaSyAZzMydaZ6Dk6qHDygpiGU1umIbxJekcLU",
-  authDomain:        "vehicle-tracker-21af2.firebaseapp.com",
-  databaseURL:       "https://vehicle-tracker-21af2-default-rtdb.firebaseio.com",
-  projectId:         "vehicle-tracker-21af2",
-  storageBucket:     "vehicle-tracker-21af2.firebasestorage.app",
-  messagingSenderId: "266396360257",
-  appId:             "1:266396360257:web:48910da0bfe4920f6a30c0"
+  apiKey:"AIzaSyAZzMydaZ6Dk6qHDygpiGU1umIbxJekcLU",
+  authDomain:"vehicle-tracker-21af2.firebaseapp.com",
+  databaseURL:"https://vehicle-tracker-21af2-default-rtdb.firebaseio.com",
+  projectId:"vehicle-tracker-21af2",
+  storageBucket:"vehicle-tracker-21af2.firebasestorage.app",
+  messagingSenderId:"266396360257",
+  appId:"1:266396360257:web:48910da0bfe4920f6a30c0"
 };
 
-/* ── SHA-256 hashed passwords ── */
+/* ── Users (SHA-256 hashed passwords) ── */
 const USERS = {
   "creditors@almestar.co.za":  { hash:"0f78c0054fa09c53d7d0ad4a7dc161bb908bd1ac7699dd1cbb21b2f4fac51355", role:"admin" },
   "accounts01@almestar.co.za": { hash:"fd9c653f918daa65b813f2443254bc43aec0f4f925ad91f799fc7227bf6fed01", role:"viewer" },
   "sales@almestar.co.za":      { hash:"8526f9a84da0f9b0c9a52cbdd2cd7b1f7b4d91df20b29efbf169c1dac0e4906b", role:"sales" }
 };
-async function sha256(s){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,"0")).join("")}
+async function sha256(s){
+  const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,"0")).join("");
+}
 
+/* ── Init ── */
 const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db   = getFirestore(app);
 
-let currentUser=null,isAdmin=false,vehicles=[],drivers=[],serviceRecords=[],unsubV=null,unsubD=null,unsubS=null;
+/* ── State ── */
+let currentUser=null, isAdmin=false, isSales=false;
+let vehicles=[], drivers=[], serviceRecords=[];
+let unsubV=null, unsubD=null, unsubS=null;
+let fuelTabsLoaded=false, fuelDeptFilter="";
+let fuelData={vehicles:[],monthly:[],deptSummary:[],sheetTab:""};
 const WARN_DAYS=30;
+const SHEET_ID="1PMoNZOLaYsHDRCeweE4jGV9OpoZ9RFTpMxN1yqTFI4w";
 
-/* ── Login ── */
-window.doLogin = async()=>{
-  const email=document.getElementById("login-email").value.trim().toLowerCase();
-  const pass =document.getElementById("login-password").value;
-  const err  =document.getElementById("login-error");
-  err.style.display="none";
-  const rec=USERS[email];
-  if(!rec){err.textContent="Incorrect email or password.";err.style.display="block";return}
-  if(await sha256(pass)!==rec.hash){err.textContent="Incorrect email or password.";err.style.display="block";return}
-  try{await signInWithEmailAndPassword(auth,email,pass)}
-  catch(e){err.textContent="Sign-in error: "+e.message;err.style.display="block"}
+/* ══════════════════════════════════════
+   SESSION TIMEOUT — 15 minutes
+══════════════════════════════════════ */
+const SESSION_MINUTES = 15;
+const WARNING_SECONDS = 60; // warn 1 min before timeout
+let sessionTimer    = null;
+let countdownTimer  = null;
+let sessionSecondsLeft = SESSION_MINUTES * 60;
+
+const ACTIVITY_EVENTS = ['mousedown','mousemove','keydown','scroll','touchstart','click'];
+
+function startSessionTimer() {
+  stopSessionTimer();
+  sessionSecondsLeft = SESSION_MINUTES * 60;
+  updateTimerDisplay();
+
+  // Listen for user activity
+  ACTIVITY_EVENTS.forEach(e => document.addEventListener(e, resetSessionTimer, { passive: true }));
+
+  sessionTimer = setInterval(() => {
+    sessionSecondsLeft--;
+    updateTimerDisplay();
+
+    if (sessionSecondsLeft <= 0) {
+      // Time's up — force logout
+      stopSessionTimer();
+      hideTimeoutModal();
+      doLogout();
+    } else if (sessionSecondsLeft === WARNING_SECONDS) {
+      // Show warning modal
+      showTimeoutModal();
+    }
+  }, 1000);
+}
+
+function stopSessionTimer() {
+  if (sessionTimer)   { clearInterval(sessionTimer);   sessionTimer = null; }
+  if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+  ACTIVITY_EVENTS.forEach(e => document.removeEventListener(e, resetSessionTimer));
+}
+
+function resetSessionTimer() {
+  // Only reset if not already in warning modal
+  if (document.getElementById("timeout-modal").classList.contains("show")) return;
+  sessionSecondsLeft = SESSION_MINUTES * 60;
+  updateTimerDisplay();
+}
+
+function updateTimerDisplay() {
+  const mins = Math.floor(sessionSecondsLeft / 60);
+  const secs = sessionSecondsLeft % 60;
+  const display = `${String(mins).padStart(2,"0")}:${String(secs).padStart(2,"0")}`;
+  const el = document.getElementById("session-timer-display");
+  if (el) el.textContent = display;
+
+  // Update countdown in modal if shown
+  const cd = document.getElementById("timeout-countdown");
+  if (cd && sessionSecondsLeft <= WARNING_SECONDS) {
+    cd.textContent = sessionSecondsLeft;
+    // Change colour to red when < 30s
+    cd.style.color = sessionSecondsLeft < 30 ? "var(--danger)" : "var(--warn)";
+  }
+}
+
+function showTimeoutModal() {
+  document.getElementById("timeout-modal").classList.add("show");
+}
+
+function hideTimeoutModal() {
+  document.getElementById("timeout-modal").classList.remove("show");
+}
+
+window.extendSession = () => {
+  hideTimeoutModal();
+  sessionSecondsLeft = SESSION_MINUTES * 60;
+  updateTimerDisplay();
 };
 
-window.doLogout=async()=>{
-  if(unsubV)unsubV();if(unsubD)unsubD();if(unsubS)unsubS();
-  fuelDeptFilter="";
-  fuelTabsLoaded=false;
-  await signOut(auth)
+/* ══════════════════════════════════════
+   AUTH
+══════════════════════════════════════ */
+window.doLogin = async () => {
+  const email = document.getElementById("login-email").value.trim().toLowerCase();
+  const pass  = document.getElementById("login-password").value;
+  const err   = document.getElementById("login-error");
+  err.style.display = "none";
+
+  const rec = USERS[email];
+  if (!rec) { err.textContent="Incorrect email or password."; err.style.display="block"; return; }
+  if (await sha256(pass) !== rec.hash) { err.textContent="Incorrect email or password."; err.style.display="block"; return; }
+
+  try {
+    await signInWithEmailAndPassword(auth, email, pass);
+  } catch(e) {
+    err.textContent = "Sign-in error: " + e.message;
+    err.style.display = "block";
+  }
 };
 
-window.togglePw=()=>{const i=document.getElementById("login-password");i.type=i.type==="password"?"text":"password"};
+window.doLogout = async () => {
+  stopSessionTimer();
+  hideTimeoutModal();
+  if(unsubV) unsubV();
+  if(unsubD) unsubD();
+  if(unsubS) unsubS();
+  fuelDeptFilter  = "";
+  fuelTabsLoaded  = false;
+  await signOut(auth);
+};
 
-/* ── Auth state ── */
-onAuthStateChanged(auth,user=>{
-  if(user){
-    currentUser=user;
-    const record=USERS[user.email.toLowerCase()];
-    isAdmin=record?.role==="admin";
+window.togglePw = () => {
+  const i = document.getElementById("login-password");
+  i.type = i.type === "password" ? "text" : "password";
+};
+
+onAuthStateChanged(auth, user => {
+  if (user) {
+    currentUser = user;
+    const record = USERS[user.email.toLowerCase()];
+    isAdmin  = record?.role === "admin";
+    isSales  = record?.role === "sales";
     showApp();
-  }else{currentUser=null;isAdmin=false;showLogin()}
+  } else {
+    currentUser = null;
+    isAdmin = false;
+    isSales = false;
+    showLogin();
+  }
 });
 
-function showApp(){
-  document.getElementById("login-page").className="page hidden";
-  document.getElementById("app-page").className="page active";
-  document.getElementById("user-email-lbl").textContent=currentUser.email;
+/* ══════════════════════════════════════
+   APP SHOW / HIDE
+══════════════════════════════════════ */
+function showApp() {
+  document.getElementById("login-page").className = "page hidden";
+  document.getElementById("app-page").className   = "page active";
+  document.getElementById("user-email-lbl").textContent = currentUser.email;
 
-  const record=USERS[currentUser.email.toLowerCase()];
-  isAdmin=record?.role==="admin";
-  const isSales=record?.role==="sales";
+  const pip    = document.getElementById("role-pip");
+  const chip   = document.getElementById("role-chip");
+  const banner = document.getElementById("viewer-banner");
 
-  const pip=document.getElementById("role-pip"),chip=document.getElementById("role-chip"),banner=document.getElementById("viewer-banner");
-  if(isAdmin){
-    pip.className="role-pip";chip.textContent="Admin";chip.className="role-chip";banner.style.display="none";
-  } else if(isSales){
-    pip.className="role-pip viewer";chip.textContent="Sales";chip.className="role-chip viewer";
-    banner.textContent="⛽ Fuel Tracker — Sales View";banner.style.display="block";
+  if (isAdmin) {
+    pip.className="role-pip"; chip.textContent="Admin"; chip.className="role-chip"; banner.style.display="none";
+  } else if (isSales) {
+    pip.className="role-pip viewer"; chip.textContent="Sales"; chip.className="role-chip viewer";
+    banner.textContent="⛽ Fuel Tracker — Sales View"; banner.style.display="block";
   } else {
-    pip.className="role-pip viewer";chip.textContent="View Only";chip.className="role-chip viewer";
-    banner.textContent="👁 View Only — No edit access";banner.style.display="block";
+    pip.className="role-pip viewer"; chip.textContent="View Only"; chip.className="role-chip viewer";
+    banner.textContent="👁 View Only — No edit access"; banner.style.display="block";
   }
 
-  document.body.classList.toggle("viewer-mode",!isAdmin);
-  document.body.classList.toggle("sales-mode",isSales);
+  document.body.classList.toggle("viewer-mode", !isAdmin);
 
-  // Reset fuel filter — only Sales role gets dept filter
-  fuelDeptFilter=isSales?"Sales":"";
+  // Reset fuel filter — only Sales gets dept filter
+  fuelDeptFilter = isSales ? "Sales" : "";
 
-  // Sales — hide all nav except fuel
-  document.querySelectorAll(".nav-item").forEach(nav=>{
-    nav.style.display=isSales?(nav.getAttribute("onclick")?.includes("fuel")?"flex":"none"):"flex";
+  // Hide nav items for sales — only show fuel
+  document.querySelectorAll(".nav-item").forEach(nav => {
+    nav.style.display = isSales
+      ? (nav.getAttribute("onclick")?.includes("fuel") ? "flex" : "none")
+      : "flex";
   });
 
-  document.getElementById("today-date").textContent=
+  document.getElementById("today-date").textContent =
     new Date().toLocaleDateString("en-ZA",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
 
-  if(isSales){
-    // Go straight to fuel tracker, filter to Sales only
-    document.querySelectorAll(".section").forEach(s=>{
-      s.classList.toggle("active",s.id==="section-fuel");
-      s.classList.toggle("hidden",s.id!=="section-fuel");
+  // Start session timeout
+  startSessionTimer();
+
+  if (isSales) {
+    // Go straight to fuel tracker
+    document.querySelectorAll(".section").forEach(s => {
+      s.classList.toggle("active", s.id === "section-fuel");
+      s.classList.toggle("hidden", s.id !== "section-fuel");
     });
-    document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+    document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
     document.querySelector(".nav-item[onclick*='fuel']")?.classList.add("active");
-    fuelTabsLoaded=true;
+    fuelTabsLoaded = true;
     loadSheetTabs("Sales");
   } else {
     startListeners();
   }
 }
-function showLogin(){
-  document.getElementById("app-page").className="page hidden";
-  document.getElementById("login-page").className="page active";
+
+function showLogin() {
+  document.getElementById("app-page").className   = "page hidden";
+  document.getElementById("login-page").className = "page active";
+  // Clear login fields
+  document.getElementById("login-email").value    = "";
+  document.getElementById("login-password").value = "";
+  document.getElementById("login-error").style.display = "none";
 }
 
-/* ── Nav ── */
-let fuelTabsLoaded=false;
-window.navTo=(section,el)=>{
-  document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+/* ══════════════════════════════════════
+   NAVIGATION
+══════════════════════════════════════ */
+window.navTo = (section, el) => {
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
   el.classList.add("active");
-  document.querySelectorAll(".section").forEach(s=>{
-    s.classList.toggle("active",s.id==="section-"+section);
-    s.classList.toggle("hidden",s.id!=="section-"+section);
+  document.querySelectorAll(".section").forEach(s => {
+    s.classList.toggle("active", s.id === "section-"+section);
+    s.classList.toggle("hidden", s.id !== "section-"+section);
   });
-  // Auto-load fuel tabs first time user opens Fuel Tracker
-  if(section==="fuel"&&!fuelTabsLoaded){
-    fuelTabsLoaded=true;
+  if (section === "fuel" && !fuelTabsLoaded) {
+    fuelTabsLoaded = true;
     loadSheetTabs();
   }
 };
 
-/* ── Firestore ── */
-function startListeners(){
-  unsubV=onSnapshot(query(collection(db,"vehicles"),orderBy("reg")),snap=>{
-    vehicles=snap.docs.map(d=>({id:d.id,...d.data()}));
-    renderVehicles();renderDashboard();renderAlerts();syncDriverDropdown();
+/* ══════════════════════════════════════
+   FIRESTORE LISTENERS
+══════════════════════════════════════ */
+function startListeners() {
+  unsubV = onSnapshot(query(collection(db,"vehicles"),orderBy("reg")), snap => {
+    vehicles = snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderVehicles(); renderDashboard(); renderAlerts(); syncDriverDropdown();
   });
-  unsubD=onSnapshot(query(collection(db,"drivers"),orderBy("name")),snap=>{
-    drivers=snap.docs.map(d=>({id:d.id,...d.data()}));
-    renderDrivers();syncDriverDropdown();
+  unsubD = onSnapshot(query(collection(db,"drivers"),orderBy("name")), snap => {
+    drivers = snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderDrivers(); syncDriverDropdown();
   });
-  unsubS=onSnapshot(query(collection(db,"serviceRecords"),orderBy("date","desc")),snap=>{
-    serviceRecords=snap.docs.map(d=>({id:d.id,...d.data()}));
-    renderHistory();syncServiceVehicleDropdown();
+  unsubS = onSnapshot(query(collection(db,"serviceRecords"),orderBy("date","desc")), snap => {
+    serviceRecords = snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderHistory(); syncServiceVehicleDropdown();
   });
 }
 
-/* ── Helpers ── */
-function daysUntil(ds){if(!ds)return null;const t=new Date();t.setHours(0,0,0,0);return Math.floor((new Date(ds)-t)/86400000)}
-function fmtDate(d){return d?new Date(d).toLocaleDateString("en-ZA"):"—"}
-function vStatus(v){const m=Math.min(daysUntil(v.licenceExpiry)??999,daysUntil(v.serviceDate)??999);return m<0?"danger":m<=WARN_DAYS?"warn":"ok"}
-function buildAlerts(){
+/* ══════════════════════════════════════
+   HELPERS
+══════════════════════════════════════ */
+function daysUntil(ds) {
+  if (!ds) return null;
+  const t = new Date(); t.setHours(0,0,0,0);
+  return Math.floor((new Date(ds)-t)/86400000);
+}
+function fmtDate(d) { return d ? new Date(d).toLocaleDateString("en-ZA") : "—"; }
+function vStatus(v) {
+  const m = Math.min(daysUntil(v.licenceExpiry)??999, daysUntil(v.serviceDate)??999);
+  return m<0 ? "danger" : m<=WARN_DAYS ? "warn" : "ok";
+}
+function buildAlerts() {
   const out=[];
   vehicles.forEach(v=>{
-    const ld=daysUntil(v.licenceExpiry),sd=daysUntil(v.serviceDate);
-    if(ld!==null&&ld<=WARN_DAYS)out.push({lvl:ld<0?"danger":"warn",icon:"📋",title:`${v.reg} — Licence ${ld<0?"EXPIRED":"expiring soon"}`,sub:ld<0?`Expired ${Math.abs(ld)} day(s) ago`:`Expires in ${ld} day(s) · ${fmtDate(v.licenceExpiry)}`,chip:ld<0?"Overdue":"Due Soon"});
-    if(sd!==null&&sd<=WARN_DAYS)out.push({lvl:sd<0?"danger":"warn",icon:"🔧",title:`${v.reg} — Service ${sd<0?"OVERDUE":"due soon"}`,sub:sd<0?`Overdue by ${Math.abs(sd)} day(s)`:`Due in ${sd} day(s) · ${fmtDate(v.serviceDate)}`,chip:sd<0?"Overdue":"Due Soon"});
+    const ld=daysUntil(v.licenceExpiry), sd=daysUntil(v.serviceDate);
+    if(ld!==null&&ld<=WARN_DAYS) out.push({lvl:ld<0?"danger":"warn",icon:"📋",title:`${v.reg} — Licence ${ld<0?"EXPIRED":"expiring soon"}`,sub:ld<0?`Expired ${Math.abs(ld)} day(s) ago`:`Expires in ${ld} day(s) · ${fmtDate(v.licenceExpiry)}`,chip:ld<0?"Overdue":"Due Soon"});
+    if(sd!==null&&sd<=WARN_DAYS) out.push({lvl:sd<0?"danger":"warn",icon:"🔧",title:`${v.reg} — Service ${sd<0?"OVERDUE":"due soon"}`,sub:sd<0?`Overdue by ${Math.abs(sd)} day(s)`:`Due in ${sd} day(s) · ${fmtDate(v.serviceDate)}`,chip:sd<0?"Overdue":"Due Soon"});
   });
   return out;
 }
-function alertHTML(a){return`<div class="alert-item lvl-${a.lvl}"><span class="alert-icon">${a.icon}</span><div class="alert-body"><div class="alert-title">${a.title}</div><div class="alert-sub">${a.sub}</div></div><span class="alert-chip ${a.lvl}">${a.chip}</span></div>`}
+function alertHTML(a) {
+  return`<div class="alert-item lvl-${a.lvl}"><span class="alert-icon">${a.icon}</span><div class="alert-body"><div class="alert-title">${a.title}</div><div class="alert-sub">${a.sub}</div></div><span class="alert-chip ${a.lvl}">${a.chip}</span></div>`;
+}
 
-/* ── Render ── */
-function renderDashboard(){
+/* ══════════════════════════════════════
+   RENDER FUNCTIONS
+══════════════════════════════════════ */
+function renderDashboard() {
   const alerts=buildAlerts();
-  document.getElementById("stat-total").textContent=vehicles.length;
-  document.getElementById("stat-ok").textContent=vehicles.filter(v=>vStatus(v)==="ok").length;
-  document.getElementById("stat-warn").textContent=vehicles.filter(v=>vStatus(v)==="warn").length;
-  document.getElementById("stat-overdue").textContent=vehicles.filter(v=>vStatus(v)==="danger").length;
+  document.getElementById("stat-total").textContent   = vehicles.length;
+  document.getElementById("stat-ok").textContent      = vehicles.filter(v=>vStatus(v)==="ok").length;
+  document.getElementById("stat-warn").textContent    = vehicles.filter(v=>vStatus(v)==="warn").length;
+  document.getElementById("stat-overdue").textContent = vehicles.filter(v=>vStatus(v)==="danger").length;
   const badge=document.getElementById("alert-badge");
-  badge.style.display=alerts.length?"inline":"none";badge.textContent=alerts.length;
+  badge.style.display=alerts.length?"inline":"none"; badge.textContent=alerts.length;
   document.getElementById("dash-alerts").innerHTML=alerts.length?alerts.map(alertHTML).join(""):'<p class="empty-state">No alerts right now ✅</p>';
 }
-function renderAlerts(){const alerts=buildAlerts();document.getElementById("page-alerts").innerHTML=alerts.length?alerts.map(alertHTML).join(""):'<p class="empty-state">No alerts right now ✅</p>'}
-function renderVehicles(){
+
+function renderAlerts() {
+  const alerts=buildAlerts();
+  document.getElementById("page-alerts").innerHTML=alerts.length?alerts.map(alertHTML).join(""):'<p class="empty-state">No alerts right now ✅</p>';
+}
+
+function renderVehicles() {
   const tb=document.getElementById("vehicles-tbody");
-  if(!vehicles.length){tb.innerHTML='<tr><td colspan="9" class="empty-state">No vehicles added yet.</td></tr>';return}
+  if(!vehicles.length){tb.innerHTML='<tr><td colspan="9" class="empty-state">No vehicles added yet.</td></tr>';return;}
   tb.innerHTML=vehicles.map(v=>{
-    const st=vStatus(v),stL={ok:"OK",warn:"Due Soon",danger:"Overdue"}[st],driver=drivers.find(d=>d.id===v.driverId);
+    const st=vStatus(v), stL={ok:"OK",warn:"Due Soon",danger:"Overdue"}[st];
+    const driver=drivers.find(d=>d.id===v.driverId);
     const typeChip=v.vtype==="private"
       ?`<span class="status-chip" style="background:rgba(123,63,160,0.15);color:#9b5fc0">Private</span>`
       :`<span class="status-chip" style="background:rgba(26,36,84,0.4);color:#8899bb">Company</span>`;
-    const svcIcon=v.serviceTracking!==false?`<span title="Service tracking ON" style="color:var(--success);font-size:0.8rem">🔧</span>`:`<span title="Service tracking OFF" style="color:var(--text-sub);font-size:0.8rem">—</span>`;
-    const acts=isAdmin?`<td><button class="btn-icon" onclick="editVehicle('${v.id}')">✏️</button><button class="btn-icon" onclick="delConfirm('vehicles','${v.id}','${v.reg}')">🗑️</button></td>`:`<td class="admin-only"></td>`;
+    const svcIcon=v.serviceTracking!==false
+      ?`<span title="Service tracking ON" style="color:var(--success)">🔧</span>`
+      :`<span title="Service tracking OFF" style="color:var(--text-sub)">—</span>`;
+    const acts=isAdmin
+      ?`<td><button class="btn-icon" onclick="editVehicle('${v.id}')">✏️</button><button class="btn-icon" onclick="delConfirm('vehicles','${v.id}','${v.reg}')">🗑️</button></td>`
+      :`<td class="admin-only"></td>`;
     return`<tr><td><span class="reg-pill">${v.reg}</span></td><td>${v.make} ${v.model}</td><td>${v.year||"—"}</td><td>${typeChip} ${svcIcon}</td><td>${driver?driver.name:"—"}</td><td>${fmtDate(v.licenceExpiry)}</td><td>${fmtDate(v.serviceDate)}</td><td><span class="status-chip s-${st}">${stL}</span></td>${acts}</tr>`;
   }).join("");
 }
-function renderDrivers(){
+
+function renderDrivers() {
   const tb=document.getElementById("drivers-tbody");
-  if(!drivers.length){tb.innerHTML='<tr><td colspan="5" class="empty-state">No drivers added yet.</td></tr>';return}
+  if(!drivers.length){tb.innerHTML='<tr><td colspan="5" class="empty-state">No drivers added yet.</td></tr>';return;}
   tb.innerHTML=drivers.map(d=>{
     const av=vehicles.find(v=>v.driverId===d.id);
-    const acts=isAdmin?`<td><button class="btn-icon" onclick="editDriver('${d.id}')">✏️</button><button class="btn-icon" onclick="delConfirm('drivers','${d.id}','${d.name}')">🗑️</button></td>`:`<td class="admin-only"></td>`;
+    const acts=isAdmin
+      ?`<td><button class="btn-icon" onclick="editDriver('${d.id}')">✏️</button><button class="btn-icon" onclick="delConfirm('drivers','${d.id}','${d.name}')">🗑️</button></td>`
+      :`<td class="admin-only"></td>`;
     return`<tr><td>${d.name}</td><td>${d.phone||"—"}</td><td>${d.email||"—"}</td><td>${av?`<span class="reg-pill">${av.reg}</span>`:"—"}</td>${acts}</tr>`;
   }).join("");
 }
-function syncDriverDropdown(){const sel=document.getElementById("vm-driver"),cur=sel.value;sel.innerHTML='<option value="">— Unassigned —</option>'+drivers.map(d=>`<option value="${d.id}">${d.name}</option>`).join("");sel.value=cur}
 
-/* ── Vehicle CRUD ── */
-window.openVehicleModal=()=>{
+function syncDriverDropdown() {
+  const sel=document.getElementById("vm-driver"), cur=sel.value;
+  sel.innerHTML='<option value="">— Unassigned —</option>'+drivers.map(d=>`<option value="${d.id}">${d.name}</option>`).join("");
+  sel.value=cur;
+}
+
+/* ══════════════════════════════════════
+   VEHICLE CRUD
+══════════════════════════════════════ */
+window.openVehicleModal = () => {
   document.getElementById("vm-title").textContent="Add Vehicle";
   document.getElementById("vm-id").value="";
   ["vm-reg","vm-make","vm-model","vm-year","vm-licence","vm-service","vm-lastservice","vm-notes"].forEach(id=>document.getElementById(id).value="");
@@ -1072,85 +943,118 @@ window.openVehicleModal=()=>{
   document.getElementById("vm-servicetrack").checked=true;
   openModal("vehicle-modal");
 };
-window.editVehicle=id=>{
-  const v=vehicles.find(x=>x.id===id);if(!v)return;
+
+window.editVehicle = id => {
+  const v=vehicles.find(x=>x.id===id); if(!v) return;
   document.getElementById("vm-title").textContent="Edit Vehicle";
   document.getElementById("vm-id").value=v.id;
-  document.getElementById("vm-reg").value=v.reg||"";document.getElementById("vm-make").value=v.make||"";
-  document.getElementById("vm-model").value=v.model||"";document.getElementById("vm-year").value=v.year||"";
-  document.getElementById("vm-licence").value=v.licenceExpiry||"";document.getElementById("vm-service").value=v.serviceDate||"";
-  document.getElementById("vm-lastservice").value=v.lastService||"";document.getElementById("vm-notes").value=v.notes||"";
+  document.getElementById("vm-reg").value=v.reg||"";
+  document.getElementById("vm-make").value=v.make||"";
+  document.getElementById("vm-model").value=v.model||"";
+  document.getElementById("vm-year").value=v.year||"";
+  document.getElementById("vm-licence").value=v.licenceExpiry||"";
+  document.getElementById("vm-service").value=v.serviceDate||"";
+  document.getElementById("vm-lastservice").value=v.lastService||"";
+  document.getElementById("vm-notes").value=v.notes||"";
   document.getElementById("vm-driver").value=v.driverId||"";
   document.getElementById("vm-vtype").value=v.vtype||"company";
   document.getElementById("vm-servicetrack").checked=v.serviceTracking!==false;
   openModal("vehicle-modal");
 };
-window.saveVehicle=async()=>{
+
+window.saveVehicle = async () => {
   const id=document.getElementById("vm-id").value;
-  const data={reg:document.getElementById("vm-reg").value.trim().toUpperCase(),make:document.getElementById("vm-make").value.trim(),model:document.getElementById("vm-model").value.trim(),year:document.getElementById("vm-year").value.trim(),licenceExpiry:document.getElementById("vm-licence").value,serviceDate:document.getElementById("vm-service").value,lastService:document.getElementById("vm-lastservice").value,driverId:document.getElementById("vm-driver").value,notes:document.getElementById("vm-notes").value.trim(),vtype:document.getElementById("vm-vtype").value,serviceTracking:document.getElementById("vm-servicetrack").checked,updatedAt:new Date().toISOString()};
-  if(!data.reg||!data.make||!data.model){alert("Registration, Make and Model are required.");return}
-  try{if(id)await updateDoc(doc(db,"vehicles",id),data);else{data.createdAt=new Date().toISOString();await addDoc(collection(db,"vehicles"),data)}closeModal("vehicle-modal")}
-  catch(e){alert("Save failed: "+e.message)}
+  const data={
+    reg:document.getElementById("vm-reg").value.trim().toUpperCase(),
+    make:document.getElementById("vm-make").value.trim(),
+    model:document.getElementById("vm-model").value.trim(),
+    year:document.getElementById("vm-year").value.trim(),
+    licenceExpiry:document.getElementById("vm-licence").value,
+    serviceDate:document.getElementById("vm-service").value,
+    lastService:document.getElementById("vm-lastservice").value,
+    driverId:document.getElementById("vm-driver").value,
+    notes:document.getElementById("vm-notes").value.trim(),
+    vtype:document.getElementById("vm-vtype").value,
+    serviceTracking:document.getElementById("vm-servicetrack").checked,
+    updatedAt:new Date().toISOString()
+  };
+  if(!data.reg||!data.make||!data.model){alert("Registration, Make and Model are required.");return;}
+  try{
+    if(id) await updateDoc(doc(db,"vehicles",id),data);
+    else{data.createdAt=new Date().toISOString(); await addDoc(collection(db,"vehicles"),data);}
+    closeModal("vehicle-modal");
+  } catch(e){alert("Save failed: "+e.message);}
 };
 
-/* ── Driver CRUD ── */
-window.openDriverModal=()=>{document.getElementById("dm-title").textContent="Add Driver";document.getElementById("dm-id").value="";["dm-name","dm-phone","dm-email"].forEach(id=>document.getElementById(id).value="");openModal("driver-modal")};
-window.editDriver=id=>{
-  const d=drivers.find(x=>x.id===id);if(!d)return;
-  document.getElementById("dm-title").textContent="Edit Driver";document.getElementById("dm-id").value=d.id;
-  document.getElementById("dm-name").value=d.name||"";document.getElementById("dm-phone").value=d.phone||"";document.getElementById("dm-email").value=d.email||"";
+/* ══════════════════════════════════════
+   DRIVER CRUD
+══════════════════════════════════════ */
+window.openDriverModal = () => {
+  document.getElementById("dm-title").textContent="Add Driver";
+  document.getElementById("dm-id").value="";
+  ["dm-name","dm-phone","dm-email"].forEach(id=>document.getElementById(id).value="");
   openModal("driver-modal");
 };
-window.saveDriver=async()=>{
-  const id=document.getElementById("dm-id").value;
-  const data={name:document.getElementById("dm-name").value.trim(),phone:document.getElementById("dm-phone").value.trim(),email:document.getElementById("dm-email").value.trim(),updatedAt:new Date().toISOString()};
-  if(!data.name){alert("Driver name is required.");return}
-  try{if(id)await updateDoc(doc(db,"drivers",id),data);else{data.createdAt=new Date().toISOString();await addDoc(collection(db,"drivers"),data)}closeModal("driver-modal")}
-  catch(e){alert("Save failed: "+e.message)}
+
+window.editDriver = id => {
+  const d=drivers.find(x=>x.id===id); if(!d) return;
+  document.getElementById("dm-title").textContent="Edit Driver";
+  document.getElementById("dm-id").value=d.id;
+  document.getElementById("dm-name").value=d.name||"";
+  document.getElementById("dm-phone").value=d.phone||"";
+  document.getElementById("dm-email").value=d.email||"";
+  openModal("driver-modal");
 };
 
-/* ── Delete ── */
-window.delConfirm=(col,id,name)=>{
+window.saveDriver = async () => {
+  const id=document.getElementById("dm-id").value;
+  const data={name:document.getElementById("dm-name").value.trim(),phone:document.getElementById("dm-phone").value.trim(),email:document.getElementById("dm-email").value.trim(),updatedAt:new Date().toISOString()};
+  if(!data.name){alert("Driver name is required.");return;}
+  try{
+    if(id) await updateDoc(doc(db,"drivers",id),data);
+    else{data.createdAt=new Date().toISOString(); await addDoc(collection(db,"drivers"),data);}
+    closeModal("driver-modal");
+  } catch(e){alert("Save failed: "+e.message);}
+};
+
+/* ══════════════════════════════════════
+   DELETE
+══════════════════════════════════════ */
+window.delConfirm = (col, id, name) => {
   document.getElementById("delete-msg").textContent=`Delete "${name}"? This cannot be undone.`;
-  document.getElementById("delete-confirm-btn").onclick=async()=>{try{await deleteDoc(doc(db,col,id));closeModal("delete-modal")}catch(e){alert("Delete failed: "+e.message)}};
+  document.getElementById("delete-confirm-btn").onclick=async()=>{
+    try{await deleteDoc(doc(db,col,id)); closeModal("delete-modal");}
+    catch(e){alert("Delete failed: "+e.message);}
+  };
   openModal("delete-modal");
 };
 
-/* ── Service History ── */
-function syncServiceVehicleDropdown(){
-  const serviceVehicles=vehicles.filter(v=>v.serviceTracking!==false);
-  const sel=document.getElementById("sm-vehicle"),cur=sel.value;
-  sel.innerHTML='<option value="">— Select Vehicle —</option>'+serviceVehicles.map(v=>`<option value="${v.id}">${v.reg} — ${v.make} ${v.model}</option>`).join("");
+/* ══════════════════════════════════════
+   SERVICE HISTORY
+══════════════════════════════════════ */
+function syncServiceVehicleDropdown() {
+  const svcVehicles=vehicles.filter(v=>v.serviceTracking!==false);
+  const sel=document.getElementById("sm-vehicle"), cur=sel.value;
+  sel.innerHTML='<option value="">— Select Vehicle —</option>'+svcVehicles.map(v=>`<option value="${v.id}">${v.reg} — ${v.make} ${v.model}</option>`).join("");
   sel.value=cur;
-  // Also sync the filter dropdown
-  const fil=document.getElementById("history-filter"),filCur=fil.value;
-  fil.innerHTML='<option value="">All Vehicles</option>'+serviceVehicles.map(v=>`<option value="${v.id}">${v.reg} — ${v.make} ${v.model}</option>`).join("");
+  const fil=document.getElementById("history-filter"), filCur=fil.value;
+  fil.innerHTML='<option value="">All Vehicles</option>'+svcVehicles.map(v=>`<option value="${v.id}">${v.reg} — ${v.make} ${v.model}</option>`).join("");
   fil.value=filCur;
 }
 
-window.renderHistory=()=>{
+window.renderHistory = () => {
   const tb=document.getElementById("history-tbody");
   const filter=document.getElementById("history-filter")?.value||"";
   const records=filter?serviceRecords.filter(r=>r.vehicleId===filter):serviceRecords;
-  if(!records.length){tb.innerHTML=`<tr><td colspan="9" class="empty-state">No service records yet.</td></tr>`;return}
+  if(!records.length){tb.innerHTML='<tr><td colspan="9" class="empty-state">No service records yet.</td></tr>';return;}
   tb.innerHTML=records.map(r=>{
     const v=vehicles.find(x=>x.id===r.vehicleId);
     const acts=isAdmin?`<td><button class="btn-icon" onclick="editService('${r.id}')">✏️</button><button class="btn-icon" onclick="delConfirm('serviceRecords','${r.id}','service record')">🗑️</button></td>`:`<td class="admin-only"></td>`;
-    return`<tr>
-      <td>${fmtDate(r.date)}</td>
-      <td><span class="reg-pill">${v?v.reg:"Unknown"}</span></td>
-      <td><span class="service-type-chip">${r.type||"—"}</span></td>
-      <td>${r.mileage?Number(r.mileage).toLocaleString()+" km":"—"}</td>
-      <td class="cost-cell">${r.cost?"R "+Number(r.cost).toLocaleString("en-ZA",{minimumFractionDigits:2}):"—"}</td>
-      <td>${r.workshop||"—"}</td>
-      <td>${fmtDate(r.nextService)}</td>
-      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.notes||""}">${r.notes||"—"}</td>
-      ${acts}
-    </tr>`;
+    return`<tr><td>${fmtDate(r.date)}</td><td><span class="reg-pill">${v?v.reg:"Unknown"}</span></td><td><span class="service-type-chip">${r.type||"—"}</span></td><td>${r.mileage?Number(r.mileage).toLocaleString()+" km":"—"}</td><td class="cost-cell">${r.cost?"R "+Number(r.cost).toLocaleString("en-ZA",{minimumFractionDigits:2}):"—"}</td><td>${r.workshop||"—"}</td><td>${fmtDate(r.nextService)}</td><td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.notes||""}">${r.notes||"—"}</td>${acts}</tr>`;
   }).join("");
 };
 
-window.openServiceModal=()=>{
+window.openServiceModal = () => {
   document.getElementById("sm-title").textContent="Log Service";
   document.getElementById("sm-id").value="";
   ["sm-mileage","sm-cost","sm-workshop","sm-nextservice","sm-invoice","sm-notes"].forEach(id=>document.getElementById(id).value="");
@@ -1160,8 +1064,8 @@ window.openServiceModal=()=>{
   openModal("service-modal");
 };
 
-window.editService=id=>{
-  const r=serviceRecords.find(x=>x.id===id);if(!r)return;
+window.editService = id => {
+  const r=serviceRecords.find(x=>x.id===id); if(!r) return;
   document.getElementById("sm-title").textContent="Edit Service Record";
   document.getElementById("sm-id").value=r.id;
   document.getElementById("sm-vehicle").value=r.vehicleId||"";
@@ -1176,60 +1080,42 @@ window.editService=id=>{
   openModal("service-modal");
 };
 
-window.saveService=async()=>{
+window.saveService = async () => {
   const id=document.getElementById("sm-id").value;
   const vehicleId=document.getElementById("sm-vehicle").value;
   const date=document.getElementById("sm-date").value;
   const type=document.getElementById("sm-type").value;
-  if(!vehicleId||!date||!type){alert("Vehicle, Date and Service Type are required.");return}
-  const data={
-    vehicleId,date,type,
-    mileage:document.getElementById("sm-mileage").value,
-    cost:document.getElementById("sm-cost").value,
-    workshop:document.getElementById("sm-workshop").value.trim(),
-    nextService:document.getElementById("sm-nextservice").value,
-    invoice:document.getElementById("sm-invoice").value.trim(),
-    notes:document.getElementById("sm-notes").value.trim(),
-    updatedAt:new Date().toISOString()
-  };
-  // If next service date set, also update the vehicle's next service date
+  if(!vehicleId||!date||!type){alert("Vehicle, Date and Service Type are required.");return;}
+  const data={vehicleId,date,type,mileage:document.getElementById("sm-mileage").value,cost:document.getElementById("sm-cost").value,workshop:document.getElementById("sm-workshop").value.trim(),nextService:document.getElementById("sm-nextservice").value,invoice:document.getElementById("sm-invoice").value.trim(),notes:document.getElementById("sm-notes").value.trim(),updatedAt:new Date().toISOString()};
   if(data.nextService){
     const v=vehicles.find(x=>x.id===vehicleId);
     if(v) await updateDoc(doc(db,"vehicles",vehicleId),{serviceDate:data.nextService,lastService:date});
   }
   try{
-    if(id)await updateDoc(doc(db,"serviceRecords",id),data);
-    else{data.createdAt=new Date().toISOString();await addDoc(collection(db,"serviceRecords"),data);}
+    if(id) await updateDoc(doc(db,"serviceRecords",id),data);
+    else{data.createdAt=new Date().toISOString(); await addDoc(collection(db,"serviceRecords"),data);}
     closeModal("service-modal");
-  }catch(e){alert("Save failed: "+e.message)}
+  } catch(e){alert("Save failed: "+e.message);}
 };
 
-/* ── Export to Excel ── */
-window.exportExcel=()=>{
-  if(!vehicles.length){alert("No vehicles to export.");return}
+/* ══════════════════════════════════════
+   EXPORT / PRINT
+══════════════════════════════════════ */
+window.exportExcel = () => {
+  if(!vehicles.length){alert("No vehicles to export.");return;}
   const headers=["Registration","Make","Model","Year","Driver","Licence Expiry","Next Service","Last Service","Status","Notes"];
   const rows=vehicles.map(v=>{
     const driver=drivers.find(d=>d.id===v.driverId);
-    const st=vStatus(v);
-    const stL={ok:"OK",warn:"Due Soon",danger:"Overdue"}[st];
-    return[v.reg||"",v.make||"",v.model||"",v.year||"",driver?driver.name:"",fmtDate(v.licenceExpiry),fmtDate(v.serviceDate),fmtDate(v.lastService),stL,v.notes||""];
+    return[v.reg||"",v.make||"",v.model||"",v.year||"",driver?driver.name:"",fmtDate(v.licenceExpiry),fmtDate(v.serviceDate),fmtDate(v.lastService),{ok:"OK",warn:"Due Soon",danger:"Overdue"}[vStatus(v)],v.notes||""];
   });
-  // Build CSV
   const csv=[headers,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
   const blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement("a");
-  a.href=url;
-  a.download=`XCorp-Vehicle-Tracker-${new Date().toLocaleDateString("en-ZA").replace(/\//g,"-")}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  const a=Object.assign(document.createElement("a"),{href:URL.createObjectURL(blob),download:`XCorp-Vehicles-${new Date().toLocaleDateString("en-ZA").replace(/\//g,"-")}.csv`});
+  a.click(); URL.revokeObjectURL(a.href);
 };
 
-/* ── Print ── */
-window.printVehicles=()=>{
-  document.getElementById("print-date").textContent=
-    "Generated: "+new Date().toLocaleDateString("en-ZA",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
-  // Make sure vehicles section is visible for print
+window.printVehicles = () => {
+  document.getElementById("print-date").textContent="Generated: "+new Date().toLocaleDateString("en-ZA",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
   document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
   document.getElementById("section-vehicles").classList.add("active");
   window.print();
@@ -1238,10 +1124,7 @@ window.printVehicles=()=>{
 /* ══════════════════════════════════════
    FUEL TRACKER
 ══════════════════════════════════════ */
-const SHEET_ID = "1PMoNZOLaYsHDRCeweE4jGV9OpoZ9RFTpMxN1yqTFI4w";
-let fuelData = { vehicles:[], monthly:[], deptSummary:[], sheetTab:"" };
-
-function fuelStatus(msg, icon="ℹ️", isError=false){
+function fuelStatus(msg, icon="ℹ️", isError=false) {
   const el=document.getElementById("fuel-status");
   el.style.display="flex";
   document.getElementById("fuel-status-msg").textContent=msg;
@@ -1250,76 +1133,56 @@ function fuelStatus(msg, icon="ℹ️", isError=false){
   el.style.borderColor=isError?"rgba(239,68,68,0.3)":"var(--border)";
 }
 
-let fuelDeptFilter=""; // empty = show all, "Sales" = sales only
-
-/* ── Auto-discover all sheet tabs ── */
-async function loadSheetTabs(deptFilter=""){
+async function loadSheetTabs(deptFilter="") {
   fuelDeptFilter=deptFilter;
-  // Known months and their GIDs — July 26 confirmed, others use tab name fallback
-  const KNOWN_MONTHS = [
-    { label:"July 2026",      gid:"348279363",  name:"July 26 Summary" },
-    { label:"June 2026",      gid:"",           name:"June 26 Summary" },
-    { label:"May 2026",       gid:"",           name:"May 26 Summary" },
-    { label:"April 2026",     gid:"",           name:"April 26 Summary" },
-    { label:"March 2026",     gid:"",           name:"March 26 Summary" },
-    { label:"February 2026",  gid:"",           name:"February 26 Summary" },
-    { label:"January 2026",   gid:"",           name:"January 26 Summary" },
-    { label:"December 2025",  gid:"",           name:"December 25 Summary" },
-    { label:"November 2025",  gid:"",           name:"November 25 Summary" },
-    { label:"October 2025",   gid:"",           name:"October 25 Summary" },
-    { label:"September 2025", gid:"",           name:"September 25 Summary" },
-    { label:"August 2025",    gid:"",           name:"August 25 Summary" },
-    { label:"July 2025",      gid:"",           name:"July 25 Summary" },
+  const KNOWN_MONTHS=[
+    {label:"July 2026",      gid:"348279363", name:"July 26 Summary"},
+    {label:"June 2026",      gid:"",          name:"June 26 Summary"},
+    {label:"May 2026",       gid:"",          name:"May 26 Summary"},
+    {label:"April 2026",     gid:"",          name:"April 26 Summary"},
+    {label:"March 2026",     gid:"",          name:"March 26 Summary"},
+    {label:"February 2026",  gid:"",          name:"February 26 Summary"},
+    {label:"January 2026",   gid:"",          name:"January 26 Summary"},
+    {label:"December 2025",  gid:"",          name:"December 25 Summary"},
+    {label:"November 2025",  gid:"",          name:"November 25 Summary"},
+    {label:"October 2025",   gid:"",          name:"October 25 Summary"},
+    {label:"September 2025", gid:"",          name:"September 25 Summary"},
+    {label:"August 2025",    gid:"",          name:"August 25 Summary"},
+    {label:"July 2025",      gid:"",          name:"July 25 Summary"},
   ];
-
-  // Test each month by trying to fetch 1 cell — if it returns data the tab exists
   fuelStatus("Discovering available months...","🔄");
   const sel=document.getElementById("fuel-month-select");
   sel.innerHTML="";
   const available=[];
-
   for(const m of KNOWN_MONTHS){
     try{
-      // Use gid if known, otherwise try by sheet name
-      const param = m.gid ? `gid=${m.gid}` : `sheet=${encodeURIComponent(m.name)}`;
+      const param=m.gid?`gid=${m.gid}`:`sheet=${encodeURIComponent(m.name)}`;
       const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&${param}&range=A3&headers=0`;
       const r=await fetch(url);
       const t=await r.text();
       const match=t.match(/google\.visualization\.Query\.setResponse\(([\s\S]*?)\);?\s*$/);
       if(!match) continue;
       const parsed=JSON.parse(match[1]);
-      // If status is error or no rows, tab doesn't exist
       if(parsed.status==="error") continue;
       const rows=parsed.table?.rows||[];
       if(!rows.length||!rows[0]?.c?.[0]?.v) continue;
-      // Tab exists! Add to dropdown
-      const identifier = m.gid || m.name;
-      available.push({...m, identifier});
+      const identifier=m.gid||m.name;
+      available.push({...m,identifier});
       sel.innerHTML+=`<option value="${identifier}" data-name="${m.name}">${m.label}</option>`;
-    } catch(e){ continue; }
+    }catch(e){continue;}
   }
-
-  if(!available.length){
-    // Fallback to just July 26
-    sel.innerHTML=`<option value="348279363" data-name="July 26 Summary">July 2026</option>`;
-  }
-
+  if(!available.length) sel.innerHTML=`<option value="348279363" data-name="July 26 Summary">July 2026</option>`;
   fuelStatus(`Found ${available.length} month(s)`,"✅");
-  // Auto sync most recent
   syncGoogleSheet();
 }
 
-/* ── Google Sheet Sync ── */
-window.syncGoogleSheet = async()=>{
+window.syncGoogleSheet = async () => {
   const sel=document.getElementById("fuel-month-select");
   const identifier=sel.value||"348279363";
   const sheetTab=sel.options[sel.selectedIndex]?.dataset?.name||identifier;
   fuelStatus(`Syncing "${sheetTab}"...`,"🔄");
-
-  // Build param — if identifier is numeric it's a GID, otherwise it's a sheet name
   const isGid=/^\d+$/.test(identifier);
   const param=isGid?`gid=${identifier}`:`sheet=${encodeURIComponent(identifier)}`;
-
   try{
     async function fetchRange(range){
       const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&${param}&range=${range}&headers=0`;
@@ -1332,70 +1195,52 @@ window.syncGoogleSheet = async()=>{
       if(parsed.status==="error") throw new Error(parsed.errors?.[0]?.detailed_message||"Sheet error");
       return parsed.table?.rows||[];
     }
-
-    function val(c){ if(!c) return ""; return c.v!==null&&c.v!==undefined?c.v:(c.f||""); }
-    function num(c){ const v=val(c); return typeof v==="number"?v:parseFloat(String(v).replace(/[^0-9.-]/g,""))||0; }
+    function val(c){if(!c)return"";return c.v!==null&&c.v!==undefined?c.v:(c.f||"");}
+    function num(c){const v=val(c);return typeof v==="number"?v:parseFloat(String(v).replace(/[^0-9.-]/g,""))||0;}
     function str(c){
-      const v=val(c);
-      const s=String(v).trim();
-      // Fix Google date format: Date(2026,5,26) → formatted date
+      const v=val(c); const s=String(v).trim();
       const dm=s.match(/^Date\((\d+),(\d+),(\d+)\)$/);
-      if(dm){
-        const d=new Date(parseInt(dm[1]),parseInt(dm[2]),parseInt(dm[3]));
-        return d.toLocaleDateString("en-ZA");
-      }
+      if(dm){const d=new Date(parseInt(dm[1]),parseInt(dm[2]),parseInt(dm[3]));return d.toLocaleDateString("en-ZA");}
       return s;
     }
-
-    // ── VEHICLE DATA: A3:G25 (extended to catch all vehicles up to row 25)
     const vRows=await fetchRange("A3:G25");
     const fuelVehicles=[];
     vRows.forEach(row=>{
-      const c=row.c||[];
-      const reg=str(c[0]);
+      const c=row.c||[]; const reg=str(c[0]);
       if(!reg||reg.toLowerCase().includes("grand")||reg.toLowerCase().includes("total")) return;
-      fuelVehicles.push({ reg, spend:num(c[1]), dept:str(c[2]), driver:str(c[3]), vehicle:str(c[4]), limit:num(c[5]), mileage:num(c[6]) });
+      fuelVehicles.push({reg,spend:num(c[1]),dept:str(c[2]),driver:str(c[3]),vehicle:str(c[4]),limit:num(c[5]),mileage:num(c[6])});
     });
     if(!fuelVehicles.length) throw new Error("No vehicle data found in this tab");
-
-    // ── DEPARTMENT SUMMARY: I3:L7 (extended for safety)
     const dRows=await fetchRange("I3:L7");
     const deptSummary=[];
     dRows.forEach(row=>{
-      const c=row.c||[];
-      const dept=str(c[0]);
+      const c=row.c||[]; const dept=str(c[0]);
       if(!dept||dept==="Department"||dept.toLowerCase().includes("grand")) return;
-      deptSummary.push({ dept, fleetCard:num(c[1]), cod:num(c[2]), total:num(c[3]) });
+      deptSummary.push({dept,fleetCard:num(c[1]),cod:num(c[2]),total:num(c[3])});
     });
-
-    // ── MONTHLY TREND: I9:K25 (extended to catch all months)
     const mRows=await fetchRange("I9:K25");
     const monthly=[];
     mRows.forEach(row=>{
-      const c=row.c||[];
-      const month=str(c[0]);
+      const c=row.c||[]; const month=str(c[0]);
       if(!month||month==="Month"||month.toLowerCase().includes("average")) return;
-      monthly.push({ month, spend:num(c[1]), litres:num(c[2]) });
+      monthly.push({month,spend:num(c[1]),litres:num(c[2])});
     });
-
-    fuelData={vehicles:fuelVehicles, monthly, deptSummary, sheetTab};
+    fuelData={vehicles:fuelVehicles,monthly,deptSummary,sheetTab};
     renderFuel();
     document.getElementById("fuel-last-sync").textContent="Synced: "+new Date().toLocaleTimeString("en-ZA");
     fuelStatus(`✅ Loaded ${fuelVehicles.length} vehicles from "${sheetTab}"`, "✅");
-  } catch(e){
+  }catch(e){
     fuelStatus(`❌ ${e.message}`,"❌",true);
     console.error("Fuel sync error:",e);
   }
 };
 
-/* ── CSV/Excel Upload ── */
-window.handleFuelUpload = async(e)=>{
+window.handleFuelUpload = async (e) => {
   const file=e.target.files[0]; if(!file) return;
   fuelStatus(`Reading ${file.name}...`,"📁");
   try{
     const text=await file.text();
     const lines=text.split("\n").map(l=>l.split(",").map(c=>c.replace(/^"|"$/g,"").trim()));
-    // Find header row
     let headerIdx=lines.findIndex(l=>l.some(c=>c.toLowerCase().includes("registration")));
     if(headerIdx===-1) headerIdx=1;
     const headers=lines[headerIdx].map(h=>h.toLowerCase());
@@ -1406,151 +1251,83 @@ window.handleFuelUpload = async(e)=>{
     const vehicleI=headers.findIndex(h=>h.includes("vehicle")||h.includes("make")||h.includes("model"));
     const limitI=headers.findIndex(h=>h.includes("limit"));
     const mileageI=headers.findIndex(h=>h.includes("mileage")||h.includes("km")||h.includes("odometer"));
-
-    const vehicles=[];
+    const fuelVehicles=[];
     for(let i=headerIdx+1;i<lines.length;i++){
       const l=lines[i];
       if(!l||!l[0]||l[0].toLowerCase().includes("grand")||l[0].toLowerCase().includes("total")) continue;
       if(l.every(c=>!c)) continue;
-      vehicles.push({
-        reg:    regI>=0?l[regI]||"":"",
-        spend:  spendI>=0?parseFloat(l[spendI])||0:0,
-        dept:   deptI>=0?l[deptI]||"":"",
-        driver: driverI>=0?l[driverI]||"":"",
-        vehicle:vehicleI>=0?l[vehicleI]||"":"",
-        limit:  limitI>=0?parseFloat(l[limitI])||0:0,
-        mileage:mileageI>=0?parseFloat(l[mileageI])||0:0
-      });
+      fuelVehicles.push({reg:regI>=0?l[regI]||"":"",spend:spendI>=0?parseFloat(l[spendI])||0:0,dept:deptI>=0?l[deptI]||"":"",driver:driverI>=0?l[driverI]||"":"",vehicle:vehicleI>=0?l[vehicleI]||"":"",limit:limitI>=0?parseFloat(l[limitI])||0:0,mileage:mileageI>=0?parseFloat(l[mileageI])||0:0});
     }
-    fuelData.vehicles=vehicles;
+    fuelData.vehicles=fuelVehicles;
     renderFuel();
-    fuelStatus(`Loaded ${vehicles.length} vehicles from ${file.name}`,"✅");
-  } catch(ex){
+    fuelStatus(`Loaded ${fuelVehicles.length} vehicles from ${file.name}`,"✅");
+  }catch(ex){
     fuelStatus("Failed to read file — please use CSV or Excel format","❌",true);
     console.error(ex);
   }
   e.target.value="";
 };
 
-/* ── Render Fuel Page ── */
-function renderFuel(){
+function renderFuel() {
   const {vehicles:allVehicles,monthly,deptSummary}=fuelData;
   if(!allVehicles.length) return;
+  const vehicles=fuelDeptFilter?allVehicles.filter(v=>v.dept===fuelDeptFilter):allVehicles;
 
-  // Filter by dept if sales mode
-  const vehicles=fuelDeptFilter
-    ? allVehicles.filter(v=>v.dept===fuelDeptFilter)
-    : allVehicles;
-
-  // Show sales filter notice
+  // Sales filter notice
   const notice=document.getElementById("sales-filter-notice");
   if(notice) notice.style.display=fuelDeptFilter?"block":"none";
 
-  // Hide monthly trend for sales mode, show full layout for admin/viewer
+  // Hide monthly trend for sales
   const twoCol=document.getElementById("fuel-two-col");
   if(twoCol){
-    if(fuelDeptFilter){
-      twoCol.style.gridTemplateColumns="1fr";
-      const monthlyCol=twoCol.children[1];
-      if(monthlyCol) monthlyCol.style.display="none";
-    } else {
-      twoCol.style.gridTemplateColumns="1fr 1fr";
-      const monthlyCol=twoCol.children[1];
-      if(monthlyCol) monthlyCol.style.display="block";
-    }
+    twoCol.style.gridTemplateColumns=fuelDeptFilter?"1fr":"1fr 1fr";
+    const monthlyCol=twoCol.children[1];
+    if(monthlyCol) monthlyCol.style.display=fuelDeptFilter?"none":"block";
   }
 
   const totalSpend=vehicles.reduce((s,v)=>s+v.spend,0);
 
-  // ALWAYS calculate departments from vehicle data — more reliable than sheet summary
+  // Calculate depts from vehicle data (reliable across all months)
   const depts={};
   vehicles.forEach(v=>{
-    if(!v.dept||typeof v.dept!=="string"||!isNaN(v.dept)) return; // skip if dept is a number
+    if(!v.dept||typeof v.dept!=="string"||!isNaN(v.dept)) return;
     if(!depts[v.dept]) depts[v.dept]={spend:0,count:0};
     depts[v.dept].spend+=v.spend;
     depts[v.dept].count++;
   });
-
-  // If no dept names found from vehicles, try the sheet summary but only if names are text
-  if(!Object.keys(depts).length && deptSummary&&deptSummary.length){
-    deptSummary.forEach(d=>{
-      if(!d.dept||!isNaN(d.dept)) return; // skip numeric "dept" names
-      depts[d.dept]={spend:d.fleetCard,count:0};
-    });
-    vehicles.forEach(v=>{ if(depts[v.dept]) depts[v.dept].count++; });
-  }
-
   const topDept=Object.entries(depts).sort((a,b)=>b[1].spend-a[1].spend)[0];
 
-  // Stat cards
   document.getElementById("fuel-stat-spend").textContent="R"+totalSpend.toLocaleString("en-ZA",{minimumFractionDigits:2,maximumFractionDigits:2});
   document.getElementById("fuel-stat-vehicles").textContent=vehicles.length;
   document.getElementById("fuel-stat-dept").textContent=topDept?topDept[0]:"—";
 
-  // Department table
-  const deptTb=document.getElementById("fuel-dept-tbody");
   const deptColors={"Finance":"#4a7fff","Sales":"#22c55e","Technical":"#f59e0b"};
   const grandTotal=Object.values(depts).reduce((s,d)=>s+d.spend,0)||totalSpend;
+  const deptTb=document.getElementById("fuel-dept-tbody");
   deptTb.innerHTML=Object.keys(depts).length
-    ? Object.entries(depts).sort((a,b)=>b[1].spend-a[1].spend).map(([dept,d])=>{
+    ?Object.entries(depts).sort((a,b)=>b[1].spend-a[1].spend).map(([dept,d])=>{
         const pct=grandTotal>0?((d.spend/grandTotal)*100).toFixed(1):0;
         const col=deptColors[dept]||"#8899bb";
-        return`<tr>
-          <td><span class="dept-chip" style="color:${col};border-color:${col}33">${dept}</span></td>
-          <td>${d.count}</td>
-          <td style="font-family:var(--mono);color:var(--success)">R${d.spend.toLocaleString("en-ZA",{minimumFractionDigits:2})}</td>
-          <td>
-            <div style="display:flex;align-items:center;gap:0.5rem">
-              <span style="font-family:var(--mono);font-size:0.78rem">${pct}%</span>
-              <div class="fuel-limit-bar" style="width:80px">
-                <div class="fuel-limit-fill${pct>80?" danger":pct>60?" warn":""}" style="width:${Math.min(pct,100)}%"></div>
-              </div>
-            </div>
-          </td>
-        </tr>`;
+        return`<tr><td><span class="dept-chip" style="color:${col};border-color:${col}33">${dept}</span></td><td>${d.count}</td><td style="font-family:var(--mono);color:var(--success)">R${d.spend.toLocaleString("en-ZA",{minimumFractionDigits:2})}</td><td><div style="display:flex;align-items:center;gap:0.5rem"><span style="font-family:var(--mono);font-size:0.78rem">${pct}%</span><div class="fuel-limit-bar" style="width:80px"><div class="fuel-limit-fill${pct>80?" danger":pct>60?" warn":""}" style="width:${Math.min(pct,100)}%"></div></div></div></td></tr>`;
       }).join("")
-    : '<tr><td colspan="4" class="empty-state">No department data</td></tr>';
+    :'<tr><td colspan="4" class="empty-state">No department data</td></tr>';
 
-  // Monthly table — filter out rows where month is a number, reverse for newest first
   const monthTb=document.getElementById("fuel-monthly-tbody");
   const validMonthly=(monthly||[]).filter(m=>m.month&&isNaN(m.month)&&!m.month.toLowerCase().includes("average"));
-  if(validMonthly.length){
-    monthTb.innerHTML=[...validMonthly].reverse().map(m=>`<tr>
-      <td style="font-weight:500">${m.month}</td>
-      <td style="font-family:var(--mono);color:var(--success)">${m.spend>0?"R"+m.spend.toLocaleString("en-ZA",{minimumFractionDigits:2}):"—"}</td>
-      <td style="font-family:var(--mono)">${m.litres>0?m.litres.toLocaleString("en-ZA",{minimumFractionDigits:2}):"—"}</td>
-    </tr>`).join("");
-  } else {
-    monthTb.innerHTML='<tr><td colspan="3" class="empty-state">No monthly data</td></tr>';
-  }
+  monthTb.innerHTML=validMonthly.length
+    ?[...validMonthly].reverse().map(m=>`<tr><td style="font-weight:500">${m.month}</td><td style="font-family:var(--mono);color:var(--success)">${m.spend>0?"R"+m.spend.toLocaleString("en-ZA",{minimumFractionDigits:2}):"—"}</td><td style="font-family:var(--mono)">${m.litres>0?m.litres.toLocaleString("en-ZA",{minimumFractionDigits:2}):"—"}</td></tr>`).join("")
+    :'<tr><td colspan="3" class="empty-state">No monthly data</td></tr>';
 
-  // Vehicle detail table
-  const vTb=document.getElementById("fuel-vehicles-tbody");
-  vTb.innerHTML=vehicles.map(v=>{
+  document.getElementById("fuel-vehicles-tbody").innerHTML=vehicles.map(v=>{
     const pct=v.limit>0?Math.min((v.spend/v.limit)*100,100):0;
     const pctClass=pct>90?"danger":pct>75?"warn":"";
-    const col={"Finance":"#4a7fff","Sales":"#22c55e","Technical":"#f59e0b"}[v.dept]||"#8899bb";
-    return`<tr>
-      <td><span class="reg-pill">${v.reg||"—"}</span></td>
-      <td style="font-size:0.82rem">${v.vehicle||"—"}</td>
-      <td>${v.driver||"—"}</td>
-      <td><span class="dept-chip" style="color:${col};border-color:${col}33">${v.dept||"—"}</span></td>
-      <td style="font-family:var(--mono);color:${v.spend>0?"var(--success)":"var(--text-sub)"}">R${v.spend.toLocaleString("en-ZA",{minimumFractionDigits:2})}</td>
-      <td style="font-family:var(--mono)">R${v.limit.toLocaleString("en-ZA",{minimumFractionDigits:2})}</td>
-      <td style="font-family:var(--mono)">${v.mileage>0?v.mileage.toLocaleString("en-ZA"):"—"}</td>
-      <td style="min-width:130px">
-        ${v.limit>0?`<div style="display:flex;align-items:center;gap:0.5rem">
-          <span style="font-size:0.75rem;font-family:var(--mono);min-width:2.5rem">${pct.toFixed(0)}%</span>
-          <div class="fuel-limit-bar" style="flex:1"><div class="fuel-limit-fill ${pctClass}" style="width:${pct}%"></div></div>
-        </div>`:"—"}
-      </td>
-    </tr>`;
+    const col=deptColors[v.dept]||"#8899bb";
+    return`<tr><td><span class="reg-pill">${v.reg||"—"}</span></td><td style="font-size:0.82rem">${v.vehicle||"—"}</td><td>${v.driver||"—"}</td><td><span class="dept-chip" style="color:${col};border-color:${col}33">${v.dept||"—"}</span></td><td style="font-family:var(--mono);color:${v.spend>0?"var(--success)":"var(--text-sub)"}">R${v.spend.toLocaleString("en-ZA",{minimumFractionDigits:2})}</td><td style="font-family:var(--mono)">R${v.limit.toLocaleString("en-ZA",{minimumFractionDigits:2})}</td><td style="font-family:var(--mono)">${v.mileage>0?v.mileage.toLocaleString("en-ZA"):"—"}</td><td style="min-width:130px">${v.limit>0?`<div style="display:flex;align-items:center;gap:0.5rem"><span style="font-size:0.75rem;font-family:var(--mono);min-width:2.5rem">${pct.toFixed(0)}%</span><div class="fuel-limit-bar" style="flex:1"><div class="fuel-limit-fill ${pctClass}" style="width:${pct}%"></div></div></div>`:"—"}</td></tr>`;
   }).join("");
 }
 
-/* ── Export Fuel to Excel ── */
-window.exportFuelExcel=()=>{
-  if(!fuelData.vehicles.length){alert("No fuel data to export.");return}
+window.exportFuelExcel = () => {
+  if(!fuelData.vehicles.length){alert("No fuel data to export.");return;}
   const headers=["Registration","Vehicle","Driver","Department","Spend (R)","Limit (R)","Mileage (km)","% of Limit"];
   const rows=fuelData.vehicles.map(v=>{
     const pct=v.limit>0?((v.spend/v.limit)*100).toFixed(1):"";
@@ -1558,18 +1335,16 @@ window.exportFuelExcel=()=>{
   });
   const csv=[headers,...rows].map(r=>r.map(c=>`"${String(c||"").replace(/"/g,'""')}"`).join(",")).join("\n");
   const blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement("a");
-  a.href=url;
-  a.download=`XCorp-Fuel-Report-${new Date().toLocaleDateString("en-ZA").replace(/\//g,"-")}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  const a=Object.assign(document.createElement("a"),{href:URL.createObjectURL(blob),download:`XCorp-Fuel-${new Date().toLocaleDateString("en-ZA").replace(/\//g,"-")}.csv`});
+  a.click(); URL.revokeObjectURL(a.href);
 };
 
-/* ── Modals ── */
-function openModal(id){document.getElementById(id).classList.add("open")}
+/* ══════════════════════════════════════
+   MODAL HELPERS
+══════════════════════════════════════ */
+function openModal(id){document.getElementById(id).classList.add("open");}
 window.closeModal=id=>document.getElementById(id).classList.remove("open");
-window.backdropClose=(e,id)=>{if(e.target===document.getElementById(id))closeModal(id)};
+window.backdropClose=(e,id)=>{if(e.target===document.getElementById(id))closeModal(id);};
 </script>
 </body>
 </html>
