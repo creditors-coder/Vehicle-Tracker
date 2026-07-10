@@ -907,7 +907,12 @@ window.doLogin = async()=>{
   catch(e){err.textContent="Sign-in error: "+e.message;err.style.display="block"}
 };
 
-window.doLogout=async()=>{if(unsubV)unsubV();if(unsubD)unsubD();if(unsubS)unsubS();await signOut(auth)};
+window.doLogout=async()=>{
+  if(unsubV)unsubV();if(unsubD)unsubD();if(unsubS)unsubS();
+  fuelDeptFilter="";
+  fuelTabsLoaded=false;
+  await signOut(auth)
+};
 
 window.togglePw=()=>{const i=document.getElementById("login-password");i.type=i.type==="password"?"text":"password"};
 
@@ -943,6 +948,9 @@ function showApp(){
 
   document.body.classList.toggle("viewer-mode",!isAdmin);
   document.body.classList.toggle("sales-mode",isSales);
+
+  // Reset fuel filter — only Sales role gets dept filter
+  fuelDeptFilter=isSales?"Sales":"";
 
   // Sales — hide all nav except fuel
   document.querySelectorAll(".nav-item").forEach(nav=>{
