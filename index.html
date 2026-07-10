@@ -792,13 +792,18 @@ function showApp() {
   startSessionTimer();
 
   if (isSales) {
-    // Go straight to fuel tracker
+    // Go straight to fuel tracker — show loading state immediately
     document.querySelectorAll(".section").forEach(s => {
       s.classList.toggle("active", s.id === "section-fuel");
       s.classList.toggle("hidden", s.id !== "section-fuel");
     });
     document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
     document.querySelector(".nav-item[onclick*='fuel']")?.classList.add("active");
+    // Show loading placeholder BEFORE any data fetch
+    document.getElementById("fuel-vehicles-tbody").innerHTML='<tr><td colspan="8" class="empty-state">Loading Sales data...</td></tr>';
+    document.getElementById("fuel-dept-tbody").innerHTML='<tr><td colspan="4" class="empty-state">Loading...</td></tr>';
+    document.getElementById("sales-filter-notice").style.display="block";
+    fuelStatus("Loading Sales fuel data...","🔄");
     fuelTabsLoaded = true;
     loadSheetTabs("Sales");
   } else {
@@ -1204,27 +1209,41 @@ window.syncGoogleSheet = async () => {
       return s;
     }
     const vRows=await fetchRange("A3:G25");
-    const fuelVehicles=[];
+    let fuelVehicles=[];
     vRows.forEach(row=>{
       const c=row.c||[]; const reg=str(c[0]);
       if(!reg||reg.toLowerCase().includes("grand")||reg.toLowerCase().includes("total")) return;
       fuelVehicles.push({reg,spend:num(c[1]),dept:str(c[2]),driver:str(c[3]),vehicle:str(c[4]),limit:num(c[5]),mileage:num(c[6])});
     });
     if(!fuelVehicles.length) throw new Error("No vehicle data found in this tab");
+
+    // ── CRITICAL: Filter data at source for Sales role ──
+    // Never store other departments' data in memory for sales users
+    if(fuelDeptFilter) {
+      fuelVehicles = fuelVehicles.filter(v => v.dept === fuelDeptFilter);
+    }
+
     const dRows=await fetchRange("I3:L7");
     const deptSummary=[];
     dRows.forEach(row=>{
       const c=row.c||[]; const dept=str(c[0]);
       if(!dept||dept==="Department"||dept.toLowerCase().includes("grand")) return;
+      // Only store relevant dept summary for sales users
+      if(fuelDeptFilter && dept !== fuelDeptFilter) return;
       deptSummary.push({dept,fleetCard:num(c[1]),cod:num(c[2]),total:num(c[3])});
     });
-    const mRows=await fetchRange("I9:K25");
+
+    // Sales users don't get monthly trend data at all
     const monthly=[];
-    mRows.forEach(row=>{
-      const c=row.c||[]; const month=str(c[0]);
-      if(!month||month==="Month"||month.toLowerCase().includes("average")) return;
-      monthly.push({month,spend:num(c[1]),litres:num(c[2])});
-    });
+    if(!fuelDeptFilter){
+      const mRows=await fetchRange("I9:K25");
+      mRows.forEach(row=>{
+        const c=row.c||[]; const month=str(c[0]);
+        if(!month||month==="Month"||month.toLowerCase().includes("average")) return;
+        monthly.push({month,spend:num(c[1]),litres:num(c[2])});
+      });
+    }
+
     fuelData={vehicles:fuelVehicles,monthly,deptSummary,sheetTab};
     renderFuel();
     document.getElementById("fuel-last-sync").textContent="Synced: "+new Date().toLocaleTimeString("en-ZA");
