@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>X-Corp | Vehicle Tracker</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -172,6 +173,34 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
 .fuel-limit-fill.warn{background:var(--warn)}.fuel-limit-fill.danger{background:var(--danger)}
 .dept-chip{font-size:0.72rem;font-weight:600;padding:2px 8px;border-radius:4px;background:var(--navy-2);border:1px solid var(--border)}
 
+/* LIVE TRACKING */
+.tracking-grid{display:grid;grid-template-columns:1fr 340px;gap:1.25rem;height:calc(100vh - 220px);min-height:500px}
+.map-wrap{background:var(--navy-lt);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;position:relative}
+.map-wrap iframe{width:100%;height:100%;border:none}
+.tracking-sidebar{display:flex;flex-direction:column;gap:0.75rem;overflow-y:auto}
+.tracking-status-bar{display:flex;align-items:center;gap:0.75rem;background:var(--navy-2);border:1px solid var(--border);border-radius:var(--radius);padding:0.6rem 1rem;font-size:0.8rem;color:var(--text-sub)}
+.tracking-dot{width:8px;height:8px;border-radius:50%;background:var(--success);animation:pulse 2s infinite;flex-shrink:0}
+.tracking-dot.offline{background:var(--danger);animation:none}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.asset-card{background:var(--navy-lt);border:1px solid var(--border);border-radius:var(--radius);padding:0.85rem 1rem;cursor:pointer;transition:all 0.15s}
+.asset-card:hover{border-color:var(--red);background:rgba(224,58,47,0.05)}
+.asset-card.selected{border-color:var(--red);background:rgba(224,58,47,0.08)}
+.asset-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem}
+.asset-reg{font-family:var(--mono);font-size:0.78rem;font-weight:600;background:var(--navy-2);border:1px solid var(--border);padding:2px 8px;border-radius:4px}
+.asset-status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.asset-status-dot.moving{background:var(--success)}
+.asset-status-dot.stopped{background:var(--danger)}
+.asset-status-dot.idle{background:var(--warn)}
+.asset-name{font-size:0.83rem;font-weight:600;margin-bottom:0.2rem}
+.asset-meta{font-size:0.74rem;color:var(--text-sub);display:flex;gap:0.75rem;flex-wrap:wrap}
+.asset-meta span{display:flex;align-items:center;gap:0.25rem}
+.tracking-empty{text-align:center;color:var(--text-sub);padding:2rem 1rem;font-size:0.85rem}
+.tg-connect-card{background:var(--navy-lt);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.5rem;text-align:center}
+.tg-connect-card h3{font-size:1rem;font-weight:700;margin-bottom:0.5rem}
+.tg-connect-card p{font-size:0.83rem;color:var(--text-sub);margin-bottom:1.25rem;line-height:1.6}
+.org-select{max-width:320px;margin:0 auto 1rem;display:block}
+@media(max-width:900px){.tracking-grid{grid-template-columns:1fr;height:auto}.map-wrap{height:350px}}
+
 /* EXPORT BUTTONS */
 .btn-export{background:transparent;color:var(--text-sub);border:1px solid var(--border);padding:0.5rem 0.9rem;border-radius:var(--radius);font-weight:500;font-size:0.8rem;cursor:pointer;transition:all 0.15s;font-family:var(--font);display:inline-flex;align-items:center;gap:0.4rem;white-space:nowrap}
 .btn-export:hover{color:var(--text);border-color:var(--text-sub)}
@@ -276,6 +305,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
       <a class="nav-item" onclick="navTo('drivers',this)"><span class="nav-icon">👤</span> Drivers</a>
       <a class="nav-item" onclick="navTo('history',this)"><span class="nav-icon">🔧</span> Service History</a>
       <a class="nav-item" onclick="navTo('fuel',this)"><span class="nav-icon">⛽</span> Fuel Tracker</a>
+      <a class="nav-item" onclick="navTo('tracking',this)"><span class="nav-icon">🗺️</span> Live Tracking</a>
       <a class="nav-item" onclick="navTo('alerts',this)"><span class="nav-icon">🔔</span> Alerts<span class="alert-badge" id="alert-badge">0</span></a>
     </nav>
     <div class="sidebar-footer">
@@ -424,6 +454,54 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
           </tr></thead>
           <tbody id="fuel-vehicles-tbody"><tr><td colspan="8" class="empty-state">No data yet — sync Google Sheet or upload a file</td></tr></tbody>
         </table>
+      </div>
+    </section>
+
+    <!-- LIVE TRACKING -->
+    <section id="section-tracking" class="section hidden">
+      <div class="section-header">
+        <div><h2>Live Tracking</h2><div class="section-sub">Real-time fleet positions via TG Tracking</div></div>
+        <div style="display:flex;gap:0.5rem;align-items:center">
+          <button class="btn-export" onclick="refreshTracking()">🔄 Refresh</button>
+          <button class="btn-export" onclick="toggleAutoRefresh()" id="auto-refresh-btn">⏱ Auto: ON</button>
+        </div>
+      </div>
+
+      <!-- Status bar -->
+      <div class="tracking-status-bar" style="margin-bottom:1rem">
+        <div class="tracking-dot" id="tg-dot"></div>
+        <span id="tg-status-msg">Connecting to TG Tracking...</span>
+        <span style="margin-left:auto;font-size:0.72rem" id="tg-last-refresh"></span>
+      </div>
+
+      <!-- Org selector (shown if needed) -->
+      <div id="tg-org-selector" style="display:none;margin-bottom:1rem">
+        <div class="tg-connect-card">
+          <h3>Select Organisation</h3>
+          <p>Multiple organisations found on your account. Please select which one to display.</p>
+          <select id="tg-org-select" class="org-select" style="background:var(--navy-2);border:1px solid var(--border);color:var(--text);padding:0.6rem 0.8rem;border-radius:var(--radius);font-family:var(--font);font-size:0.85rem;width:100%;max-width:320px">
+            <option value="">Loading organisations...</option>
+          </select>
+          <button class="btn-primary" onclick="loadAssetsForOrg()" style="margin-top:0.75rem">Load Fleet</button>
+        </div>
+      </div>
+
+      <!-- Main grid: map + asset list -->
+      <div class="tracking-grid">
+
+        <!-- MAP -->
+        <div class="map-wrap" id="tg-map-wrap">
+          <div id="tg-map" style="width:100%;height:100%"></div>
+          <div id="tg-map-overlay" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--navy-lt);flex-direction:column;gap:1rem">
+            <div style="font-size:2rem">🗺️</div>
+            <div style="color:var(--text-sub);font-size:0.85rem">Loading map...</div>
+          </div>
+        </div>
+
+        <!-- ASSET LIST -->
+        <div class="tracking-sidebar" id="tg-asset-list">
+          <div class="tracking-empty">Loading vehicles...</div>
+        </div>
       </div>
     </section>
 
@@ -1364,6 +1442,270 @@ window.exportFuelExcel = () => {
 function openModal(id){document.getElementById(id).classList.add("open");}
 window.closeModal=id=>document.getElementById(id).classList.remove("open");
 window.backdropClose=(e,id)=>{if(e.target===document.getElementById(id))closeModal(id);};
+</script>
+
+<!-- Leaflet Map -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+/* ══════════════════════════════════════
+   LIVE TRACKING — TG Tracking / Telematics Guru
+   Instance: emea03
+══════════════════════════════════════ */
+const TG_API     = "https://api-emea03.telematics.guru";
+const TG_API_KEY = "1I7zbhh4Aou05-yar_pE6z.2v_8g7fbwMBmWZaWp1TDFbphgUHh_bWqv-wJh7V1_p3W.0";
+
+let tgMap         = null;
+let tgMarkers     = {};
+let tgAssets      = [];
+let tgOrgId       = null;
+let tgAutoRefresh = true;
+let tgRefreshInt  = null;
+let tgMapReady    = false;
+let trackingLoaded = false;
+
+const TG_HEADERS = {
+  "Authorization": `Bearer ${TG_API_KEY}`,
+  "Content-Type": "application/json"
+};
+
+/* ── Called when user navigates to tracking tab ── */
+async function initTracking() {
+  if (trackingLoaded) { refreshTracking(); return; }
+  trackingLoaded = true;
+  tgStatus("Connecting to TG Tracking...", true);
+
+  // Init Leaflet map
+  initMap();
+
+  try {
+    // Step 1: Get organisations
+    const orgs = await tgFetch("/v2/user/organisations");
+    if (!orgs || !orgs.length) throw new Error("No organisations found on this account");
+
+    if (orgs.length === 1) {
+      // Only one org — use it directly
+      tgOrgId = orgs[0].OrganisationId;
+      await loadAssets();
+    } else {
+      // Multiple orgs — show selector
+      const sel = document.getElementById("tg-org-select");
+      sel.innerHTML = orgs.map(o => `<option value="${o.OrganisationId}">${o.OrganisationName}</option>`).join("");
+      tgOrgId = orgs[0].OrganisationId;
+      document.getElementById("tg-org-selector").style.display = "block";
+      await loadAssets();
+    }
+  } catch(e) {
+    tgStatus(`❌ ${e.message}`, false);
+    console.error("TG Init error:", e);
+  }
+}
+
+/* ── Fetch helper ── */
+async function tgFetch(endpoint) {
+  const r = await fetch(TG_API + endpoint, { headers: TG_HEADERS });
+  if (!r.ok) throw new Error(`API error ${r.status}: ${r.statusText}`);
+  return r.json();
+}
+
+/* ── Init Leaflet map ── */
+function initMap() {
+  if (tgMapReady) return;
+  tgMapReady = true;
+
+  // Hide overlay
+  document.getElementById("tg-map-overlay").style.display = "none";
+
+  tgMap = L.map("tg-map", { zoomControl: true }).setView([-26.2041, 28.0473], 10); // Johannesburg default
+
+  // OpenStreetMap tiles (free, no key needed)
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom: 19
+  }).addTo(tgMap);
+}
+
+/* ── Load assets for selected org ── */
+async function loadAssets() {
+  if (!tgOrgId) return;
+  tgStatus("Loading fleet assets...", true);
+  try {
+    const assets = await tgFetch(`/v3/assets/${tgOrgId}`);
+    tgAssets = Array.isArray(assets) ? assets : (assets.Assets || assets.assets || []);
+    if (!tgAssets.length) throw new Error("No assets found in this organisation");
+    tgStatus(`✅ ${tgAssets.length} vehicles loaded`, false);
+    await loadLivePositions();
+    startAutoRefresh();
+  } catch(e) {
+    tgStatus(`❌ ${e.message}`, false);
+    console.error("Load assets error:", e);
+  }
+}
+
+/* ── Load live positions for all assets ── */
+async function loadLivePositions() {
+  try {
+    // Get last known position for all assets
+    const positions = await tgFetch(`/v2/${tgOrgId}/asset/lastknownpositions`);
+    const posArray  = Array.isArray(positions) ? positions : (positions.Items || []);
+
+    renderAssetList(posArray);
+    renderMapMarkers(posArray);
+
+    document.getElementById("tg-last-refresh").textContent =
+      "Updated: " + new Date().toLocaleTimeString("en-ZA");
+  } catch(e) {
+    console.error("Position fetch error:", e);
+    tgStatus(`⚠️ Could not load positions: ${e.message}`, false);
+  }
+}
+
+/* ── Render asset sidebar list ── */
+function renderAssetList(positions) {
+  const list = document.getElementById("tg-asset-list");
+  if (!positions.length) {
+    list.innerHTML = '<div class="tracking-empty">No vehicle positions available</div>';
+    return;
+  }
+
+  // Sort: moving first, then by name
+  const sorted = [...positions].sort((a, b) => {
+    const aMoving = a.CurrentSpeed > 0 ? 0 : 1;
+    const bMoving = b.CurrentSpeed > 0 ? 0 : 1;
+    return aMoving - bMoving || (a.AssetName||"").localeCompare(b.AssetName||"");
+  });
+
+  list.innerHTML = sorted.map(p => {
+    const moving  = p.CurrentSpeed > 0;
+    const statusClass = moving ? "moving" : "stopped";
+    const statusText  = moving ? `${p.CurrentSpeed} km/h` : "Stopped";
+    const lastSeen = p.UTCTimestamp
+      ? new Date(p.UTCTimestamp).toLocaleString("en-ZA", {day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})
+      : "Unknown";
+    const driver = p.DriverName || p.CurrentDriverName || "—";
+    const reg    = p.AssetSerialNumber || p.Registration || "";
+
+    return `<div class="asset-card" id="card-${p.AssetId}" onclick="focusAsset(${p.AssetId}, ${p.Lat}, ${p.Lng})">
+      <div class="asset-card-header">
+        <span class="asset-reg">${reg}</span>
+        <div style="display:flex;align-items:center;gap:0.4rem">
+          <div class="asset-status-dot ${statusClass}"></div>
+          <span style="font-size:0.72rem;color:${moving?"var(--success)":"var(--danger)"};font-weight:600">${statusText}</span>
+        </div>
+      </div>
+      <div class="asset-name">${p.AssetName||"Unknown Vehicle"}</div>
+      <div class="asset-meta">
+        <span>👤 ${driver}</span>
+        <span>🕐 ${lastSeen}</span>
+        ${p.Odometer ? `<span>📍 ${Math.round(p.Odometer).toLocaleString()} km</span>` : ""}
+      </div>
+    </div>`;
+  }).join("");
+}
+
+/* ── Render map markers ── */
+function renderMapMarkers(positions) {
+  if (!tgMap) return;
+
+  const bounds = [];
+
+  positions.forEach(p => {
+    if (!p.Lat || !p.Lng) return;
+    const moving   = p.CurrentSpeed > 0;
+    const color    = moving ? "#22c55e" : "#ef4444";
+    const icon     = L.divIcon({
+      className: "",
+      html: `<div style="
+        background:${color};
+        width:14px;height:14px;
+        border-radius:50%;
+        border:2.5px solid #fff;
+        box-shadow:0 2px 6px rgba(0,0,0,0.4);
+        ${moving?"animation:pulse 2s infinite":""}
+      "></div>`,
+      iconSize: [14, 14],
+      iconAnchor: [7, 7]
+    });
+
+    const popup = `
+      <div style="font-family:Inter,sans-serif;min-width:180px">
+        <div style="font-weight:700;font-size:0.9rem;margin-bottom:4px">${p.AssetName||"Vehicle"}</div>
+        <div style="font-size:0.78rem;color:#666;margin-bottom:6px">${p.AssetSerialNumber||""}</div>
+        <div style="font-size:0.8rem"><b>Speed:</b> ${p.CurrentSpeed||0} km/h</div>
+        <div style="font-size:0.8rem"><b>Driver:</b> ${p.DriverName||p.CurrentDriverName||"—"}</div>
+        <div style="font-size:0.8rem"><b>Last seen:</b> ${p.UTCTimestamp?new Date(p.UTCTimestamp).toLocaleString("en-ZA"):"—"}</div>
+        ${p.Address?`<div style="font-size:0.78rem;color:#666;margin-top:4px">${p.Address}</div>`:""}
+      </div>`;
+
+    if (tgMarkers[p.AssetId]) {
+      tgMarkers[p.AssetId].setLatLng([p.Lat, p.Lng]).setIcon(icon);
+    } else {
+      tgMarkers[p.AssetId] = L.marker([p.Lat, p.Lng], {icon})
+        .addTo(tgMap)
+        .bindPopup(popup);
+    }
+    bounds.push([p.Lat, p.Lng]);
+  });
+
+  // Fit map to show all vehicles
+  if (bounds.length && Object.keys(tgMarkers).length <= positions.length) {
+    try { tgMap.fitBounds(bounds, {padding:[30,30]}); } catch(e){}
+  }
+}
+
+/* ── Focus on a specific asset ── */
+window.focusAsset = (assetId, lat, lng) => {
+  // Highlight card
+  document.querySelectorAll(".asset-card").forEach(c => c.classList.remove("selected"));
+  document.getElementById(`card-${assetId}`)?.classList.add("selected");
+  // Pan map
+  if (tgMap && lat && lng) {
+    tgMap.setView([lat, lng], 15);
+    tgMarkers[assetId]?.openPopup();
+  }
+};
+
+/* ── Auto refresh ── */
+function startAutoRefresh() {
+  if (tgRefreshInt) clearInterval(tgRefreshInt);
+  if (tgAutoRefresh) {
+    tgRefreshInt = setInterval(() => loadLivePositions(), 30000); // every 30s
+  }
+}
+
+window.refreshTracking = async () => {
+  tgStatus("Refreshing...", true);
+  await loadLivePositions();
+};
+
+window.toggleAutoRefresh = () => {
+  tgAutoRefresh = !tgAutoRefresh;
+  document.getElementById("auto-refresh-btn").textContent =
+    `⏱ Auto: ${tgAutoRefresh ? "ON" : "OFF"}`;
+  if (tgAutoRefresh) startAutoRefresh();
+  else if (tgRefreshInt) { clearInterval(tgRefreshInt); tgRefreshInt = null; }
+};
+
+window.loadAssetsForOrg = async () => {
+  tgOrgId = document.getElementById("tg-org-select").value;
+  document.getElementById("tg-org-selector").style.display = "none";
+  await loadAssets();
+};
+
+function tgStatus(msg, loading) {
+  document.getElementById("tg-status-msg").textContent = msg;
+  const dot = document.getElementById("tg-dot");
+  dot.className = loading ? "tracking-dot" : (msg.includes("✅") ? "tracking-dot" : "tracking-dot offline");
+}
+
+/* ── Hook into navTo to init tracking on first visit ── */
+const _origNavTo = window.navTo;
+window.navTo = (section, el) => {
+  _origNavTo(section, el);
+  if (section === "tracking") {
+    setTimeout(initTracking, 100); // slight delay to let section render
+  }
+};
 </script>
 </body>
 </html>
