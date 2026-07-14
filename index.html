@@ -1480,42 +1480,23 @@ async function initTracking() {
   initMap();
 
   try {
-    // Step 1: Get organisations
-    const orgs = await tgFetch("/v2/user/organisations");
-    if (!orgs || !orgs.length) throw new Error("No organisations found on this account");
-
-    if (orgs.length === 1) {
-      // Only one org — use it directly
-      tgOrgId = orgs[0].OrganisationId;
-      await loadAssets();
-    } else {
-      // Multiple orgs — show selector
-      const sel = document.getElementById("tg-org-select");
-      sel.innerHTML = orgs.map(o => `<option value="${o.OrganisationId}">${o.OrganisationName}</option>`).join("");
-      tgOrgId = orgs[0].OrganisationId;
-      document.getElementById("tg-org-selector").style.display = "block";
-      await loadAssets();
-    }
+    tgOrgId = 5081; // Almestar org ID
+    await loadAssets();
   } catch(e) {
     tgStatus(`❌ ${e.message}`, false);
     console.error("TG Init error:", e);
   }
 }
 
-/* ── Fetch helper — routes through Google Apps Script proxy ── */
-async function tgFetch(endpoint) {
-  const url = `${TG_PROXY}?path=${encodeURIComponent(endpoint)}`;
-  const r   = await fetch(url);
-  if (!r.ok) throw new Error(`Proxy error ${r.status}: ${r.statusText}`);
+/* ── Fetch helper — action based proxy ── */
+async function tgFetch(action, params={}) {
+  const qs = new URLSearchParams({ action, ...params }).toString();
+  const r  = await fetch(`${TG_PROXY}?${qs}`);
+  if (!r.ok) throw new Error(`Proxy error ${r.status}`);
   const wrapper = await r.json();
-  if (wrapper.error) throw new Error(`TG API error: ${wrapper.error}`);
+  if (wrapper.error) throw new Error(wrapper.error);
   if (wrapper.status && wrapper.status !== 200) throw new Error(`TG API returned ${wrapper.status}`);
-  // Parse the inner data string
-  try {
-    return JSON.parse(wrapper.data);
-  } catch(e) {
-    throw new Error("Could not parse TG response: " + String(wrapper.data).substring(0, 150));
-  }
+  return JSON.parse(wrapper.data);
 }
 
 /* ── Init Leaflet map ── */
@@ -1535,14 +1516,12 @@ function initMap() {
   }).addTo(tgMap);
 }
 
-/* ── Load assets for selected org ── */
+/* ── Load assets for org ── */
 async function loadAssets() {
-  if (!tgOrgId) return;
   tgStatus("Loading fleet assets...", true);
   try {
-    const assets = await tgFetch(`/v3/assets/${tgOrgId}`);
+    const assets = await tgFetch("assets");
     tgAssets = Array.isArray(assets) ? assets : (assets.Assets || assets.assets || []);
-    if (!tgAssets.length) throw new Error("No assets found in this organisation");
     tgStatus(`✅ ${tgAssets.length} vehicles loaded`, false);
     await loadLivePositions();
     startAutoRefresh();
@@ -1552,16 +1531,13 @@ async function loadAssets() {
   }
 }
 
-/* ── Load live positions for all assets ── */
+/* ── Load live positions ── */
 async function loadLivePositions() {
   try {
-    // Get last known position for all assets
-    const positions = await tgFetch(`/v2/${tgOrgId}/asset/lastknownpositions`);
+    const positions = await tgFetch("positions");
     const posArray  = Array.isArray(positions) ? positions : (positions.Items || []);
-
     renderAssetList(posArray);
     renderMapMarkers(posArray);
-
     document.getElementById("tg-last-refresh").textContent =
       "Updated: " + new Date().toLocaleTimeString("en-ZA");
   } catch(e) {
