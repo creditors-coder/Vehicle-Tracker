@@ -1521,9 +1521,14 @@ async function loadAssets() {
   tgStatus("Loading fleet assets...", true);
   try {
     const assets = await tgFetch("assets");
-    tgAssets = Array.isArray(assets) ? assets : (assets.Assets || assets.assets || []);
+    tgAssets = Array.isArray(assets) ? assets : [];
+    if (!tgAssets.length) throw new Error("No assets found");
     tgStatus(`✅ ${tgAssets.length} vehicles loaded`, false);
-    await loadLivePositions();
+    // Assets already contain live position data — render directly
+    renderAssetList(tgAssets);
+    renderMapMarkers(tgAssets);
+    document.getElementById("tg-last-refresh").textContent =
+      "Updated: " + new Date().toLocaleTimeString("en-ZA");
     startAutoRefresh();
   } catch(e) {
     tgStatus(`❌ ${e.message}`, false);
@@ -1531,122 +1536,124 @@ async function loadAssets() {
   }
 }
 
-/* ── Load live positions ── */
+/* ── Refresh positions — re-fetch assets ── */
 async function loadLivePositions() {
   try {
-    const positions = await tgFetch("positions");
-    const posArray  = Array.isArray(positions) ? positions : (positions.Items || []);
-    renderAssetList(posArray);
-    renderMapMarkers(posArray);
+    const assets = await tgFetch("assets");
+    tgAssets = Array.isArray(assets) ? assets : [];
+    renderAssetList(tgAssets);
+    renderMapMarkers(tgAssets);
     document.getElementById("tg-last-refresh").textContent =
       "Updated: " + new Date().toLocaleTimeString("en-ZA");
+    tgStatus(`✅ ${tgAssets.length} vehicles`, false);
   } catch(e) {
     console.error("Position fetch error:", e);
-    tgStatus(`⚠️ Could not load positions: ${e.message}`, false);
+    tgStatus(`⚠️ ${e.message}`, false);
   }
 }
 
 /* ── Render asset sidebar list ── */
-function renderAssetList(positions) {
+function renderAssetList(assets) {
   const list = document.getElementById("tg-asset-list");
-  if (!positions.length) {
-    list.innerHTML = '<div class="tracking-empty">No vehicle positions available</div>';
+  if (!assets.length) {
+    list.innerHTML = '<div class="tracking-empty">No vehicles found</div>';
     return;
   }
 
-  // Sort: moving first, then by name
-  const sorted = [...positions].sort((a, b) => {
-    const aMoving = a.CurrentSpeed > 0 ? 0 : 1;
-    const bMoving = b.CurrentSpeed > 0 ? 0 : 1;
-    return aMoving - bMoving || (a.AssetName||"").localeCompare(b.AssetName||"");
+  // Sort: moving/driving first, then by name
+  const sorted = [...assets].sort((a, b) => {
+    const aMoving = a.speedKmH > 0 ? 0 : 1;
+    const bMoving = b.speedKmH > 0 ? 0 : 1;
+    return aMoving - bMoving || (a.name||"").localeCompare(b.name||"");
   });
 
-  list.innerHTML = sorted.map(p => {
-    const moving  = p.CurrentSpeed > 0;
+  list.innerHTML = sorted.map(v => {
+    const moving     = v.speedKmH > 0;
     const statusClass = moving ? "moving" : "stopped";
-    const statusText  = moving ? `${p.CurrentSpeed} km/h` : "Stopped";
-    const lastSeen = p.UTCTimestamp
-      ? new Date(p.UTCTimestamp).toLocaleString("en-ZA", {day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})
-      : "Unknown";
-    const driver = p.DriverName || p.CurrentDriverName || "—";
-    const reg    = p.AssetSerialNumber || p.Registration || "";
+    const speedText  = moving ? `${v.speedKmH} km/h` : "Parked";
+    const odometer   = v.odometerMeters ? Math.round(v.odometerMeters/1000).toLocaleString("en-ZA") + " km" : "—";
+    const lastConn   = v.lastConnectedUtc
+      ? new Date(v.lastConnectedUtc).toLocaleTimeString("en-ZA",{hour:"2-digit",minute:"2-digit"})
+      : "—";
+    const status     = v.statusHumanized || (moving ? "Driving" : "Parked");
 
-    return `<div class="asset-card" id="card-${p.AssetId}" onclick="focusAsset(${p.AssetId}, ${p.Lat}, ${p.Lng})">
+    return `<div class="asset-card" id="card-${v.id}" onclick="focusAsset(${v.id}, ${v.lastLatitude}, ${v.lastLongitude})">
       <div class="asset-card-header">
-        <span class="asset-reg">${reg}</span>
+        <span class="asset-reg">${v.code||v.name}</span>
         <div style="display:flex;align-items:center;gap:0.4rem">
           <div class="asset-status-dot ${statusClass}"></div>
-          <span style="font-size:0.72rem;color:${moving?"var(--success)":"var(--danger)"};font-weight:600">${statusText}</span>
+          <span style="font-size:0.72rem;color:${moving?"var(--success)":"var(--text-sub)"};font-weight:600">${speedText}</span>
         </div>
       </div>
-      <div class="asset-name">${p.AssetName||"Unknown Vehicle"}</div>
+      <div class="asset-name">${v.name||"Unknown"}</div>
       <div class="asset-meta">
-        <span>👤 ${driver}</span>
-        <span>🕐 ${lastSeen}</span>
-        ${p.Odometer ? `<span>📍 ${Math.round(p.Odometer).toLocaleString()} km</span>` : ""}
+        <span title="${status}">📍 ${status.length>40?status.substring(0,40)+"...":status}</span>
+      </div>
+      <div class="asset-meta" style="margin-top:3px">
+        <span>🕐 ${lastConn}</span>
+        <span>📊 ${odometer}</span>
       </div>
     </div>`;
   }).join("");
 }
 
 /* ── Render map markers ── */
-function renderMapMarkers(positions) {
+function renderMapMarkers(assets) {
   if (!tgMap) return;
-
   const bounds = [];
 
-  positions.forEach(p => {
-    if (!p.Lat || !p.Lng) return;
-    const moving   = p.CurrentSpeed > 0;
-    const color    = moving ? "#22c55e" : "#ef4444";
-    const icon     = L.divIcon({
+  assets.forEach(v => {
+    const lat = v.lastLatitude;
+    const lng = v.lastLongitude;
+    if (!lat || !lng) return;
+
+    const moving = v.speedKmH > 0;
+    const color  = moving ? "#22c55e" : "#ef4444";
+    const icon   = L.divIcon({
       className: "",
       html: `<div style="
-        background:${color};
-        width:14px;height:14px;
-        border-radius:50%;
-        border:2.5px solid #fff;
+        background:${color};width:14px;height:14px;
+        border-radius:50%;border:2.5px solid #fff;
         box-shadow:0 2px 6px rgba(0,0,0,0.4);
-        ${moving?"animation:pulse 2s infinite":""}
       "></div>`,
-      iconSize: [14, 14],
-      iconAnchor: [7, 7]
+      iconSize:[14,14], iconAnchor:[7,7]
     });
 
+    const status   = v.statusHumanized || (moving ? "Driving" : "Parked");
+    const odometer = v.odometerMeters ? Math.round(v.odometerMeters/1000).toLocaleString("en-ZA")+" km" : "—";
+    const lastConn = v.lastConnectedUtc
+      ? new Date(v.lastConnectedUtc).toLocaleString("en-ZA")
+      : "—";
+
     const popup = `
-      <div style="font-family:Inter,sans-serif;min-width:180px">
-        <div style="font-weight:700;font-size:0.9rem;margin-bottom:4px">${p.AssetName||"Vehicle"}</div>
-        <div style="font-size:0.78rem;color:#666;margin-bottom:6px">${p.AssetSerialNumber||""}</div>
-        <div style="font-size:0.8rem"><b>Speed:</b> ${p.CurrentSpeed||0} km/h</div>
-        <div style="font-size:0.8rem"><b>Driver:</b> ${p.DriverName||p.CurrentDriverName||"—"}</div>
-        <div style="font-size:0.8rem"><b>Last seen:</b> ${p.UTCTimestamp?new Date(p.UTCTimestamp).toLocaleString("en-ZA"):"—"}</div>
-        ${p.Address?`<div style="font-size:0.78rem;color:#666;margin-top:4px">${p.Address}</div>`:""}
+      <div style="font-family:Inter,sans-serif;min-width:200px">
+        <div style="font-weight:700;font-size:0.9rem;margin-bottom:2px">${v.name||"Vehicle"}</div>
+        <div style="font-size:0.75rem;color:#666;margin-bottom:6px">${v.code||""}</div>
+        <div style="font-size:0.8rem"><b>Status:</b> ${status}</div>
+        <div style="font-size:0.8rem"><b>Speed:</b> ${v.speedKmH||0} km/h</div>
+        <div style="font-size:0.8rem"><b>Odometer:</b> ${odometer}</div>
+        <div style="font-size:0.8rem"><b>Last seen:</b> ${lastConn}</div>
       </div>`;
 
-    if (tgMarkers[p.AssetId]) {
-      tgMarkers[p.AssetId].setLatLng([p.Lat, p.Lng]).setIcon(icon);
+    if (tgMarkers[v.id]) {
+      tgMarkers[v.id].setLatLng([lat,lng]).setIcon(icon).setPopupContent(popup);
     } else {
-      tgMarkers[p.AssetId] = L.marker([p.Lat, p.Lng], {icon})
-        .addTo(tgMap)
-        .bindPopup(popup);
+      tgMarkers[v.id] = L.marker([lat,lng],{icon}).addTo(tgMap).bindPopup(popup);
     }
-    bounds.push([p.Lat, p.Lng]);
+    bounds.push([lat,lng]);
   });
 
-  // Fit map to show all vehicles
-  if (bounds.length && Object.keys(tgMarkers).length <= positions.length) {
-    try { tgMap.fitBounds(bounds, {padding:[30,30]}); } catch(e){}
+  if (bounds.length && Object.keys(tgMarkers).length <= assets.length) {
+    try { tgMap.fitBounds(bounds, {padding:[40,40]}); } catch(e){}
   }
 }
 
 /* ── Focus on a specific asset ── */
 window.focusAsset = (assetId, lat, lng) => {
-  // Highlight card
   document.querySelectorAll(".asset-card").forEach(c => c.classList.remove("selected"));
   document.getElementById(`card-${assetId}`)?.classList.add("selected");
-  // Pan map
   if (tgMap && lat && lng) {
-    tgMap.setView([lat, lng], 15);
+    tgMap.setView([lat, lng], 16);
     tgMarkers[assetId]?.openPopup();
   }
 };
