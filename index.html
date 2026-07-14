@@ -1452,6 +1452,7 @@ window.backdropClose=(e,id)=>{if(e.target===document.getElementById(id))closeMod
    LIVE TRACKING — TG Tracking / Telematics Guru
    Instance: emea03
 ══════════════════════════════════════ */
+const TG_PROXY   = "https://script.google.com/macros/s/AKfycbzpmYF3QzowoErAM4VbP3RgsdlRQ1nSj_FUK3az4GiQhumSjrvxMkBoUoqulCiCSCKm1Q/exec";
 const TG_API     = "https://api-emea03.telematics.guru";
 const TG_API_KEY = "1I7zbhh4Aou05-yar_pE6z.2v_8g7fbwMBmWZaWp1TDFbphgUHh_bWqv-wJh7V1_p3W.0";
 
@@ -1501,11 +1502,17 @@ async function initTracking() {
   }
 }
 
-/* ── Fetch helper ── */
+/* ── Fetch helper — routes through Google Apps Script proxy ── */
 async function tgFetch(endpoint) {
-  const r = await fetch(TG_API + endpoint, { headers: TG_HEADERS });
-  if (!r.ok) throw new Error(`API error ${r.status}: ${r.statusText}`);
-  return r.json();
+  const url = `${TG_PROXY}?path=${encodeURIComponent(endpoint)}`;
+  const r   = await fetch(url);
+  if (!r.ok) throw new Error(`Proxy error ${r.status}: ${r.statusText}`);
+  const text = await r.text();
+  try {
+    return JSON.parse(text);
+  } catch(e) {
+    throw new Error("Invalid response from proxy: " + text.substring(0, 100));
+  }
 }
 
 /* ── Init Leaflet map ── */
