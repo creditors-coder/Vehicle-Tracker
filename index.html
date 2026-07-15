@@ -487,19 +487,19 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
       </div>
 
       <!-- Main grid: map + asset list -->
-      <div class="tracking-grid">
+      <div style="display:grid;grid-template-columns:1fr 340px;gap:1.25rem;height:550px">
 
         <!-- MAP -->
-        <div class="map-wrap" id="tg-map-wrap">
-          <div id="tg-map" style="width:100%;height:100%;min-height:500px;position:relative"></div>
-          <div id="tg-map-overlay" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--navy-lt);flex-direction:column;gap:1rem;z-index:1000">
+        <div style="border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;position:relative;height:550px">
+          <div id="tg-map" style="width:100%;height:550px"></div>
+          <div id="tg-map-overlay" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--navy-lt);flex-direction:column;gap:1rem;z-index:500">
             <div style="font-size:2rem">🗺️</div>
             <div style="color:var(--text-sub);font-size:0.85rem" id="map-loading-text">Loading map...</div>
           </div>
         </div>
 
         <!-- ASSET LIST -->
-        <div class="tracking-sidebar" id="tg-asset-list">
+        <div style="height:550px;overflow-y:auto;display:flex;flex-direction:column;gap:0.75rem" id="tg-asset-list">
           <div class="tracking-empty">Loading vehicles...</div>
         </div>
       </div>
@@ -1476,8 +1476,14 @@ async function initTracking() {
   if (trackingLoaded) { await doRefresh(); return; }
   trackingLoaded = true;
   tgStatus("Connecting to TG Tracking...", true);
-  initMap();
+
+  // Init map first with a slight delay so DOM is fully rendered
+  setTimeout(() => initMap(), 100);
+
+  // Load data
   await loadAssets();
+
+  // Start countdown after everything is loaded
   startCountdown();
 }
 
@@ -1485,16 +1491,24 @@ function initMap() {
   if (tgMapReady) return;
   const el = document.getElementById("tg-map");
   if (!el) return;
+
+  // Ensure explicit pixel height before Leaflet init
+  el.style.width  = "100%";
+  el.style.height = "550px";
+
   try {
     tgMap = L.map(el, { center:[-26.2041,28.0473], zoom:10, zoomControl:true });
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution:"© OpenStreetMap", maxZoom:19
     }).addTo(tgMap);
     tgMapReady = true;
-    setTimeout(() => {
+
+    // Hide overlay and force size recalc after tiles load
+    tgMap.whenReady(() => {
       tgMap.invalidateSize();
       document.getElementById("tg-map-overlay").style.display = "none";
-    }, 500);
+      if (tgAssets.length) renderMapMarkers(tgAssets);
+    });
   } catch(e) {
     console.error("Map error:", e);
     document.getElementById("map-loading-text").textContent = "Map unavailable";
