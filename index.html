@@ -464,7 +464,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
         <div><h2>Live Tracking</h2><div class="section-sub">Real-time fleet positions via TG Tracking</div></div>
         <div style="display:flex;gap:0.5rem;align-items:center">
           <button class="btn-export" onclick="refreshTracking()">🔄 Refresh</button>
-          <button class="btn-export" onclick="toggleAutoRefresh()" id="auto-refresh-btn">⏱ Auto: ON</button>
+          <button class="btn-export" id="auto-refresh-btn" onclick="toggleAutoRefresh()">⏱ 30s</button>
         </div>
       </div>
 
@@ -636,6 +636,30 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
     <div class="modal-footer">
       <button class="btn-ghost" onclick="closeModal('service-modal')">Cancel</button>
       <button class="btn-primary" onclick="saveService()">Save Record</button>
+    </div>
+  </div></div>
+</div>
+
+<!-- MODAL: Trip History -->
+<div id="trips-modal" class="modal" onclick="backdropClose(event,'trips-modal')">
+  <div style="width:100%;max-width:640px">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-header-inner"><h3 id="trips-modal-title">Today's Trips</h3><div class="modal-accent-line"></div></div>
+      <button class="modal-close" onclick="closeModal('trips-modal')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:0">
+      <table class="data-table">
+        <thead><tr>
+          <th>#</th><th>Start Time</th><th>End Time</th><th>Distance</th><th>Max Speed</th>
+        </tr></thead>
+        <tbody id="trips-tbody">
+          <tr><td colspan="5" class="empty-state">Select a vehicle to view trips</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('trips-modal')">Close</button>
     </div>
   </div></div>
 </div>
@@ -1417,10 +1441,13 @@ function renderFuel() {
     :'<tr><td colspan="3" class="empty-state">No monthly data</td></tr>';
 
   document.getElementById("fuel-vehicles-tbody").innerHTML=vehicles.map(v=>{
-    const pct=v.limit>0?Math.min((v.spend/v.limit)*100,100):0;
-    const pctClass=pct>90?"danger":pct>75?"warn":"";
+    const pct=v.limit>0?((v.spend/v.limit)*100):0;
+    const pctDisplay=v.limit>0?pct.toFixed(0)+"%":"—";
+    const pctClass=pct>100?"danger":pct>90?"danger":pct>75?"warn":"";
+    const barWidth=v.limit>0?Math.min(pct,100):0;
     const col=deptColors[v.dept]||"#8899bb";
-    return`<tr><td><span class="reg-pill">${v.reg||"—"}</span></td><td style="font-size:0.82rem">${v.vehicle||"—"}</td><td>${v.driver||"—"}</td><td><span class="dept-chip" style="color:${col};border-color:${col}33">${v.dept||"—"}</span></td><td style="font-family:var(--mono);color:${v.spend>0?"var(--success)":"var(--text-sub)"}">R${v.spend.toLocaleString("en-ZA",{minimumFractionDigits:2})}</td><td style="font-family:var(--mono)">R${v.limit.toLocaleString("en-ZA",{minimumFractionDigits:2})}</td><td style="font-family:var(--mono)">${v.mileage>0?v.mileage.toLocaleString("en-ZA"):"—"}</td><td style="min-width:130px">${v.limit>0?`<div style="display:flex;align-items:center;gap:0.5rem"><span style="font-size:0.75rem;font-family:var(--mono);min-width:2.5rem">${pct.toFixed(0)}%</span><div class="fuel-limit-bar" style="flex:1"><div class="fuel-limit-fill ${pctClass}" style="width:${pct}%"></div></div></div>`:"—"}</td></tr>`;
+    const overLimit=pct>100?`<span style="font-size:0.68rem;background:var(--danger-dim);color:var(--danger);padding:2px 6px;border-radius:4px;font-weight:700;margin-left:4px">OVER</span>`:"";
+    return`<tr><td><span class="reg-pill">${v.reg||"—"}</span></td><td style="font-size:0.82rem">${v.vehicle||"—"}</td><td>${v.driver||"—"}</td><td><span class="dept-chip" style="color:${col};border-color:${col}33">${v.dept||"—"}</span></td><td style="font-family:var(--mono);color:${v.spend>0?"var(--success)":"var(--text-sub)"}">R${v.spend.toLocaleString("en-ZA",{minimumFractionDigits:2})}</td><td style="font-family:var(--mono)">R${v.limit.toLocaleString("en-ZA",{minimumFractionDigits:2})}</td><td style="font-family:var(--mono)">${v.mileage>0?v.mileage.toLocaleString("en-ZA"):"—"}</td><td style="min-width:150px">${v.limit>0?`<div style="display:flex;align-items:center;gap:0.5rem"><span style="font-size:0.75rem;font-family:var(--mono);min-width:2.8rem;color:${pct>100?"var(--danger)":pct>75?"var(--warn)":"var(--text)"}">${pctDisplay}</span><div class="fuel-limit-bar" style="flex:1"><div class="fuel-limit-fill ${pctClass}" style="width:${barWidth}%"></div></div>${overLimit}</div>`:"—"}</td></tr>`;
   }).join("");
 }
 
@@ -1619,6 +1646,7 @@ function renderAssetList(assets) {
     const time   = v.lastConnectedUtc ? new Date(v.lastConnectedUtc).toLocaleTimeString("en-ZA",{hour:"2-digit",minute:"2-digit"}) : "—";
     const status = v.statusHumanized || (moving?"Driving":"Parked");
     const lat = v.lastLatitude||0, lng = v.lastLongitude||0;
+    const safeName = (v.name||"").replace(/'/g,"");
     return `<div class="asset-card" id="card-${v.id}" onclick="focusAsset(${v.id},${lat},${lng})">
       <div class="asset-card-header">
         <span class="asset-reg">${v.code||v.name}</span>
@@ -1629,10 +1657,57 @@ function renderAssetList(assets) {
       </div>
       <div class="asset-name">${v.name||"Unknown"}</div>
       <div class="asset-meta"><span title="${status}">📍 ${status.length>38?status.substring(0,38)+"...":status}</span></div>
-      <div class="asset-meta" style="margin-top:3px"><span>🕐 ${time}</span><span>📊 ${odo}</span></div>
+      <div class="asset-meta" style="margin-top:3px;display:flex;justify-content:space-between;align-items:center">
+        <div style="display:flex;gap:0.75rem"><span>🕐 ${time}</span><span>📊 ${odo}</span></div>
+        <button class="btn-export" style="padding:2px 8px;font-size:0.68rem;flex-shrink:0" onclick="event.stopPropagation();showTrips(${v.id},'${safeName}')" title="View today's trips">🗺 Trips</button>
+      </div>
     </div>`;
   }).join("");
 }
+
+/* ── Trip History ── */
+window.showTrips = async (assetId, assetName) => {
+  // Show modal
+  document.getElementById("trips-modal-title").textContent = `Today's Trips — ${assetName}`;
+  document.getElementById("trips-tbody").innerHTML = '<tr><td colspan="5" class="empty-state">Loading trips...</td></tr>';
+  document.getElementById("trips-modal").classList.add("open");
+
+  try {
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate()+1);
+    const from = today.toISOString();
+    const to   = tomorrow.toISOString();
+
+    const data  = await tgFetch("trips", { assetId, from, to });
+    const trips = Array.isArray(data) ? data : (data.Trips || data.trips || []);
+
+    if (!trips.length) {
+      document.getElementById("trips-tbody").innerHTML = '<tr><td colspan="5" class="empty-state">No trips recorded today</td></tr>';
+      return;
+    }
+
+    document.getElementById("trips-tbody").innerHTML = trips.map((t,i) => {
+      const start    = t.startTime||t.StartTime||t.utcStart||"";
+      const end      = t.endTime||t.EndTime||t.utcEnd||"";
+      const dist     = t.distanceKm||t.DistanceKm||(t.distanceMeters?(t.distanceMeters/1000):0)||0;
+      const maxSpeed = t.maxSpeedKmH||t.MaxSpeedKmH||0;
+      const dur      = t.durationMinutes||t.DurationMinutes||0;
+      const startFmt = start ? new Date(start).toLocaleTimeString("en-ZA",{hour:"2-digit",minute:"2-digit"}) : "—";
+      const endFmt   = end   ? new Date(end).toLocaleTimeString("en-ZA",{hour:"2-digit",minute:"2-digit"}) : "Ongoing";
+      const durFmt   = dur>0 ? `${Math.floor(dur/60)}h ${dur%60}m` : "—";
+      return `<tr>
+        <td style="font-weight:600">${i+1}</td>
+        <td>${startFmt}</td>
+        <td>${endFmt}</td>
+        <td style="font-family:var(--mono)">${dist>0?dist.toFixed(1)+" km":"—"}</td>
+        <td style="font-family:var(--mono)">${maxSpeed>0?maxSpeed+" km/h":"—"}</td>
+      </tr>`;
+    }).join("");
+  } catch(e) {
+    document.getElementById("trips-tbody").innerHTML = `<tr><td colspan="5" class="empty-state">Error loading trips: ${e.message}</td></tr>`;
+  }
+};
 
 function renderMapMarkers(assets) {
   if (!tgMap) return;
