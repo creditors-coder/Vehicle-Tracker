@@ -6,6 +6,7 @@
 <title>X-Corp | Vehicle Tracker v2.1</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -1444,8 +1445,6 @@ window.closeModal=id=>document.getElementById(id).classList.remove("open");
 window.backdropClose=(e,id)=>{if(e.target===document.getElementById(id))closeModal(id);};
 </script>
 
-<!-- Leaflet Map -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
 /* ══════════════════════════════════════
@@ -1489,29 +1488,55 @@ async function initTracking() {
 
 function initMap() {
   if (tgMapReady) return;
-  const el = document.getElementById("tg-map");
-  if (!el) return;
 
-  // Ensure explicit pixel height before Leaflet init
+  // Check Leaflet is available
+  if (typeof L === "undefined") {
+    console.error("Leaflet not loaded");
+    document.getElementById("map-loading-text").textContent = "Map library failed to load — try refreshing";
+    return;
+  }
+
+  const el = document.getElementById("tg-map");
+  if (!el) { console.error("Map element not found"); return; }
+
+  // Force explicit dimensions
   el.style.width  = "100%";
   el.style.height = "550px";
+  el.style.display = "block";
 
   try {
-    tgMap = L.map(el, { center:[-26.2041,28.0473], zoom:10, zoomControl:true });
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution:"© OpenStreetMap", maxZoom:19
-    }).addTo(tgMap);
-    tgMapReady = true;
+    // Destroy existing map if any
+    if (tgMap) { tgMap.remove(); tgMap = null; }
 
-    // Hide overlay and force size recalc after tiles load
-    tgMap.whenReady(() => {
-      tgMap.invalidateSize();
-      document.getElementById("tg-map-overlay").style.display = "none";
-      if (tgAssets.length) renderMapMarkers(tgAssets);
+    tgMap = L.map(el, {
+      center:    [-26.2041, 28.0473],
+      zoom:      10,
+      zoomControl: true,
+      attributionControl: true
     });
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "© OpenStreetMap contributors",
+      maxZoom: 19,
+      crossOrigin: true
+    }).addTo(tgMap);
+
+    tgMapReady = true;
+    console.log("Map initialized successfully");
+
+    // Hide overlay
+    const overlay = document.getElementById("tg-map-overlay");
+    if (overlay) overlay.style.display = "none";
+
+    // Force size recalc
+    tgMap.invalidateSize();
+
+    // Render markers if data already loaded
+    if (tgAssets.length) renderMapMarkers(tgAssets);
+
   } catch(e) {
-    console.error("Map error:", e);
-    document.getElementById("map-loading-text").textContent = "Map unavailable";
+    console.error("Map init failed:", e);
+    document.getElementById("map-loading-text").textContent = "Map error: " + e.message;
   }
 }
 
@@ -1657,11 +1682,21 @@ function tgStatus(msg, loading) {
   if (dot) dot.className=loading||msg.includes("✅")?"tracking-dot":"tracking-dot offline";
 }
 
-const _origNavTo = window.navTo;
-window.navTo = (section, el) => {
-  _origNavTo(section, el);
-  if (section==="tracking") setTimeout(initTracking, 250);
-};
+/* ── Hook navTo — use polling to wait for it to be defined ── */
+function hookNavTo() {
+  if (typeof window.navTo === "function") {
+    const _orig = window.navTo;
+    window.navTo = (section, el) => {
+      _orig(section, el);
+      if (section === "tracking") setTimeout(initTracking, 300);
+    };
+    console.log("navTo hooked successfully");
+  } else {
+    // navTo not ready yet — try again
+    setTimeout(hookNavTo, 100);
+  }
+}
+hookNavTo();
 </script>
 </body>
 </html>
