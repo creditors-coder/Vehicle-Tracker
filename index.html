@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>X-Corp | Vehicle Tracker</title>
+<title>X-Corp | Vehicle Tracker v2.1</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
@@ -491,7 +491,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
 
         <!-- MAP -->
         <div class="map-wrap" id="tg-map-wrap">
-          <div id="tg-map" style="width:100%;height:100%"></div>
+          <div id="tg-map" style="width:100%;height:100%;min-height:500px"></div>
           <div id="tg-map-overlay" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--navy-lt);flex-direction:column;gap:1rem">
             <div style="font-size:2rem">🗺️</div>
             <div style="color:var(--text-sub);font-size:0.85rem">Loading map...</div>
@@ -1507,13 +1507,22 @@ function initMap() {
   // Hide overlay
   document.getElementById("tg-map-overlay").style.display = "none";
 
-  tgMap = L.map("tg-map", { zoomControl: true }).setView([-26.2041, 28.0473], 10); // Johannesburg default
+  // Small delay to ensure the DOM element is visible and has dimensions
+  setTimeout(() => {
+    tgMap = L.map("tg-map", { zoomControl: true }).setView([-26.2041, 28.0473], 10);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom: 19
+    }).addTo(tgMap);
 
-  // OpenStreetMap tiles (free, no key needed)
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    maxZoom: 19
-  }).addTo(tgMap);
+    // Force map to recalculate its size
+    tgMap.invalidateSize();
+
+    // Re-render markers if assets already loaded
+    if (tgAssets.length) {
+      renderMapMarkers(tgAssets);
+    }
+  }, 300);
 }
 
 /* ── Load assets for org ── */
@@ -1696,7 +1705,7 @@ const _origNavTo = window.navTo;
 window.navTo = (section, el) => {
   _origNavTo(section, el);
   if (section === "tracking") {
-    setTimeout(initTracking, 100); // slight delay to let section render
+    setTimeout(initTracking, 200);
   }
 };
 </script>
