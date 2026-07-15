@@ -306,7 +306,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
       <a class="nav-item" onclick="navTo('drivers',this)"><span class="nav-icon">👤</span> Drivers</a>
       <a class="nav-item" onclick="navTo('history',this)"><span class="nav-icon">🔧</span> Service History</a>
       <a class="nav-item" onclick="navTo('fuel',this)"><span class="nav-icon">⛽</span> Fuel Tracker</a>
-      <a class="nav-item" onclick="navTo('tracking',this)"><span class="nav-icon">🗺️</span> Live Tracking</a>
+      <a class="nav-item" onclick="navTo('tracking',this);setTimeout(initTracking,300)"><span class="nav-icon">🗺️</span> Live Tracking</a>
       <a class="nav-item" onclick="navTo('alerts',this)"><span class="nav-icon">🔔</span> Alerts<span class="alert-badge" id="alert-badge">0</span></a>
     </nav>
     <div class="sidebar-footer">
@@ -1471,10 +1471,11 @@ async function tgFetch(action, params={}) {
   return JSON.parse(w.data);
 }
 
-async function initTracking() {
+window.initTracking = async function() {
   if (trackingLoaded) { await doRefresh(); return; }
   trackingLoaded = true;
   tgStatus("Connecting to TG Tracking...", true);
+  console.log("initTracking called");
 
   // Init map first with a slight delay so DOM is fully rendered
   setTimeout(() => initMap(), 100);
@@ -1682,21 +1683,7 @@ function tgStatus(msg, loading) {
   if (dot) dot.className=loading||msg.includes("✅")?"tracking-dot":"tracking-dot offline";
 }
 
-/* ── Hook navTo — use polling to wait for it to be defined ── */
-function hookNavTo() {
-  if (typeof window.navTo === "function") {
-    const _orig = window.navTo;
-    window.navTo = (section, el) => {
-      _orig(section, el);
-      if (section === "tracking") setTimeout(initTracking, 300);
-    };
-    console.log("navTo hooked successfully");
-  } else {
-    // navTo not ready yet — try again
-    setTimeout(hookNavTo, 100);
-  }
-}
-hookNavTo();
+/* ── navTo handled directly in HTML onclick ── */
 </script>
 </body>
 </html>
