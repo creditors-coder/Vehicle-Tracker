@@ -491,10 +491,10 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
 
         <!-- MAP -->
         <div class="map-wrap" id="tg-map-wrap">
-          <div id="tg-map" style="width:100%;height:100%;min-height:500px"></div>
-          <div id="tg-map-overlay" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--navy-lt);flex-direction:column;gap:1rem">
+          <div id="tg-map" style="width:100%;height:100%;min-height:500px;position:relative"></div>
+          <div id="tg-map-overlay" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--navy-lt);flex-direction:column;gap:1rem;z-index:1000">
             <div style="font-size:2rem">🗺️</div>
-            <div style="color:var(--text-sub);font-size:0.85rem">Loading map...</div>
+            <div style="color:var(--text-sub);font-size:0.85rem" id="map-loading-text">Loading map...</div>
           </div>
         </div>
 
@@ -1449,205 +1449,174 @@ window.backdropClose=(e,id)=>{if(e.target===document.getElementById(id))closeMod
 
 <script>
 /* ══════════════════════════════════════
-   LIVE TRACKING — TG Tracking / Telematics Guru
-   Instance: emea03
+   LIVE TRACKING — TG Tracking v3
 ══════════════════════════════════════ */
-const TG_PROXY   = "https://script.google.com/macros/s/AKfycbzpmYF3QzowoErAM4VbP3RgsdlRQ1nSj_FUK3az4GiQhumSjrvxMkBoUoqulCiCSCKm1Q/exec";
-const TG_API     = "https://api-emea03.telematics.guru";
-const TG_API_KEY = "M5VlIjKiYO8lMM47di03yz.b3EWQti2YrTrBxijdnCRZ6POV_crC19EmNfH5vY_SgmT.0";
+const TG_PROXY = "https://script.google.com/macros/s/AKfycbzpmYF3QzowoErAM4VbP3RgsdlRQ1nSj_FUK3az4GiQhumSjrvxMkBoUoqulCiCSCKm1Q/exec";
 
-let tgMap         = null;
-let tgMarkers     = {};
-let tgAssets      = [];
-let tgOrgId       = null;
-let tgAutoRefresh = true;
-let tgRefreshInt  = null;
-let tgMapReady    = false;
+let tgMap          = null;
+let tgMarkers      = {};
+let tgAssets       = [];
+let tgAutoRefresh  = true;
+let tgCountdown    = 30;
+let tgCountdownInt = null;
 let trackingLoaded = false;
+let tgMapReady     = false;
 
-const TG_HEADERS = {
-  "Authorization": `Bearer ${TG_API_KEY}`,
-  "Content-Type": "application/json"
-};
-
-/* ── Called when user navigates to tracking tab ── */
-async function initTracking() {
-  if (trackingLoaded) { refreshTracking(); return; }
-  trackingLoaded = true;
-  tgStatus("Connecting to TG Tracking...", true);
-
-  // Init Leaflet map
-  initMap();
-
-  try {
-    tgOrgId = 5081; // Almestar org ID
-    await loadAssets();
-  } catch(e) {
-    tgStatus(`❌ ${e.message}`, false);
-    console.error("TG Init error:", e);
-  }
-}
-
-/* ── Fetch helper — action based proxy ── */
 async function tgFetch(action, params={}) {
-  const qs = new URLSearchParams({ action, ...params }).toString();
+  const qs = new URLSearchParams({action, ...params}).toString();
   const r  = await fetch(`${TG_PROXY}?${qs}`);
   if (!r.ok) throw new Error(`Proxy error ${r.status}`);
-  const wrapper = await r.json();
-  if (wrapper.error) throw new Error(wrapper.error);
-  if (wrapper.status && wrapper.status !== 200) throw new Error(`TG API returned ${wrapper.status}`);
-  return JSON.parse(wrapper.data);
+  const w = await r.json();
+  if (w.error) throw new Error(w.error);
+  if (w.status && w.status !== 200) throw new Error(`TG API ${w.status}`);
+  return JSON.parse(w.data);
 }
 
-/* ── Init Leaflet map ── */
+async function initTracking() {
+  if (trackingLoaded) { await doRefresh(); return; }
+  trackingLoaded = true;
+  tgStatus("Connecting to TG Tracking...", true);
+  initMap();
+  await loadAssets();
+  startCountdown();
+}
+
 function initMap() {
   if (tgMapReady) return;
-  tgMapReady = true;
-  document.getElementById("tg-map-overlay").style.display = "none";
-
-  // Wait for section to be fully rendered and sized
-  setTimeout(() => {
-    const mapEl = document.getElementById("tg-map");
-    mapEl.style.height = "100%";
-    mapEl.style.minHeight = "500px";
-
-    tgMap = L.map("tg-map", {
-      zoomControl: true,
-      preferCanvas: true
-    }).setView([-26.2041, 28.0473], 10);
-
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      maxZoom: 19
-    }).addTo(tgMap);
-
-    // Critical — force Leaflet to recalculate map size
-    setTimeout(() => {
-      tgMap.invalidateSize(true);
-      if (tgAssets.length) renderMapMarkers(tgAssets);
-    }, 500);
-  }, 400);
-}
-
-/* ── Load assets for org ── */
-async function loadAssets() {
-  tgStatus("Loading fleet assets...", true);
+  const el = document.getElementById("tg-map");
+  if (!el) return;
   try {
-    const assets = await tgFetch("assets");
-    tgAssets = Array.isArray(assets) ? assets : [];
-    if (!tgAssets.length) throw new Error("No assets found");
-    tgStatus(`✅ ${tgAssets.length} vehicles loaded`, false);
-    // Assets already contain live position data — render directly
-    renderAssetList(tgAssets);
-    renderMapMarkers(tgAssets);
-    document.getElementById("tg-last-refresh").textContent =
-      "Updated: " + new Date().toLocaleTimeString("en-ZA");
-    startAutoRefresh();
+    tgMap = L.map(el, { center:[-26.2041,28.0473], zoom:10, zoomControl:true });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution:"© OpenStreetMap", maxZoom:19
+    }).addTo(tgMap);
+    tgMapReady = true;
+    setTimeout(() => {
+      tgMap.invalidateSize();
+      document.getElementById("tg-map-overlay").style.display = "none";
+    }, 500);
   } catch(e) {
-    tgStatus(`❌ ${e.message}`, false);
-    console.error("Load assets error:", e);
+    console.error("Map error:", e);
+    document.getElementById("map-loading-text").textContent = "Map unavailable";
   }
 }
 
-/* ── Refresh positions — re-fetch assets ── */
-async function loadLivePositions() {
+async function loadAssets() {
+  tgStatus("Loading fleet...", true);
   try {
-    const assets = await tgFetch("assets");
-    tgAssets = Array.isArray(assets) ? assets : [];
-    renderAssetList(tgAssets);
-    renderMapMarkers(tgAssets);
-    document.getElementById("tg-last-refresh").textContent =
-      "Updated: " + new Date().toLocaleTimeString("en-ZA");
+    const data = await tgFetch("assets");
+    tgAssets = Array.isArray(data) ? data : [];
+    if (!tgAssets.length) throw new Error("No vehicles found");
     tgStatus(`✅ ${tgAssets.length} vehicles`, false);
+    renderAssetList(tgAssets);
+    if (tgMapReady) { renderMapMarkers(tgAssets); }
+    else { setTimeout(() => { if(tgMapReady) renderMapMarkers(tgAssets); }, 2000); }
+    updateLastRefresh();
   } catch(e) {
-    console.error("Position fetch error:", e);
+    tgStatus(`❌ ${e.message}`, false);
+    console.error(e);
+  }
+}
+
+async function doRefresh() {
+  try {
+    const data = await tgFetch("assets");
+    tgAssets = Array.isArray(data) ? data : [];
+    tgStatus(`✅ ${tgAssets.length} vehicles`, false);
+    renderAssetList(tgAssets);
+    if (tgMapReady) renderMapMarkers(tgAssets);
+    updateLastRefresh();
+  } catch(e) {
     tgStatus(`⚠️ ${e.message}`, false);
   }
 }
 
-/* ── Render asset sidebar list ── */
+function updateLastRefresh() {
+  const el = document.getElementById("tg-last-refresh");
+  if (el) el.textContent = "Updated: " + new Date().toLocaleTimeString("en-ZA");
+}
+
+function startCountdown() {
+  if (tgCountdownInt) clearInterval(tgCountdownInt);
+  tgCountdown = 30;
+  updateCountdownBtn();
+  tgCountdownInt = setInterval(() => {
+    tgCountdown--;
+    updateCountdownBtn();
+    if (tgCountdown <= 0) {
+      tgCountdown = 30;
+      if (tgAutoRefresh) doRefresh();
+    }
+  }, 1000);
+}
+
+function updateCountdownBtn() {
+  const btn = document.getElementById("auto-refresh-btn");
+  if (btn) btn.textContent = tgAutoRefresh ? `⏱ ${tgCountdown}s` : "⏱ Auto: OFF";
+}
+
+window.refreshTracking = async () => {
+  tgCountdown = 30;
+  updateCountdownBtn();
+  await doRefresh();
+};
+
+window.toggleAutoRefresh = () => {
+  tgAutoRefresh = !tgAutoRefresh;
+  updateCountdownBtn();
+};
+
 function renderAssetList(assets) {
   const list = document.getElementById("tg-asset-list");
-  if (!assets.length) {
-    list.innerHTML = '<div class="tracking-empty">No vehicles found</div>';
-    return;
-  }
-
-  // Sort: moving/driving first, then by name
-  const sorted = [...assets].sort((a, b) => {
-    const aMoving = a.speedKmH > 0 ? 0 : 1;
-    const bMoving = b.speedKmH > 0 ? 0 : 1;
-    return aMoving - bMoving || (a.name||"").localeCompare(b.name||"");
+  if (!list || !assets.length) return;
+  const sorted = [...assets].sort((a,b) => {
+    return (a.speedKmH>0?0:1)-(b.speedKmH>0?0:1) || (a.name||"").localeCompare(b.name||"");
   });
-
   list.innerHTML = sorted.map(v => {
-    const moving     = v.speedKmH > 0;
-    const statusClass = moving ? "moving" : "stopped";
-    const speedText  = moving ? `${v.speedKmH} km/h` : "Parked";
-    const odometer   = v.odometerMeters ? Math.round(v.odometerMeters/1000).toLocaleString("en-ZA") + " km" : "—";
-    const lastConn   = v.lastConnectedUtc
-      ? new Date(v.lastConnectedUtc).toLocaleTimeString("en-ZA",{hour:"2-digit",minute:"2-digit"})
-      : "—";
-    const status     = v.statusHumanized || (moving ? "Driving" : "Parked");
-
-    return `<div class="asset-card" id="card-${v.id}" onclick="focusAsset(${v.id}, ${v.lastLatitude}, ${v.lastLongitude})">
+    const moving = v.speedKmH > 0;
+    const speed  = moving ? `${v.speedKmH} km/h` : "Parked";
+    const odo    = v.odometerMeters ? Math.round(v.odometerMeters/1000).toLocaleString("en-ZA")+" km" : "—";
+    const time   = v.lastConnectedUtc ? new Date(v.lastConnectedUtc).toLocaleTimeString("en-ZA",{hour:"2-digit",minute:"2-digit"}) : "—";
+    const status = v.statusHumanized || (moving?"Driving":"Parked");
+    const lat = v.lastLatitude||0, lng = v.lastLongitude||0;
+    return `<div class="asset-card" id="card-${v.id}" onclick="focusAsset(${v.id},${lat},${lng})">
       <div class="asset-card-header">
         <span class="asset-reg">${v.code||v.name}</span>
         <div style="display:flex;align-items:center;gap:0.4rem">
-          <div class="asset-status-dot ${statusClass}"></div>
-          <span style="font-size:0.72rem;color:${moving?"var(--success)":"var(--text-sub)"};font-weight:600">${speedText}</span>
+          <div class="asset-status-dot ${moving?"moving":"stopped"}"></div>
+          <span style="font-size:0.72rem;color:${moving?"var(--success)":"var(--text-sub)"};font-weight:600">${speed}</span>
         </div>
       </div>
       <div class="asset-name">${v.name||"Unknown"}</div>
-      <div class="asset-meta">
-        <span title="${status}">📍 ${status.length>40?status.substring(0,40)+"...":status}</span>
-      </div>
-      <div class="asset-meta" style="margin-top:3px">
-        <span>🕐 ${lastConn}</span>
-        <span>📊 ${odometer}</span>
-      </div>
+      <div class="asset-meta"><span title="${status}">📍 ${status.length>38?status.substring(0,38)+"...":status}</span></div>
+      <div class="asset-meta" style="margin-top:3px"><span>🕐 ${time}</span><span>📊 ${odo}</span></div>
     </div>`;
   }).join("");
 }
 
-/* ── Render map markers ── */
 function renderMapMarkers(assets) {
   if (!tgMap) return;
   const bounds = [];
-
   assets.forEach(v => {
-    const lat = v.lastLatitude;
-    const lng = v.lastLongitude;
-    if (!lat || !lng) return;
-
+    const lat=v.lastLatitude, lng=v.lastLongitude;
+    if (!lat||!lng) return;
     const moving = v.speedKmH > 0;
     const color  = moving ? "#22c55e" : "#ef4444";
     const icon   = L.divIcon({
-      className: "",
-      html: `<div style="
-        background:${color};width:14px;height:14px;
-        border-radius:50%;border:2.5px solid #fff;
-        box-shadow:0 2px 6px rgba(0,0,0,0.4);
-      "></div>`,
-      iconSize:[14,14], iconAnchor:[7,7]
+      className:"",
+      html:`<div style="background:${color};width:13px;height:13px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,0.5)"></div>`,
+      iconSize:[13,13], iconAnchor:[6,6]
     });
-
-    const status   = v.statusHumanized || (moving ? "Driving" : "Parked");
-    const odometer = v.odometerMeters ? Math.round(v.odometerMeters/1000).toLocaleString("en-ZA")+" km" : "—";
-    const lastConn = v.lastConnectedUtc
-      ? new Date(v.lastConnectedUtc).toLocaleString("en-ZA")
-      : "—";
-
-    const popup = `
-      <div style="font-family:Inter,sans-serif;min-width:200px">
-        <div style="font-weight:700;font-size:0.9rem;margin-bottom:2px">${v.name||"Vehicle"}</div>
-        <div style="font-size:0.75rem;color:#666;margin-bottom:6px">${v.code||""}</div>
-        <div style="font-size:0.8rem"><b>Status:</b> ${status}</div>
-        <div style="font-size:0.8rem"><b>Speed:</b> ${v.speedKmH||0} km/h</div>
-        <div style="font-size:0.8rem"><b>Odometer:</b> ${odometer}</div>
-        <div style="font-size:0.8rem"><b>Last seen:</b> ${lastConn}</div>
-      </div>`;
-
+    const odo  = v.odometerMeters ? Math.round(v.odometerMeters/1000).toLocaleString("en-ZA")+" km" : "—";
+    const time = v.lastConnectedUtc ? new Date(v.lastConnectedUtc).toLocaleString("en-ZA") : "—";
+    const popup = `<div style="font-family:Inter,sans-serif;min-width:190px">
+      <b style="font-size:0.9rem">${v.name}</b><br>
+      <span style="color:#666;font-size:0.75rem">${v.code||""}</span><br><br>
+      <span style="font-size:0.82rem"><b>Speed:</b> ${v.speedKmH||0} km/h</span><br>
+      <span style="font-size:0.82rem"><b>Odometer:</b> ${odo}</span><br>
+      <span style="font-size:0.82rem"><b>Last seen:</b> ${time}</span><br>
+      <span style="font-size:0.78rem;color:#666">${(v.statusHumanized||"").substring(0,60)}</span>
+    </div>`;
     if (tgMarkers[v.id]) {
       tgMarkers[v.id].setLatLng([lat,lng]).setIcon(icon).setPopupContent(popup);
     } else {
@@ -1655,86 +1624,29 @@ function renderMapMarkers(assets) {
     }
     bounds.push([lat,lng]);
   });
-
-  if (bounds.length && Object.keys(tgMarkers).length <= assets.length) {
-    try { tgMap.fitBounds(bounds, {padding:[40,40]}); } catch(e){}
+  if (bounds.length) {
+    try { tgMap.fitBounds(bounds,{padding:[40,40],maxZoom:13}); } catch(e){}
   }
+  tgMap.invalidateSize();
+  document.getElementById("tg-map-overlay").style.display = "none";
 }
 
-/* ── Focus on a specific asset ── */
-window.focusAsset = (assetId, lat, lng) => {
-  document.querySelectorAll(".asset-card").forEach(c => c.classList.remove("selected"));
-  document.getElementById(`card-${assetId}`)?.classList.add("selected");
-  if (tgMap && lat && lng) {
-    tgMap.setView([lat, lng], 16);
-    tgMarkers[assetId]?.openPopup();
-  }
-};
-
-/* ── Auto refresh every 30 seconds ── */
-let refreshCountdown = 30;
-let countdownInterval = null;
-
-function startAutoRefresh() {
-  if (tgRefreshInt) clearInterval(tgRefreshInt);
-  if (countdownInterval) clearInterval(countdownInterval);
-
-  if (!tgAutoRefresh) return;
-
-  refreshCountdown = 30;
-  updateRefreshBtn();
-
-  countdownInterval = setInterval(() => {
-    refreshCountdown--;
-    updateRefreshBtn();
-    if (refreshCountdown <= 0) {
-      refreshCountdown = 30;
-      loadLivePositions();
-    }
-  }, 1000);
-}
-
-function updateRefreshBtn() {
-  const btn = document.getElementById("auto-refresh-btn");
-  if (btn) btn.textContent = tgAutoRefresh ? `⏱ Auto: ${refreshCountdown}s` : "⏱ Auto: OFF";
-}
-
-window.refreshTracking = async () => {
-  tgStatus("Refreshing...", true);
-  refreshCountdown = 30;
-  await loadLivePositions();
-};
-
-window.toggleAutoRefresh = () => {
-  tgAutoRefresh = !tgAutoRefresh;
-  if (tgAutoRefresh) {
-    startAutoRefresh();
-  } else {
-    if (tgRefreshInt) { clearInterval(tgRefreshInt); tgRefreshInt = null; }
-    if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
-    updateRefreshBtn();
-  }
-};
-
-window.loadAssetsForOrg = async () => {
-  tgOrgId = document.getElementById("tg-org-select").value;
-  document.getElementById("tg-org-selector").style.display = "none";
-  await loadAssets();
+window.focusAsset = (id,lat,lng) => {
+  document.querySelectorAll(".asset-card").forEach(c=>c.classList.remove("selected"));
+  document.getElementById(`card-${id}`)?.classList.add("selected");
+  if (tgMap&&lat&&lng) { tgMap.setView([lat,lng],16); tgMarkers[id]?.openPopup(); }
 };
 
 function tgStatus(msg, loading) {
-  document.getElementById("tg-status-msg").textContent = msg;
-  const dot = document.getElementById("tg-dot");
-  dot.className = loading ? "tracking-dot" : (msg.includes("✅") ? "tracking-dot" : "tracking-dot offline");
+  const el=document.getElementById("tg-status-msg"), dot=document.getElementById("tg-dot");
+  if (el) el.textContent=msg;
+  if (dot) dot.className=loading||msg.includes("✅")?"tracking-dot":"tracking-dot offline";
 }
 
-/* ── Hook into navTo to init tracking on first visit ── */
 const _origNavTo = window.navTo;
 window.navTo = (section, el) => {
   _origNavTo(section, el);
-  if (section === "tracking") {
-    setTimeout(initTracking, 200);
-  }
+  if (section==="tracking") setTimeout(initTracking, 250);
 };
 </script>
 </body>
