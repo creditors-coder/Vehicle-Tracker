@@ -174,9 +174,9 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
 .dept-chip{font-size:0.72rem;font-weight:600;padding:2px 8px;border-radius:4px;background:var(--navy-2);border:1px solid var(--border)}
 
 /* LIVE TRACKING */
-.tracking-grid{display:grid;grid-template-columns:1fr 340px;gap:1.25rem;height:calc(100vh - 220px);min-height:500px}
-.map-wrap{background:var(--navy-lt);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;position:relative}
-.map-wrap iframe{width:100%;height:100%;border:none}
+.tracking-grid{display:grid;grid-template-columns:1fr 340px;gap:1.25rem;height:calc(100vh - 240px);min-height:500px}
+.map-wrap{background:var(--navy-lt);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;position:relative;height:100%;min-height:500px}
+.map-wrap #tg-map{width:100%;height:100%;min-height:500px;position:absolute;top:0;left:0;right:0;bottom:0}
 .tracking-sidebar{display:flex;flex-direction:column;gap:0.75rem;overflow-y:auto}
 .tracking-status-bar{display:flex;align-items:center;gap:0.75rem;background:var(--navy-2);border:1px solid var(--border);border-radius:var(--radius);padding:0.6rem 1rem;font-size:0.8rem;color:var(--text-sub)}
 .tracking-dot{width:8px;height:8px;border-radius:50%;background:var(--success);animation:pulse 2s infinite;flex-shrink:0}
@@ -1503,26 +1503,30 @@ async function tgFetch(action, params={}) {
 function initMap() {
   if (tgMapReady) return;
   tgMapReady = true;
-
-  // Hide overlay
   document.getElementById("tg-map-overlay").style.display = "none";
 
-  // Small delay to ensure the DOM element is visible and has dimensions
+  // Wait for section to be fully rendered and sized
   setTimeout(() => {
-    tgMap = L.map("tg-map", { zoomControl: true }).setView([-26.2041, 28.0473], 10);
+    const mapEl = document.getElementById("tg-map");
+    mapEl.style.height = "100%";
+    mapEl.style.minHeight = "500px";
+
+    tgMap = L.map("tg-map", {
+      zoomControl: true,
+      preferCanvas: true
+    }).setView([-26.2041, 28.0473], 10);
+
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       maxZoom: 19
     }).addTo(tgMap);
 
-    // Force map to recalculate its size
-    tgMap.invalidateSize();
-
-    // Re-render markers if assets already loaded
-    if (tgAssets.length) {
-      renderMapMarkers(tgAssets);
-    }
-  }, 300);
+    // Critical — force Leaflet to recalculate map size
+    setTimeout(() => {
+      tgMap.invalidateSize(true);
+      if (tgAssets.length) renderMapMarkers(tgAssets);
+    }, 500);
+  }, 400);
 }
 
 /* ── Load assets for org ── */
@@ -1667,25 +1671,49 @@ window.focusAsset = (assetId, lat, lng) => {
   }
 };
 
-/* ── Auto refresh ── */
+/* ── Auto refresh every 30 seconds ── */
+let refreshCountdown = 30;
+let countdownInterval = null;
+
 function startAutoRefresh() {
   if (tgRefreshInt) clearInterval(tgRefreshInt);
-  if (tgAutoRefresh) {
-    tgRefreshInt = setInterval(() => loadLivePositions(), 30000); // every 30s
-  }
+  if (countdownInterval) clearInterval(countdownInterval);
+
+  if (!tgAutoRefresh) return;
+
+  refreshCountdown = 30;
+  updateRefreshBtn();
+
+  countdownInterval = setInterval(() => {
+    refreshCountdown--;
+    updateRefreshBtn();
+    if (refreshCountdown <= 0) {
+      refreshCountdown = 30;
+      loadLivePositions();
+    }
+  }, 1000);
+}
+
+function updateRefreshBtn() {
+  const btn = document.getElementById("auto-refresh-btn");
+  if (btn) btn.textContent = tgAutoRefresh ? `⏱ Auto: ${refreshCountdown}s` : "⏱ Auto: OFF";
 }
 
 window.refreshTracking = async () => {
   tgStatus("Refreshing...", true);
+  refreshCountdown = 30;
   await loadLivePositions();
 };
 
 window.toggleAutoRefresh = () => {
   tgAutoRefresh = !tgAutoRefresh;
-  document.getElementById("auto-refresh-btn").textContent =
-    `⏱ Auto: ${tgAutoRefresh ? "ON" : "OFF"}`;
-  if (tgAutoRefresh) startAutoRefresh();
-  else if (tgRefreshInt) { clearInterval(tgRefreshInt); tgRefreshInt = null; }
+  if (tgAutoRefresh) {
+    startAutoRefresh();
+  } else {
+    if (tgRefreshInt) { clearInterval(tgRefreshInt); tgRefreshInt = null; }
+    if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+    updateRefreshBtn();
+  }
 };
 
 window.loadAssetsForOrg = async () => {
