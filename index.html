@@ -4,6 +4,8 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>X-Corp | Vehicle Tracker v2.1</title>
+<link rel="icon" type="image/png" href="https://lirp.cdn-website.com/c706051a/dms3rep/multi/opt/cropped-Xcorp-new-logo-1920w.png"/>
+<link rel="shortcut icon" href="https://lirp.cdn-website.com/c706051a/dms3rep/multi/opt/cropped-Xcorp-new-logo-1920w.png"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -642,19 +644,17 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
 
 <!-- MODAL: Trip History -->
 <div id="trips-modal" class="modal" onclick="backdropClose(event,'trips-modal')">
-  <div style="width:100%;max-width:640px">
+  <div style="width:100%;max-width:500px">
   <div class="modal-card">
     <div class="modal-header">
-      <div class="modal-header-inner"><h3 id="trips-modal-title">Today's Trips</h3><div class="modal-accent-line"></div></div>
+      <div class="modal-header-inner"><h3 id="trips-modal-title">Vehicle Summary</h3><div class="modal-accent-line"></div></div>
       <button class="modal-close" onclick="closeModal('trips-modal')">✕</button>
     </div>
     <div class="modal-body" style="padding:0">
-      <table class="data-table">
-        <thead><tr>
-          <th>#</th><th>Start Time</th><th>End Time</th><th>Distance</th><th>Max Speed</th>
-        </tr></thead>
+      <table class="data-table" style="table-layout:fixed">
+        <colgroup><col style="width:45%"><col style="width:55%"></colgroup>
         <tbody id="trips-tbody">
-          <tr><td colspan="5" class="empty-state">Select a vehicle to view trips</td></tr>
+          <tr><td colspan="2" class="empty-state">Select a vehicle to view details</td></tr>
         </tbody>
       </table>
     </div>
@@ -1665,49 +1665,77 @@ function renderAssetList(assets) {
   }).join("");
 }
 
-/* ── Trip History ── */
+/* ── Trip Summary — uses existing asset data ── */
 window.showTrips = async (assetId, assetName) => {
-  // Show modal
-  document.getElementById("trips-modal-title").textContent = `Today's Trips — ${assetName}`;
-  document.getElementById("trips-tbody").innerHTML = '<tr><td colspan="5" class="empty-state">Loading trips...</td></tr>';
+  document.getElementById("trips-modal-title").textContent = `Vehicle Summary — ${assetName}`;
   document.getElementById("trips-modal").classList.add("open");
 
-  try {
-    const today = new Date();
-    today.setHours(0,0,0,0);
-    const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate()+1);
-    const from = today.toISOString();
-    const to   = tomorrow.toISOString();
-
-    const data  = await tgFetch("trips", { assetId, from, to });
-    const trips = Array.isArray(data) ? data : (data.Trips || data.trips || []);
-
-    if (!trips.length) {
-      document.getElementById("trips-tbody").innerHTML = '<tr><td colspan="5" class="empty-state">No trips recorded today</td></tr>';
-      return;
-    }
-
-    document.getElementById("trips-tbody").innerHTML = trips.map((t,i) => {
-      const start    = t.startTime||t.StartTime||t.utcStart||"";
-      const end      = t.endTime||t.EndTime||t.utcEnd||"";
-      const dist     = t.distanceKm||t.DistanceKm||(t.distanceMeters?(t.distanceMeters/1000):0)||0;
-      const maxSpeed = t.maxSpeedKmH||t.MaxSpeedKmH||0;
-      const dur      = t.durationMinutes||t.DurationMinutes||0;
-      const startFmt = start ? new Date(start).toLocaleTimeString("en-ZA",{hour:"2-digit",minute:"2-digit"}) : "—";
-      const endFmt   = end   ? new Date(end).toLocaleTimeString("en-ZA",{hour:"2-digit",minute:"2-digit"}) : "Ongoing";
-      const durFmt   = dur>0 ? `${Math.floor(dur/60)}h ${dur%60}m` : "—";
-      return `<tr>
-        <td style="font-weight:600">${i+1}</td>
-        <td>${startFmt}</td>
-        <td>${endFmt}</td>
-        <td style="font-family:var(--mono)">${dist>0?dist.toFixed(1)+" km":"—"}</td>
-        <td style="font-family:var(--mono)">${maxSpeed>0?maxSpeed+" km/h":"—"}</td>
-      </tr>`;
-    }).join("");
-  } catch(e) {
-    document.getElementById("trips-tbody").innerHTML = `<tr><td colspan="5" class="empty-state">Error loading trips: ${e.message}</td></tr>`;
+  // Find asset in already-loaded data
+  const v = tgAssets.find(a => a.id === assetId);
+  if (!v) {
+    document.getElementById("trips-tbody").innerHTML = '<tr><td colspan="5" class="empty-state">Vehicle data not found</td></tr>';
+    return;
   }
-};
+
+  const odo      = v.odometerMeters ? Math.round(v.odometerMeters/1000).toLocaleString("en-ZA") + " km" : "—";
+  const runHours = v.runSeconds ? Math.round(v.runSeconds/3600).toLocaleString("en-ZA") + " hrs" : "—";
+  const lastSeen = v.lastConnectedUtc ? new Date(v.lastConnectedUtc).toLocaleString("en-ZA") : "—";
+  const status   = v.statusHumanized || "—";
+  const speed    = v.speedKmH || 0;
+  const moving   = speed > 0;
+  const inTrip   = v.inTrip ? "Yes — currently on a trip" : "No";
+  const ignition = v.digitalInputs?.find(d=>d.key==="Ignition")?.value || "—";
+  const battery  = v.analogInputs?.find(a=>a.key==="External Voltage")?.value || "—";
+  const signal   = v.analogInputs?.find(a=>a.key==="Cellular Signal Strength")?.value || "—";
+
+  // Update modal header
+  document.getElementById("trips-modal-title").textContent = `${assetName} — Live Status`;
+
+  document.getElementById("trips-tbody").innerHTML = `
+    <tr><td colspan="2" style="padding:1rem 1rem 0;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-sub)">Current Status</td></tr>
+    <tr>
+      <td style="padding:0.6rem 1rem;color:var(--text-sub);font-size:0.83rem">Status</td>
+      <td style="padding:0.6rem 1rem;font-size:0.83rem;font-weight:500">
+        <span style="color:${moving?"var(--success)":"var(--text-sub)"}">${status}</span>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:0.6rem 1rem;color:var(--text-sub);font-size:0.83rem">Current Speed</td>
+      <td style="padding:0.6rem 1rem;font-family:var(--mono);font-size:0.83rem">${speed} km/h</td>
+    </tr>
+    <tr>
+      <td style="padding:0.6rem 1rem;color:var(--text-sub);font-size:0.83rem">Ignition</td>
+      <td style="padding:0.6rem 1rem;font-size:0.83rem">
+        <span style="color:${ignition==="On"?"var(--success)":"var(--text-sub)"}">${ignition}</span>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:0.6rem 1rem;color:var(--text-sub);font-size:0.83rem">In Trip</td>
+      <td style="padding:0.6rem 1rem;font-size:0.83rem">${inTrip}</td>
+    </tr>
+    <tr>
+      <td style="padding:0.6rem 1rem;color:var(--text-sub);font-size:0.83rem">Last Seen</td>
+      <td style="padding:0.6rem 1rem;font-size:0.83rem">${lastSeen}</td>
+    </tr>
+    <tr><td colspan="2" style="padding:1rem 1rem 0;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-sub);border-top:1px solid var(--border)">Lifetime Stats</td></tr>
+    <tr>
+      <td style="padding:0.6rem 1rem;color:var(--text-sub);font-size:0.83rem">Total Odometer</td>
+      <td style="padding:0.6rem 1rem;font-family:var(--mono);font-size:0.83rem;color:var(--success)">${odo}</td>
+    </tr>
+    <tr>
+      <td style="padding:0.6rem 1rem;color:var(--text-sub);font-size:0.83rem">Total Engine Hours</td>
+      <td style="padding:0.6rem 1rem;font-family:var(--mono);font-size:0.83rem">${runHours}</td>
+    </tr>
+    <tr><td colspan="2" style="padding:1rem 1rem 0;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-sub);border-top:1px solid var(--border)">Device Health</td></tr>
+    <tr>
+      <td style="padding:0.6rem 1rem;color:var(--text-sub);font-size:0.83rem">External Voltage</td>
+      <td style="padding:0.6rem 1rem;font-family:var(--mono);font-size:0.83rem">${battery}</td>
+    </tr>
+    <tr>
+      <td style="padding:0.6rem 1rem;color:var(--text-sub);font-size:0.83rem">Signal Strength</td>
+      <td style="padding:0.6rem 1rem;font-size:0.83rem;color:${signal==="Excellent"?"var(--success)":signal==="Good"?"var(--warn)":"var(--danger)"}">${signal}</td>
+    </tr>
+  `;
 
 function renderMapMarkers(assets) {
   if (!tgMap) return;
