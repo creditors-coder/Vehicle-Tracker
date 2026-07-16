@@ -661,7 +661,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
 <!-- FIREBASE + JS -->
 <script type="module">
 import { initializeApp }  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, browserSessionPersistence, setPersistence }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -692,6 +692,9 @@ async function sha256(s){
 const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db   = getFirestore(app);
+
+// Session only — never auto-login across page loads
+setPersistence(auth, browserSessionPersistence).catch(console.error);
 
 /* ── State ── */
 let currentUser=null, isAdmin=false, isSales=false;
@@ -814,11 +817,8 @@ window.doLogin = async () => {
   if (await sha256(pass) !== rec.hash) { err.textContent="Incorrect email or password."; err.style.display="block"; return; }
 
   try {
-    // Set flag BEFORE Firebase signs in so onAuthStateChanged allows it
-    sessionStorage.setItem("tg_manual_login", "1");
     await signInWithEmailAndPassword(auth, email, pass);
   } catch(e) {
-    sessionStorage.removeItem("tg_manual_login");
     err.textContent = "Sign-in error: " + e.message;
     err.style.display = "block";
   }
@@ -827,34 +827,29 @@ window.doLogin = async () => {
 window.doLogout = async () => {
   stopSessionTimer();
   hideTimeoutModal();
-  sessionStorage.removeItem("tg_manual_login");
   if(unsubV) unsubV();
   if(unsubD) unsubD();
   if(unsubS) unsubS();
-  fuelDeptFilter  = "";
-  fuelTabsLoaded  = false;
-  trackingLoaded  = false;
-  tgMapReady      = false;
-  tgMap           = null;
-  tgMarkers       = {};
-  tgAssets        = [];
+  fuelDeptFilter = "";
+  fuelTabsLoaded = false;
+  trackingLoaded = false;
+  tgMapReady     = false;
+  tgMap          = null;
+  tgMarkers      = {};
+  tgAssets       = [];
   await signOut(auth);
 };
 
 window.togglePw = () => {
   const i = document.getElementById("login-password");
+  if (!i) return;
   i.type = i.type === "password" ? "text" : "password";
+  const btn = document.querySelector(".pw-toggle");
+  if (btn) btn.textContent = i.type === "password" ? "👁" : "🙈";
 };
 
-onAuthStateChanged(auth, async user => {
+onAuthStateChanged(auth, user => {
   if (user) {
-    // Check if this was a manual login from this session
-    const justLoggedIn = sessionStorage.getItem("tg_manual_login");
-    if (!justLoggedIn) {
-      // Cached session from previous visit — sign out silently
-      await signOut(auth);
-      return;
-    }
     currentUser = user;
     const record = USERS[user.email.toLowerCase()];
     isAdmin  = record?.role === "admin";
