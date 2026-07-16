@@ -814,6 +814,7 @@ window.doLogin = async () => {
   if (await sha256(pass) !== rec.hash) { err.textContent="Incorrect email or password."; err.style.display="block"; return; }
 
   try {
+    // Set flag BEFORE Firebase signs in so onAuthStateChanged allows it
     sessionStorage.setItem("tg_manual_login", "1");
     await signInWithEmailAndPassword(auth, email, pass);
   } catch(e) {
@@ -847,10 +848,10 @@ window.togglePw = () => {
 
 onAuthStateChanged(auth, async user => {
   if (user) {
-    // ── Bug fix: Firebase remembers sessions across browser visits.
-    // Force sign out any cached session on page load — user must always log in manually.
+    // Check if this was a manual login from this session
     const justLoggedIn = sessionStorage.getItem("tg_manual_login");
     if (!justLoggedIn) {
+      // Cached session from previous visit — sign out silently
       await signOut(auth);
       return;
     }
