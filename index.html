@@ -703,15 +703,35 @@ const WARN_DAYS=30;
 const SHEET_ID="1PMoNZOLaYsHDRCeweE4jGV9OpoZ9RFTpMxN1yqTFI4w";
 
 /* ══════════════════════════════════════
-   SESSION TIMEOUT — 15 minutes
+   SESSION TIMEOUT — 15 minutes inactivity
 ══════════════════════════════════════ */
-const SESSION_MINUTES = 15;
-const WARNING_SECONDS = 60; // warn 1 min before timeout
-let sessionTimer    = null;
-let countdownTimer  = null;
+const SESSION_MINUTES  = 15;
+const WARNING_SECONDS  = 60;
 let sessionSecondsLeft = SESSION_MINUTES * 60;
+let sessionTimer       = null;
+let countdownTimer     = null;
 
 const ACTIVITY_EVENTS = ['mousedown','mousemove','keydown','scroll','touchstart','click'];
+
+function startSessionTimer() {
+  stopSessionTimer();
+  sessionSecondsLeft = SESSION_MINUTES * 60;
+  updateTimerDisplay();
+  // Reset on any user activity
+  ACTIVITY_EVENTS.forEach(e => document.addEventListener(e, resetSessionTimer, { passive:true }));
+  sessionTimer = setInterval(() => {
+    sessionSecondsLeft--;
+    updateTimerDisplay();
+    if (sessionSecondsLeft <= 0) {
+      // Timed out — force logout immediately
+      stopSessionTimer();
+      hideTimeoutModal();
+      doLogout();
+    } else if (sessionSecondsLeft === WARNING_SECONDS) {
+      showTimeoutModal();
+    }
+  }, 1000);
+}
 
 function startSessionTimer() {
   stopSessionTimer();
@@ -794,8 +814,10 @@ window.doLogin = async () => {
   if (await sha256(pass) !== rec.hash) { err.textContent="Incorrect email or password."; err.style.display="block"; return; }
 
   try {
+    sessionStorage.setItem("tg_manual_login", "1");
     await signInWithEmailAndPassword(auth, email, pass);
   } catch(e) {
+    sessionStorage.removeItem("tg_manual_login");
     err.textContent = "Sign-in error: " + e.message;
     err.style.display = "block";
   }
@@ -804,11 +826,17 @@ window.doLogin = async () => {
 window.doLogout = async () => {
   stopSessionTimer();
   hideTimeoutModal();
+  sessionStorage.removeItem("tg_manual_login");
   if(unsubV) unsubV();
   if(unsubD) unsubD();
   if(unsubS) unsubS();
   fuelDeptFilter  = "";
   fuelTabsLoaded  = false;
+  trackingLoaded  = false;
+  tgMapReady      = false;
+  tgMap           = null;
+  tgMarkers       = {};
+  tgAssets        = [];
   await signOut(auth);
 };
 
@@ -817,8 +845,15 @@ window.togglePw = () => {
   i.type = i.type === "password" ? "text" : "password";
 };
 
-onAuthStateChanged(auth, user => {
+onAuthStateChanged(auth, async user => {
   if (user) {
+    // ── Bug fix: Firebase remembers sessions across browser visits.
+    // Force sign out any cached session on page load — user must always log in manually.
+    const justLoggedIn = sessionStorage.getItem("tg_manual_login");
+    if (!justLoggedIn) {
+      await signOut(auth);
+      return;
+    }
     currentUser = user;
     const record = USERS[user.email.toLowerCase()];
     isAdmin  = record?.role === "admin";
