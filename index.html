@@ -812,11 +812,18 @@ window.doLogin = async () => {
   const err   = document.getElementById("login-error");
   err.style.display = "none";
 
+  if (!email || !pass) {
+    err.textContent = "Please enter your email and password.";
+    err.style.display = "block";
+    return;
+  }
+
   const rec = USERS[email];
   if (!rec) { err.textContent="Incorrect email or password."; err.style.display="block"; return; }
   if (await sha256(pass) !== rec.hash) { err.textContent="Incorrect email or password."; err.style.display="block"; return; }
 
   try {
+    await setPersistence(auth, browserSessionPersistence);
     await signInWithEmailAndPassword(auth, email, pass);
   } catch(e) {
     err.textContent = "Sign-in error: " + e.message;
