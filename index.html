@@ -720,13 +720,11 @@ function startSessionTimer() {
   stopSessionTimer();
   sessionSecondsLeft = SESSION_MINUTES * 60;
   updateTimerDisplay();
-  // Reset on any user activity
   ACTIVITY_EVENTS.forEach(e => document.addEventListener(e, resetSessionTimer, { passive:true }));
   sessionTimer = setInterval(() => {
     sessionSecondsLeft--;
     updateTimerDisplay();
     if (sessionSecondsLeft <= 0) {
-      // Timed out — force logout immediately
       stopSessionTimer();
       hideTimeoutModal();
       doLogout();
@@ -735,29 +733,6 @@ function startSessionTimer() {
     }
   }, 1000);
 }
-
-function startSessionTimer() {
-  stopSessionTimer();
-  sessionSecondsLeft = SESSION_MINUTES * 60;
-  updateTimerDisplay();
-
-  // Listen for user activity
-  ACTIVITY_EVENTS.forEach(e => document.addEventListener(e, resetSessionTimer, { passive: true }));
-
-  sessionTimer = setInterval(() => {
-    sessionSecondsLeft--;
-    updateTimerDisplay();
-
-    if (sessionSecondsLeft <= 0) {
-      // Time's up — force logout
-      stopSessionTimer();
-      hideTimeoutModal();
-      doLogout();
-    } else if (sessionSecondsLeft === WARNING_SECONDS) {
-      // Show warning modal
-      showTimeoutModal();
-    }
-  }, 1000);
 }
 
 function stopSessionTimer() {
