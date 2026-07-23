@@ -1234,6 +1234,7 @@ function fuelStatus(msg, icon="ℹ️", isError=false) {
 async function loadSheetTabs(deptFilter="") {
   fuelDeptFilter=deptFilter;
   const KNOWN_MONTHS=[
+    {label:"August 2026",    gid:"",          name:"August 26 Summary"},
     {label:"July 2026",      gid:"348279363", name:"July 26 Summary"},
     {label:"June 2026",      gid:"",          name:"June 26 Summary"},
     {label:"May 2026",       gid:"",          name:"May 26 Summary"},
@@ -1248,9 +1249,17 @@ async function loadSheetTabs(deptFilter="") {
     {label:"August 2025",    gid:"",          name:"August 25 Summary"},
     {label:"July 2025",      gid:"",          name:"July 25 Summary"},
   ];
-  fuelStatus("Discovering available months...","🔄");
+
   const sel=document.getElementById("fuel-month-select");
-  sel.innerHTML="";
+
+  // For sales or any login — load July 2026 immediately, then discover others in background
+  sel.innerHTML=`<option value="348279363" data-name="July 26 Summary">July 2026</option>`;
+  fuelStatus("Loading fuel data...","🔄");
+
+  // Sync immediately with July 2026
+  await syncGoogleSheet();
+
+  // Then discover other available months in the background
   const available=[];
   for(const m of KNOWN_MONTHS){
     try{
@@ -1266,12 +1275,15 @@ async function loadSheetTabs(deptFilter="") {
       if(!rows.length||!rows[0]?.c?.[0]?.v) continue;
       const identifier=m.gid||m.name;
       available.push({...m,identifier});
-      sel.innerHTML+=`<option value="${identifier}" data-name="${m.name}">${m.label}</option>`;
     }catch(e){continue;}
   }
-  if(!available.length) sel.innerHTML=`<option value="348279363" data-name="July 26 Summary">July 2026</option>`;
-  fuelStatus(`Found ${available.length} month(s)`,"✅");
-  syncGoogleSheet();
+
+  // Update dropdown with all discovered months
+  if(available.length){
+    const currentVal=sel.value;
+    sel.innerHTML=available.map(m=>`<option value="${m.identifier}" data-name="${m.name}">${m.label}</option>`).join("");
+    sel.value=currentVal||"348279363";
+  }
 }
 
 window.syncGoogleSheet = async () => {
