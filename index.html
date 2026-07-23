@@ -931,37 +931,6 @@ onAuthStateChanged(auth, user => {
 ══════════════════════════════════════ */
 const isMobile = () => window.innerWidth <= 768;
 
-function showMobileUI() {
-  if (!isMobile()) return;
-  const mh = document.getElementById("mob-top");
-  const mn = document.getElementById("mob-nav");
-  const sb = document.getElementById("sidebar");
-  if (mh) mh.style.display = "flex";
-  if (mn) mn.style.display = "block";
-  if (sb) sb.style.display = "none";
-
-  // Update role chip
-  const chip = document.getElementById("mob-role");
-  if (chip) {
-    chip.textContent = isAdmin ? "Admin" : isSales ? "Sales" : "Viewer";
-    chip.style.background = isAdmin ? "rgba(224,58,47,0.15)" : "rgba(255,255,255,0.06)";
-    chip.style.color = isAdmin ? "#ff7b6b" : "#4a5a80";
-  }
-
-  // For sales — hide non-fuel tabs
-  document.querySelectorAll(".mob-btn").forEach(n => {
-    if (isSales) {
-      const onclick = n.getAttribute("onclick") || "";
-      n.style.display = onclick.includes("fuel") ? "flex" : "none";
-    } else {
-      n.style.display = "flex";
-    }
-  });
-
-  // Set main content padding
-  document.getElementById("main").style.cssText =
-    "padding:1rem;padding-top:68px;padding-bottom:80px;overflow-y:auto;flex:1";
-}
 
 function hideMobileUI() {
   const mh = document.getElementById("mob-top");
@@ -990,7 +959,7 @@ window.mobileNavTo = (section, el) => {
   });
   // Sync desktop nav
   document.querySelectorAll(".nav-a").forEach(n => n.classList.remove("on"));
-  const desktopNav = document.querySelector(`.nav-item[onclick*="${section}"]`);
+  const desktopNav = document.querySelector(`.nav-a[onclick*="${section}"]`);
   if (desktopNav) desktopNav.classList.add("on");
   // Fuel auto-load
   if (section === "fuel" && !fuelTabsLoaded) {
@@ -1040,7 +1009,7 @@ function showApp() {
   startSessionTimer();
 
   // Show mobile UI if on phone
-  showMobileUI();
+  applyMobileUI();
 
   if (isSales) {
     // Go straight to fuel tracker — show loading state immediately
@@ -1049,7 +1018,7 @@ function showApp() {
       s.classList.toggle("hidden", s.id !== "sec-fuel");
     });
     document.querySelectorAll(".nav-a").forEach(n => n.classList.remove("on"));
-    document.querySelector(".nav-item[onclick*='fuel']")?.classList.add("on");
+    document.querySelector(".nav-a[onclick*='fuel']")?.classList.add("on");
     // Show loading placeholder BEFORE any data fetch
     document.getElementById("fuel-veh-tbody").innerHTML='<tr><td colspan="8" class="es">Loading Sales data...</td></tr>';
     document.getElementById("fuel-dept-tbody").innerHTML='<tr><td colspan="4" class="es">Loading...</td></tr>';
@@ -1672,7 +1641,7 @@ window.mobNav = (sec, el) => {
 
 /* ── Show/hide mobile chrome ───────────── */
 function applyMobileUI() {
-  if (!isMob()) return;
+  if (window.innerWidth > 768) return;
   document.getElementById("mob-top").style.display = "flex";
   document.getElementById("mob-nav").style.display = "block";
   const _sb2=document.getElementById("sidebar"); if(_sb2) _sb2.style.display="none";
@@ -1694,8 +1663,8 @@ function applyMobileUI() {
 
 window.addEventListener("resize", () => {
   if(!currentUser) return;
-  if(isMob()) applyMobileUI();
-  else hideMobileUI();
+  if(window.innerWidth <= 768) applyMobileUI();
+  else { const mob=document.getElementById("mob-top"); const mn=document.getElementById("mob-nav"); const sb=document.getElementById("sidebar"); if(mob)mob.style.display="none"; if(mn)mn.style.display="none"; if(sb)sb.style.display="flex"; }
 });
 
 </script>
