@@ -1325,7 +1325,13 @@ window.syncGoogleSheet = async () => {
     // ── CRITICAL: Filter data at source for Sales role ──
     // Never store other departments' data in memory for sales users
     if(fuelDeptFilter) {
-      fuelVehicles = fuelVehicles.filter(v => v.dept === fuelDeptFilter);
+      fuelVehicles = fuelVehicles.filter(v => {
+        if(v.dept !== fuelDeptFilter) return false;
+        // Hide managers from sales rep view
+        const hiddenDrivers = ["sheldon","steve"];
+        if(hiddenDrivers.includes((v.driver||"").toLowerCase())) return false;
+        return true;
+      });
     }
 
     const dRows=await fetchRange("I3:L7");
