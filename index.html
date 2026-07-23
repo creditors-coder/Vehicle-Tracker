@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Vehicle Tracker"/>
 <meta name="theme-color" content="#0d1829"/>
-<title>X-Corp | Vehicle Tracker</title>
+<title>X-Corp | Vehicle Tracker v3</title>
 <link rel="manifest" href="manifest.json"/>
 <link rel="apple-touch-icon" href="https://lirp.cdn-website.com/c706051a/dms3rep/multi/opt/cropped-Xcorp-new-logo-1920w.png"/>
 <link rel="icon" href="https://lirp.cdn-website.com/c706051a/dms3rep/multi/opt/cropped-Xcorp-new-logo-1920w.png"/>
@@ -1577,8 +1577,8 @@ function renderFuel() {
   const vehicles=fuelDeptFilter?allVehicles.filter(v=>v.dept===fuelDeptFilter):allVehicles;
 
   // Show sheet date in subtitle
-  const subEl=document.getElementById("fuel-sub");
-  if(subEl) const fuelSubEl=document.getElementById("fuel-sub");if(fuelSubEl)fuelSubEl.textContent = sheetDate
+  const fuelSubEl=document.getElementById("fuel-sub");
+  if(fuelSubEl) fuelSubEl.textContent = sheetDate
     ? `Fleet Card Fuel Spend · Sheet updated: ${sheetDate}`
     : "Fleet Card Fuel Spend — Month to Date";
 
