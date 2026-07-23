@@ -192,10 +192,20 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14
 ══════════════════════════════════════ */
 #login-pg{
   min-height:100vh;min-height:100dvh;
-  align-items:center;justify-content:center;
+  align-items:flex-start;justify-content:center;
   background:radial-gradient(ellipse 120% 70% at 50% 0%,#1a2d5a 0%,transparent 65%),#0d1829;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
 }
-.lw{width:100%;max-width:440px;padding:1.25rem}
+.lw{width:100%;max-width:440px;padding:1.5rem}
+@media(max-width:768px){
+  #login-pg{align-items:flex-start;padding-top:1.5rem;padding-bottom:2rem}
+  .lw{padding:.85rem}
+  .lc{padding:1.75rem 1.25rem 1.5rem}
+  .lc img{height:56px}
+  .lt{font-size:1.1rem}
+  .ls{font-size:.76rem;margin-bottom:1.25rem}
+}
 .lc{background:var(--surf);border:1px solid var(--border);border-radius:var(--rlg);
   padding:2.25rem 2rem 1.75rem;box-shadow:0 24px 60px rgba(0,0,0,.6);text-align:center}
 .lc img{height:68px;object-fit:contain;filter:brightness(0) invert(1);margin-bottom:1rem}
@@ -457,7 +467,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
 </div>
 
 <!-- MOBILE TOP BAR -->
-<div id="mob-top">
+<div id="mob-top" style="display:none">
   <div id="mob-top-left">
     <img src="https://lirp.cdn-website.com/c706051a/dms3rep/multi/opt/cropped-Xcorp-new-logo-1920w.png" alt="X-Corp"/>
     <span id="mob-app-name">Vehicle Tracker</span>
@@ -469,7 +479,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
 </div>
 
 <!-- MOBILE BOTTOM NAV -->
-<div id="mob-nav">
+<div id="mob-nav" style="display:none">
   <div id="mob-nav-inner">
     <button class="mob-btn on" id="mn-dashboard" onclick="mobNav('dashboard',this)"><span class="i">📊</span>Dashboard</button>
     <button class="mob-btn" id="mn-vehicles"  onclick="mobNav('vehicles',this)"><span class="i">🚘</span>Vehicles</button>
@@ -482,7 +492,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
 </div>
 
 <!-- LOGIN -->
-<div id="login-pg" class="page active">
+<div id="login-pg" class="page active" style="z-index:500;position:relative">
   <div class="lw">
     <div class="lc">
       <img src="https://lirp.cdn-website.com/c706051a/dms3rep/multi/opt/cropped-Xcorp-new-logo-1920w.png" alt="X-Corp"/>
@@ -925,7 +935,7 @@ function showMobileUI() {
   if (!isMobile()) return;
   const mh = document.getElementById("mob-top");
   const mn = document.getElementById("mob-nav");
-  const sb = document.querySelector(".sidebar");
+  const sb = document.getElementById("sidebar");
   if (mh) mh.style.display = "flex";
   if (mn) mn.style.display = "block";
   if (sb) sb.style.display = "none";
@@ -939,7 +949,7 @@ function showMobileUI() {
   }
 
   // For sales — hide non-fuel tabs
-  document.querySelectorAll(".mob-nav-item").forEach(n => {
+  document.querySelectorAll(".mob-btn").forEach(n => {
     if (isSales) {
       const onclick = n.getAttribute("onclick") || "";
       n.style.display = onclick.includes("fuel") ? "flex" : "none";
@@ -949,23 +959,23 @@ function showMobileUI() {
   });
 
   // Set main content padding
-  document.querySelector(".main-content").style.cssText =
+  document.getElementById("main").style.cssText =
     "padding:1rem;padding-top:68px;padding-bottom:80px;overflow-y:auto;flex:1";
 }
 
 function hideMobileUI() {
   const mh = document.getElementById("mob-top");
   const mn = document.getElementById("mob-nav");
-  const sb = document.querySelector(".sidebar");
+  const sb = document.getElementById("sidebar");
   if (mh) mh.style.display = "none";
   if (mn) mn.style.display = "none";
   if (sb) sb.style.display = "flex";
-  const mc = document.querySelector(".main-content");
+  const mc = document.getElementById("main");
   if (mc) mc.style.cssText = "";
 }
 
 window.mobileNavTo = (section, el) => {
-  document.querySelectorAll(".mob-nav-item").forEach(n => {
+  document.querySelectorAll(".mob-btn").forEach(n => {
     n.style.color = "#8899bb";
     n.style.borderTopColor = "transparent";
     n.style.background = "transparent";
@@ -974,14 +984,14 @@ window.mobileNavTo = (section, el) => {
   el.style.borderTopColor = "#e03a2f";
   el.style.background = "rgba(224,58,47,0.08)";
   // Show section
-  document.querySelectorAll(".section").forEach(s => {
+  document.querySelectorAll(".sec").forEach(s => {
     s.classList.toggle("active", s.id === "section-" + section);
     s.classList.toggle("hidden",  s.id !== "section-" + section);
   });
   // Sync desktop nav
-  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+  document.querySelectorAll(".nav-a").forEach(n => n.classList.remove("on"));
   const desktopNav = document.querySelector(`.nav-item[onclick*="${section}"]`);
-  if (desktopNav) desktopNav.classList.add("active");
+  if (desktopNav) desktopNav.classList.add("on");
   // Fuel auto-load
   if (section === "fuel" && !fuelTabsLoaded) {
     fuelTabsLoaded = true;
@@ -1017,7 +1027,7 @@ function showApp() {
   fuelDeptFilter = isSales ? "Sales" : "";
 
   // Hide nav items for sales — only show fuel
-  document.querySelectorAll(".nav-item").forEach(nav => {
+  document.querySelectorAll(".nav-a").forEach(nav => {
     nav.style.display = isSales
       ? (nav.getAttribute("onclick")?.includes("fuel") ? "flex" : "none")
       : "flex";
@@ -1034,12 +1044,12 @@ function showApp() {
 
   if (isSales) {
     // Go straight to fuel tracker — show loading state immediately
-    document.querySelectorAll(".section").forEach(s => {
+    document.querySelectorAll(".sec").forEach(s => {
       s.classList.toggle("active", s.id === "sec-fuel");
       s.classList.toggle("hidden", s.id !== "sec-fuel");
     });
-    document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
-    document.querySelector(".nav-item[onclick*='fuel']")?.classList.add("active");
+    document.querySelectorAll(".nav-a").forEach(n => n.classList.remove("on"));
+    document.querySelector(".nav-item[onclick*='fuel']")?.classList.add("on");
     // Show loading placeholder BEFORE any data fetch
     document.getElementById("fuel-veh-tbody").innerHTML='<tr><td colspan="8" class="es">Loading Sales data...</td></tr>';
     document.getElementById("fuel-dept-tbody").innerHTML='<tr><td colspan="4" class="es">Loading...</td></tr>';
@@ -1067,9 +1077,9 @@ function showLogin() {
    NAVIGATION
 ══════════════════════════════════════ */
 window.navTo = (section, el) => {
-  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
-  el.classList.add("active");
-  document.querySelectorAll(".section").forEach(s => {
+  document.querySelectorAll(".nav-a").forEach(n => n.classList.remove("on"));
+  el.classList.add("on");
+  document.querySelectorAll(".sec").forEach(s => {
     s.classList.toggle("active", s.id === "sec-"+section);
     s.classList.toggle("hidden", s.id !== "sec-"+section);
   });
@@ -1364,8 +1374,8 @@ window.exportExcel = () => {
 
 window.printVehicles = () => {
   document.getElementById("print-date").textContent="Generated: "+new Date().toLocaleDateString("en-ZA",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
-  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
-  document.getElementById("sec-vehicles").classList.add("active");
+  document.querySelectorAll(".sec").forEach(s=>s.classList.remove("on"));
+  document.getElementById("sec-vehicles").classList.add("on");
   window.print();
 };
 
@@ -1565,7 +1575,7 @@ function renderFuel() {
   const vehicles=fuelDeptFilter?allVehicles.filter(v=>v.dept===fuelDeptFilter):allVehicles;
 
   // Show sheet date in subtitle
-  const subEl=document.querySelector("#sec-fuel .sh-sub");
+  const subEl=document.getElementById("fuel-sub");
   if(subEl) const fuelSubEl=document.getElementById("fuel-sub");if(fuelSubEl)fuelSubEl.textContent = sheetDate
     ? `Fleet Card Fuel Spend · Sheet updated: ${sheetDate}`
     : "Fleet Card Fuel Spend — Month to Date";
@@ -1920,8 +1930,8 @@ function renderMapMarkers(assets) {
 }
 
 window.focusAsset = (id,lat,lng) => {
-  document.querySelectorAll(".asset-card").forEach(c=>c.classList.remove("selected"));
-  document.getElementById(`card-${id}`)?.classList.add("selected");
+  document.querySelectorAll(".acard").forEach(c=>c.classList.remove("sel"));
+  document.getElementById(`card-${id}`)?.classList.add("sel");
   if (tgMap&&lat&&lng) { tgMap.setView([lat,lng],16); tgMarkers[id]?.openPopup(); }
 };
 
