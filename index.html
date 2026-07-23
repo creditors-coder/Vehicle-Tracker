@@ -455,62 +455,64 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
 /* ══ VEHICLE TILES ══════════════════════ */
 .tg-grid{
   display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:1rem;
+  grid-template-columns:1fr 300px;
+  gap:.85rem;
+  height:calc(100vh - 200px);
+  min-height:500px;
 }
 .tg-map-col{
   background:var(--surf);border:1px solid var(--border);
   border-radius:var(--rlg);overflow:hidden;position:relative;
-  min-height:480px;
+  height:100%;
 }
-#tg-map{width:100%;height:100%;min-height:480px}
+#tg-map{width:100%;height:100%;min-height:100%}
 .map-overlay{
   position:absolute;inset:0;display:flex;align-items:center;
   justify-content:center;background:var(--surf);flex-direction:column;
   gap:.85rem;z-index:400;
 }
 .tg-list-col{
-  display:flex;flex-direction:column;gap:.5rem;
-  overflow-y:auto;max-height:480px;
+  display:flex;flex-direction:column;gap:.4rem;
+  overflow-y:auto;height:100%;
 }
 .vtile{
   background:#1a2035;
   border:1px solid #2a3a60;
-  border-radius:10px;
+  border-radius:8px;
   overflow:hidden;
   cursor:pointer;
   flex-shrink:0;
   transition:border-color .15s,box-shadow .15s;
 }
-.vtile:hover{border-color:#3a4a70;box-shadow:0 4px 16px rgba(0,0,0,.4)}
+.vtile:hover{border-color:#3a4a70;box-shadow:0 2px 12px rgba(0,0,0,.4)}
 .vtile.sel{border-color:#e03a2f}
-.vtile-bar{height:3px;width:100%;background:#2a3a60}
+.vtile-bar{height:2px;width:100%;background:#2a3a60}
 .vtile-bar.on{background:#22c55e}
-.vtile-inner{padding:.85rem}
+.vtile-inner{padding:.6rem .75rem}
 .vtile-badge{
-  display:inline-flex;align-items:center;gap:.35rem;
-  font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;
-  padding:2px 8px;border-radius:999px;margin-bottom:.55rem;
+  display:inline-flex;align-items:center;gap:.3rem;
+  font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;
+  padding:1px 7px;border-radius:999px;margin-bottom:.4rem;
 }
 .vtile-badge.on{background:rgba(34,197,94,.15);color:#22c55e}
 .vtile-badge.off{background:rgba(255,255,255,.06);color:#8899bb}
-.vtile-bdot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.vtile-bdot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
 .vtile-badge.on .vtile-bdot{background:#22c55e}
 .vtile-badge.off .vtile-bdot{background:#8899bb}
-.vtile-reg{font-family:'JetBrains Mono',monospace;font-size:.95rem;font-weight:700;color:#fff;letter-spacing:.04em}
-.vtile-name{font-size:.74rem;color:#8899bb;margin:.1rem 0 .55rem}
-.vtile-spd{display:flex;align-items:baseline;gap:.25rem;margin-bottom:.55rem}
-.vtile-spd-n{font-size:2rem;font-weight:800;font-family:'JetBrains Mono',monospace;line-height:1;color:#fff}
-.vtile-spd-u{font-size:.8rem;color:#8899bb}
-.vtile-stat{font-size:1.4rem;font-weight:700;color:#4a5a80;margin-bottom:.55rem}
-.vtile-hr{border:none;border-top:1px solid #2a3a60;margin:.5rem 0}
-.vtile-loc{font-size:.72rem;color:#8899bb;margin-bottom:.3rem;display:flex;align-items:flex-start;gap:.35rem}
-.vtile-row2{display:flex;gap:1rem;font-size:.71rem;color:#8899bb}
+.vtile-reg{font-family:'JetBrains Mono',monospace;font-size:.82rem;font-weight:700;color:#fff;letter-spacing:.04em}
+.vtile-name{font-size:.68rem;color:#8899bb;margin:.08rem 0 .4rem}
+.vtile-spd{display:flex;align-items:baseline;gap:.2rem;margin-bottom:.4rem}
+.vtile-spd-n{font-size:1.5rem;font-weight:800;font-family:'JetBrains Mono',monospace;line-height:1;color:#fff}
+.vtile-spd-u{font-size:.72rem;color:#8899bb}
+.vtile-stat{font-size:1.1rem;font-weight:700;color:#4a5a80;margin-bottom:.4rem}
+.vtile-hr{border:none;border-top:1px solid #1e2d4a;margin:.35rem 0}
+.vtile-loc{font-size:.67rem;color:#8899bb;margin-bottom:.2rem;display:flex;align-items:flex-start;gap:.3rem}
+.vtile-row2{display:flex;gap:.75rem;font-size:.65rem;color:#6a7a9b}
 @media(max-width:768px){
-  .tg-grid{grid-template-columns:1fr}
-  .tg-map-col{min-height:260px}
-  #tg-map{min-height:260px!important;height:260px!important}
-  .tg-list-col{max-height:none;display:grid;grid-template-columns:1fr 1fr;gap:.4rem}
+  .tg-grid{grid-template-columns:1fr;height:auto}
+  .tg-map-col{height:260px;min-height:260px}
+  #tg-map{height:260px!important;min-height:260px!important}
+  .tg-list-col{height:auto;max-height:none;display:grid;grid-template-columns:1fr 1fr;gap:.4rem}
 }
 </style>
 </head>
@@ -715,7 +717,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
     </section>
 
     <!-- LIVE TRACKING -->
-    <section id="sec-tracking" class="sec">
+    <section id="sec-tracking" class="sec" style="height:calc(100vh - 130px);display:flex;flex-direction:column">
       <div class="sh">
         <div><h2>Live Tracking</h2><div class="sh-sub">Real-time fleet via TG Tracking</div></div>
         <div class="sh-actions">
