@@ -1,5 +1,5 @@
-const CACHE_NAME = 'xcorp-vt-v1';
-const ASSETS = [
+var CACHE_NAME = 'xcorp-vt-v1';
+var ASSETS = [
   '/Vehicle-Tracker/',
   '/Vehicle-Tracker/index.html',
   '/Vehicle-Tracker/manifest.json'
@@ -9,7 +9,7 @@ self.addEventListener('install', function(event) {
   event.waitUntil(
     caches.open(CACHE_NAME).then(function(cache) {
       return cache.addAll(ASSETS).catch(function(e) {
-        console.log('Cache install error:', e);
+        console.log('Cache error:', e);
       });
     })
   );
@@ -33,25 +33,19 @@ self.addEventListener('activate', function(event) {
 
 self.addEventListener('fetch', function(event) {
   var url = event.request.url;
-
-  // Skip non-http requests (chrome-extension, etc)
-  if (!url.startsWith('http')) return;
-
-  // Skip API calls — always go to network
+  if (url.indexOf('http') !== 0) return;
   if (
-    url.indexOf('firestore.googleapis.com') > -1 ||
+    url.indexOf('firestore.googleapis') > -1 ||
     url.indexOf('firebase') > -1 ||
-    url.indexOf('googleapis.com') > -1 ||
-    url.indexOf('docs.google.com') > -1 ||
+    url.indexOf('googleapis') > -1 ||
+    url.indexOf('docs.google') > -1 ||
     url.indexOf('telematics.guru') > -1 ||
-    url.indexOf('script.google.com') > -1 ||
-    url.indexOf('openstreetmap.org') > -1 ||
+    url.indexOf('script.google') > -1 ||
+    url.indexOf('openstreetmap') > -1 ||
     url.indexOf('unpkg.com') > -1 ||
-    url.indexOf('fonts.googleapis.com') > -1 ||
-    url.indexOf('cdn-website.com') > -1
-  ) {
-    return;
-  }
+    url.indexOf('fonts.google') > -1 ||
+    url.indexOf('cdn-website') > -1
+  ) { return; }
 
   event.respondWith(
     fetch(event.request).then(function(response) {
