@@ -449,6 +449,33 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
    UTILITY
 ══════════════════════════════════════ */
 .es{text-align:center;color:var(--sub);padding:2.25rem 1rem;font-size:.84rem}
+
+/* ── Vehicle Tiles ── */
+.vtile{
+  background:var(--surf);border:1px solid var(--border);
+  border-radius:var(--rlg);overflow:hidden;cursor:pointer;
+  transition:all .15s;position:relative;
+}
+.vtile:hover{border-color:var(--border2);transform:translateY(-1px);box-shadow:0 4px 20px rgba(0,0,0,.3)}
+.vtile.sel{border-color:var(--red);box-shadow:0 0 0 1px var(--red)}
+.vtile-bar{height:3px;width:100%}
+.vtile-body{padding:.85rem 1rem}
+.vtile-top{margin-bottom:.35rem}
+.vtile-status{font-size:.7rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.07em;display:flex;align-items:center;gap:.35rem}
+.vtile-reg{font-family:var(--mono);font-size:.95rem;font-weight:700;
+  letter-spacing:.05em;margin-bottom:.1rem;color:var(--text)}
+.vtile-name{font-size:.76rem;color:var(--muted);margin-bottom:.55rem}
+.vtile-speed{display:flex;align-items:baseline;gap:.3rem;margin-bottom:.55rem}
+.vtile-spnum{font-size:2rem;font-weight:800;font-family:var(--mono);line-height:1;color:var(--text)}
+.vtile-spunit{font-size:.82rem;color:var(--muted)}
+.vtile-stationary{font-size:1.4rem;font-weight:700;color:var(--sub)}
+.vtile-divider{height:1px;background:var(--border);margin:.55rem 0}
+.vtile-meta{font-size:.72rem;color:var(--muted);line-height:1.75}
+.tg-list{overflow-y:auto;display:flex;flex-direction:column;gap:.5rem;align-content:start}
+@media(max-width:768px){
+  .tg-list{display:grid!important;grid-template-columns:1fr 1fr;gap:.5rem;height:auto!important;overflow-y:visible}
+}
 </style>
 </head>
 <body>
@@ -1868,28 +1895,33 @@ function renderAssetList(assets) {
     return (a.speedKmH>0?0:1)-(b.speedKmH>0?0:1) || (a.name||"").localeCompare(b.name||"");
   });
   list.innerHTML = sorted.map(v => {
-    const moving = v.speedKmH > 0;
-    const speed  = moving ? `${v.speedKmH} km/h` : "Parked";
-    const odo    = v.odometerMeters ? Math.round(v.odometerMeters/1000).toLocaleString("en-ZA")+" km" : "—";
-    const time   = v.lastConnectedUtc ? new Date(v.lastConnectedUtc).toLocaleTimeString("en-ZA",{hour:"2-digit",minute:"2-digit"}) : "—";
-    const status = v.statusHumanized || (moving?"Driving":"Parked");
-    const lat = v.lastLatitude||0, lng = v.lastLongitude||0;
-    const safeName = (v.name||"").replace(/'/g,"");
-    return `<div class="asset-card" id="card-${v.id}" onclick="focusAsset(${v.id},${lat},${lng})">
-      <div class="asset-card-header">
-        <span class="asset-reg">${v.code||v.name}</span>
-        <div style="display:flex;align-items:center;gap:0.4rem">
-          <div class="asset-status-dot ${moving?"moving":"stopped"}"></div>
-          <span style="font-size:0.72rem;color:${moving?"var(--success)":"var(--text-sub)"};font-weight:600">${speed}</span>
-        </div>
-      </div>
-      <div class="asset-name">${v.name||"Unknown"}</div>
-      <div class="asset-meta"><span title="${status}">📍 ${status.length>38?status.substring(0,38)+"...":status}</span></div>
-      <div class="asset-meta" style="margin-top:3px;display:flex;justify-content:space-between;align-items:center">
-        <div style="display:flex;gap:0.75rem"><span>🕐 ${time}</span><span>📊 ${odo}</span></div>
-
-      </div>
-    </div>`;
+    const moving   = v.speedKmH > 0;
+    const odo      = v.odometerMeters ? Math.round(v.odometerMeters/1000).toLocaleString("en-ZA")+" km" : "—";
+    const time     = v.lastConnectedUtc ? new Date(v.lastConnectedUtc).toLocaleTimeString("en-ZA",{hour:"2-digit",minute:"2-digit"}) : "—";
+    const status   = v.statusHumanized || (moving?"Driving":"Parked");
+    const lat      = v.lastLatitude||0;
+    const lng      = v.lastLongitude||0;
+    const barClr   = moving ? "#22c55e" : "#2a3a60";
+    const stsClr   = moving ? "var(--ok)" : "var(--muted)";
+    const stsLabel = moving ? "Driving" : "Parked";
+    const dotCls   = moving ? "mv" : "st";
+    const shortSt  = status.length > 36 ? status.substring(0,36)+"..." : status;
+    const speedHtml = moving
+      ? '<span class="vtile-spnum">'+v.speedKmH+'</span><span class="vtile-spunit"> km/h</span>'
+      : '<span class="vtile-stationary">Stationary</span>';
+    return '<div class="vtile" id="card-'+v.id+'" onclick="focusAsset('+v.id+','+lat+','+lng+')">'
+      + '<div class="vtile-bar" style="background:'+barClr+'"></div>'
+      + '<div class="vtile-body">'
+      + '<div class="vtile-top"><div class="vtile-status" style="color:'+stsClr+'">'
+      + '<div class="adot '+dotCls+'"></div>'+stsLabel+'</div></div>'
+      + '<div class="vtile-reg">'+(v.code||v.name)+'</div>'
+      + '<div class="vtile-name">'+(v.name||"Unknown")+'</div>'
+      + '<div class="vtile-speed">'+speedHtml+'</div>'
+      + '<div class="vtile-divider"></div>'
+      + '<div class="vtile-meta">'
+      + '<div>📍 '+shortSt+'</div>'
+      + '<div style="display:flex;gap:.85rem;margin-top:.2rem"><span>🕐 '+time+'</span><span>🔄 '+odo+'</span></div>'
+      + '</div></div></div>';
   }).join("");
 }
 
@@ -1932,7 +1964,7 @@ function renderMapMarkers(assets) {
 }
 
 window._focusAsset = window.focusAsset = (id,lat,lng) => {
-  document.querySelectorAll(".acard").forEach(c=>c.classList.remove("sel"));
+  document.querySelectorAll(".vtile").forEach(c=>c.classList.remove("sel"));
   document.getElementById(`card-${id}`)?.classList.add("sel");
   if (tgMap&&lat&&lng) { tgMap.setView([lat,lng],16); tgMarkers[id]?.openPopup(); }
 };
