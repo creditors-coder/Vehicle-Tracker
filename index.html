@@ -453,60 +453,65 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
 
 
 /* ══ VEHICLE TILES ══════════════════════ */
-.tg-list{
+.tg-grid{
   display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
-  gap:.65rem;
-  overflow-y:auto;
-  align-content:start;
+  grid-template-columns:1fr 1fr;
+  gap:1rem;
 }
-@media(max-width:768px){
-  .tg-list{grid-template-columns:1fr 1fr;height:auto!important;overflow-y:visible}
+.tg-map-col{
+  background:var(--surf);border:1px solid var(--border);
+  border-radius:var(--rlg);overflow:hidden;position:relative;
+  min-height:480px;
+}
+#tg-map{width:100%;height:100%;min-height:480px}
+.map-overlay{
+  position:absolute;inset:0;display:flex;align-items:center;
+  justify-content:center;background:var(--surf);flex-direction:column;
+  gap:.85rem;z-index:400;
+}
+.tg-list-col{
+  display:flex;flex-direction:column;gap:.5rem;
+  overflow-y:auto;max-height:480px;
 }
 .vtile{
   background:#1a2035;
   border:1px solid #2a3a60;
-  border-radius:12px;
+  border-radius:10px;
   overflow:hidden;
   cursor:pointer;
-  transition:border-color .15s,transform .15s,box-shadow .15s;
+  flex-shrink:0;
+  transition:border-color .15s,box-shadow .15s;
 }
-.vtile:hover{border-color:#3a4a70;transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.4)}
-.vtile.sel{border-color:#e03a2f;box-shadow:0 0 0 1px #e03a2f}
-.vtile-topbar{
-  height:3px;width:100%;
-  background:#2a3a60;
-  transition:background .3s;
-}
-.vtile-topbar.driving{background:#22c55e}
-.vtile-inner{padding:1rem}
-/* Status badge */
+.vtile:hover{border-color:#3a4a70;box-shadow:0 4px 16px rgba(0,0,0,.4)}
+.vtile.sel{border-color:#e03a2f}
+.vtile-bar{height:3px;width:100%;background:#2a3a60}
+.vtile-bar.on{background:#22c55e}
+.vtile-inner{padding:.85rem}
 .vtile-badge{
   display:inline-flex;align-items:center;gap:.35rem;
-  font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;
-  padding:3px 8px;border-radius:999px;margin-bottom:.65rem;
+  font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;
+  padding:2px 8px;border-radius:999px;margin-bottom:.55rem;
 }
-.vtile-badge.driving{background:rgba(34,197,94,.15);color:#22c55e}
-.vtile-badge.parked{background:rgba(255,255,255,.06);color:#8899bb}
-.vtile-badge-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
-.vtile-badge.driving .vtile-badge-dot{background:#22c55e}
-.vtile-badge.parked .vtile-badge-dot{background:#8899bb}
-/* Reg & name */
-.vtile-reg{font-family:'JetBrains Mono',monospace;font-size:1.05rem;font-weight:700;color:#fff;letter-spacing:.04em;line-height:1.2}
-.vtile-name{font-size:.76rem;color:#8899bb;margin-top:.15rem;margin-bottom:.7rem}
-/* Speed */
-.vtile-speed{display:flex;align-items:baseline;gap:.3rem;margin-bottom:.7rem}
-.vtile-spd-num{font-size:2.2rem;font-weight:800;font-family:'JetBrains Mono',monospace;line-height:1;color:#fff}
-.vtile-spd-unit{font-size:.85rem;color:#8899bb;font-weight:500}
-.vtile-parked-label{font-size:1.6rem;font-weight:700;color:#4a5a80;letter-spacing:-.5px}
-/* Divider */
-.vtile-hr{border:none;border-top:1px solid #2a3a60;margin:.65rem 0}
-/* Meta info */
-.vtile-meta-row{display:flex;align-items:flex-start;gap:.45rem;font-size:.73rem;color:#8899bb;margin-bottom:.3rem;line-height:1.4}
-.vtile-meta-row:last-child{margin-bottom:0}
-.vtile-meta-icon{flex-shrink:0;margin-top:.1rem;font-size:.8rem}
-.vtile-meta-subrow{display:flex;gap:1rem;font-size:.73rem;color:#8899bb;margin-top:.3rem}
-
+.vtile-badge.on{background:rgba(34,197,94,.15);color:#22c55e}
+.vtile-badge.off{background:rgba(255,255,255,.06);color:#8899bb}
+.vtile-bdot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.vtile-badge.on .vtile-bdot{background:#22c55e}
+.vtile-badge.off .vtile-bdot{background:#8899bb}
+.vtile-reg{font-family:'JetBrains Mono',monospace;font-size:.95rem;font-weight:700;color:#fff;letter-spacing:.04em}
+.vtile-name{font-size:.74rem;color:#8899bb;margin:.1rem 0 .55rem}
+.vtile-spd{display:flex;align-items:baseline;gap:.25rem;margin-bottom:.55rem}
+.vtile-spd-n{font-size:2rem;font-weight:800;font-family:'JetBrains Mono',monospace;line-height:1;color:#fff}
+.vtile-spd-u{font-size:.8rem;color:#8899bb}
+.vtile-stat{font-size:1.4rem;font-weight:700;color:#4a5a80;margin-bottom:.55rem}
+.vtile-hr{border:none;border-top:1px solid #2a3a60;margin:.5rem 0}
+.vtile-loc{font-size:.72rem;color:#8899bb;margin-bottom:.3rem;display:flex;align-items:flex-start;gap:.35rem}
+.vtile-row2{display:flex;gap:1rem;font-size:.71rem;color:#8899bb}
+@media(max-width:768px){
+  .tg-grid{grid-template-columns:1fr}
+  .tg-map-col{min-height:260px}
+  #tg-map{min-height:260px!important;height:260px!important}
+  .tg-list-col{max-height:none;display:grid;grid-template-columns:1fr 1fr;gap:.4rem}
+}
 </style>
 </head>
 <body>
@@ -720,11 +725,16 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
       </div>
       <div class="tg-sb"><div class="tg-dot" id="tg-dot"></div><span id="tg-s-msg">Connecting...</span><span style="margin-left:auto;font-size:.7rem" id="tg-last-refresh"></span></div>
       <div class="tg-grid">
-        <div class="map-box">
+        <div class="tg-map-col">
           <div id="tg-map"></div>
-          <div class="map-overlay" id="map-overlay"><div style="font-size:2rem">🗺️</div><div style="color:var(--muted);font-size:.84rem" id="map-ovl-txt">Loading map...</div></div>
+          <div class="map-overlay" id="map-overlay">
+            <div style="font-size:2rem">🗺️</div>
+            <div style="color:var(--muted);font-size:.84rem" id="map-ovl-txt">Loading map...</div>
+          </div>
         </div>
-        <div class="tg-list" id="tg-asset-list"><div class="es">Loading vehicles...</div></div>
+        <div class="tg-list-col" id="tg-asset-list">
+          <div class="es">Loading vehicles...</div>
+        </div>
       </div>
     </section>
 
@@ -1920,34 +1930,33 @@ window._toggleAutoRefresh = window.toggleAutoRefresh = () => {
 };
 
 function renderAssetList(assets) {
-  const list = document.getElementById("tg-asset-list");
+  var list = document.getElementById("tg-asset-list");
   if (!list || !assets.length) return;
-  const sorted = [...assets].sort((a,b) => {
+  var sorted = assets.slice().sort(function(a,b) {
     return (a.speedKmH>0?0:1)-(b.speedKmH>0?0:1) || (a.name||"").localeCompare(b.name||"");
   });
   list.innerHTML = sorted.map(function(v) {
-    var moving   = v.speedKmH > 0;
-    var odo      = v.odometerMeters ? Math.round(v.odometerMeters/1000).toLocaleString("en-ZA")+" km" : "—";
-    var time     = v.lastConnectedUtc ? new Date(v.lastConnectedUtc).toLocaleTimeString("en-ZA",{hour:"2-digit",minute:"2-digit"}) : "—";
-    var status   = v.statusHumanized || (moving?"Driving":"Parked");
-    var lat      = v.lastLatitude  || 0;
-    var lng      = v.lastLongitude || 0;
-    var shortSt  = status.length > 34 ? status.substring(0,34)+"..." : status;
-    var badgeCls = moving ? "driving" : "parked";
-    var barCls   = moving ? "driving" : "";
-    var speedBlock = moving
-      ? '<div class="vtile-speed"><span class="vtile-spd-num">'+v.speedKmH+'</span><span class="vtile-spd-unit">km/h</span></div>'
-      : '<div class="vtile-speed"><span class="vtile-parked-label">Stationary</span></div>';
-    return '<div class="vtile" id="card-'+v.id+'" onclick="focusAsset('+v.id+','+lat+','+lng+')"> '
-      + '<div class="vtile-topbar '+barCls+'"></div>'
+    var moving  = v.speedKmH > 0;
+    var odo     = v.odometerMeters ? Math.round(v.odometerMeters/1000).toLocaleString("en-ZA")+" km" : "—";
+    var time    = v.lastConnectedUtc ? new Date(v.lastConnectedUtc).toLocaleTimeString("en-ZA",{hour:"2-digit",minute:"2-digit"}) : "—";
+    var status  = v.statusHumanized || (moving?"Driving":"Parked");
+    var lat     = v.lastLatitude  || 0;
+    var lng     = v.lastLongitude || 0;
+    var short   = status.length > 34 ? status.substring(0,34)+"..." : status;
+    var bCls    = moving ? "on" : "off";
+    var spd     = moving
+      ? '<div class="vtile-spd"><span class="vtile-spd-n">'+v.speedKmH+'</span><span class="vtile-spd-u"> km/h</span></div>'
+      : '<div class="vtile-stat">Stationary</div>';
+    return '<div class="vtile" id="card-'+v.id+'" onclick="focusAsset('+v.id+','+lat+','+lng+')">'
+      + '<div class="vtile-bar '+bCls+'"></div>'
       + '<div class="vtile-inner">'
-      + '<div class="vtile-badge '+badgeCls+'"><div class="vtile-badge-dot"></div>'+(moving?"Driving":"Parked")+'</div>'
+      + '<div class="vtile-badge '+bCls+'"><div class="vtile-bdot"></div>'+(moving?"Driving":"Parked")+'</div>'
       + '<div class="vtile-reg">'+(v.code||"—")+'</div>'
       + '<div class="vtile-name">'+(v.name||"Unknown")+'</div>'
-      + speedBlock
-      + '<hr class="vtile-hr"/>'
-      + '<div class="vtile-meta-row"><span class="vtile-meta-icon">📍</span><span>'+shortSt+'</span></div>'
-      + '<div class="vtile-meta-subrow"><span>🕐 '+time+'</span><span>🔄 '+odo+'</span></div>'
+      + spd
+      + '<div class="vtile-hr"></div>'
+      + '<div class="vtile-loc"><span>📍</span><span>'+short+'</span></div>'
+      + '<div class="vtile-row2"><span>🕐 '+time+'</span><span>🔄 '+odo+'</span></div>'
       + '</div></div>';
   }).join("");
 }
@@ -1991,7 +2000,7 @@ function renderMapMarkers(assets) {
 }
 
 window._focusAsset = window.focusAsset = (id,lat,lng) => {
-  document.querySelectorAll(".vtile").forEach(c=>c.classList.remove("sel"));
+  document.querySelectorAll(".vtile").forEach(function(c){c.classList.remove("sel")});
   document.getElementById(`card-${id}`)?.classList.add("sel");
   if (tgMap&&lat&&lng) { tgMap.setView([lat,lng],16); tgMarkers[id]?.openPopup(); }
 };
