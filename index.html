@@ -448,6 +448,45 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5)}
   </div>
 </div>
 
+<!-- MOBILE ONLY: Top header -->
+<div id="mobile-header" style="display:none;position:fixed;top:0;left:0;right:0;z-index:200;height:56px;background:#16213e;border-bottom:1px solid #2a3a60;align-items:center;justify-content:space-between;padding:0 1rem">
+  <div style="display:flex;align-items:center;gap:0.6rem">
+    <img src="https://lirp.cdn-website.com/c706051a/dms3rep/multi/opt/cropped-Xcorp-new-logo-1920w.png" style="height:28px;filter:brightness(0) invert(1)" alt="X-Corp"/>
+    <span style="font-size:0.78rem;font-weight:700;color:#fff">Vehicle Tracker</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:0.5rem">
+    <span id="mobile-role-chip" style="font-size:0.6rem;font-weight:700;text-transform:uppercase;padding:2px 8px;border-radius:999px;background:rgba(224,58,47,0.15);color:#ff7b6b">Admin</span>
+    <button onclick="doLogout()" style="background:transparent;border:1px solid #2a3a60;color:#8899bb;padding:0.3rem 0.65rem;border-radius:6px;font-size:0.72rem;cursor:pointer;font-family:Inter,sans-serif">Out</button>
+  </div>
+</div>
+
+<!-- MOBILE ONLY: Bottom nav -->
+<div id="mobile-nav" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:200;background:#16213e;border-top:1px solid #2a3a60;overflow-x:auto;-webkit-overflow-scrolling:touch">
+  <div style="display:flex;min-width:max-content;width:100%">
+    <a class="mob-nav-item active" onclick="mobileNavTo('dashboard',this)" style="display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 12px;font-size:0.58rem;font-weight:600;color:#8899bb;text-decoration:none;border-top:2px solid transparent;cursor:pointer;min-width:58px;white-space:nowrap;transition:all 0.15s">
+      <span style="font-size:1.1rem">📊</span>Dashboard
+    </a>
+    <a class="mob-nav-item" onclick="mobileNavTo('vehicles',this)" style="display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 12px;font-size:0.58rem;font-weight:600;color:#8899bb;text-decoration:none;border-top:2px solid transparent;cursor:pointer;min-width:58px;white-space:nowrap;transition:all 0.15s">
+      <span style="font-size:1.1rem">🚘</span>Vehicles
+    </a>
+    <a class="mob-nav-item" onclick="mobileNavTo('drivers',this)" style="display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 12px;font-size:0.58rem;font-weight:600;color:#8899bb;text-decoration:none;border-top:2px solid transparent;cursor:pointer;min-width:58px;white-space:nowrap;transition:all 0.15s">
+      <span style="font-size:1.1rem">👤</span>Drivers
+    </a>
+    <a class="mob-nav-item" onclick="mobileNavTo('history',this)" style="display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 12px;font-size:0.58rem;font-weight:600;color:#8899bb;text-decoration:none;border-top:2px solid transparent;cursor:pointer;min-width:62px;white-space:nowrap;transition:all 0.15s">
+      <span style="font-size:1.1rem">🔧</span>Service
+    </a>
+    <a class="mob-nav-item" onclick="mobileNavTo('fuel',this)" style="display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 12px;font-size:0.58rem;font-weight:600;color:#8899bb;text-decoration:none;border-top:2px solid transparent;cursor:pointer;min-width:54px;white-space:nowrap;transition:all 0.15s">
+      <span style="font-size:1.1rem">⛽</span>Fuel
+    </a>
+    <a class="mob-nav-item" onclick="mobileNavTo('tracking',this);setTimeout(initTracking,300)" style="display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 12px;font-size:0.58rem;font-weight:600;color:#8899bb;text-decoration:none;border-top:2px solid transparent;cursor:pointer;min-width:62px;white-space:nowrap;transition:all 0.15s">
+      <span style="font-size:1.1rem">🗺️</span>Tracking
+    </a>
+    <a class="mob-nav-item" onclick="mobileNavTo('alerts',this)" style="display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 12px;font-size:0.58rem;font-weight:600;color:#8899bb;text-decoration:none;border-top:2px solid transparent;cursor:pointer;min-width:54px;white-space:nowrap;transition:all 0.15s">
+      <span style="font-size:1.1rem">🔔</span>Alerts
+    </a>
+  </div>
+</div>
+
 <!-- APP -->
 <div id="app-page" class="page hidden">
   <aside class="sidebar">
@@ -999,6 +1038,79 @@ onAuthStateChanged(auth, user => {
 });
 
 /* ══════════════════════════════════════
+   MOBILE UI
+══════════════════════════════════════ */
+const isMobile = () => window.innerWidth <= 768;
+
+function showMobileUI() {
+  if (!isMobile()) return;
+  const mh = document.getElementById("mobile-header");
+  const mn = document.getElementById("mobile-nav");
+  const sb = document.querySelector(".sidebar");
+  if (mh) mh.style.display = "flex";
+  if (mn) mn.style.display = "block";
+  if (sb) sb.style.display = "none";
+
+  // Update role chip
+  const chip = document.getElementById("mobile-role-chip");
+  if (chip) {
+    chip.textContent = isAdmin ? "Admin" : isSales ? "Sales" : "Viewer";
+    chip.style.background = isAdmin ? "rgba(224,58,47,0.15)" : "rgba(255,255,255,0.06)";
+    chip.style.color = isAdmin ? "#ff7b6b" : "#4a5a80";
+  }
+
+  // For sales — hide non-fuel tabs
+  document.querySelectorAll(".mob-nav-item").forEach(n => {
+    if (isSales) {
+      const onclick = n.getAttribute("onclick") || "";
+      n.style.display = onclick.includes("fuel") ? "flex" : "none";
+    } else {
+      n.style.display = "flex";
+    }
+  });
+
+  // Set main content padding
+  document.querySelector(".main-content").style.cssText =
+    "padding:1rem;padding-top:68px;padding-bottom:80px;overflow-y:auto;flex:1";
+}
+
+function hideMobileUI() {
+  const mh = document.getElementById("mobile-header");
+  const mn = document.getElementById("mobile-nav");
+  const sb = document.querySelector(".sidebar");
+  if (mh) mh.style.display = "none";
+  if (mn) mn.style.display = "none";
+  if (sb) sb.style.display = "flex";
+  const mc = document.querySelector(".main-content");
+  if (mc) mc.style.cssText = "";
+}
+
+window.mobileNavTo = (section, el) => {
+  document.querySelectorAll(".mob-nav-item").forEach(n => {
+    n.style.color = "#8899bb";
+    n.style.borderTopColor = "transparent";
+    n.style.background = "transparent";
+  });
+  el.style.color = "#fff";
+  el.style.borderTopColor = "#e03a2f";
+  el.style.background = "rgba(224,58,47,0.08)";
+  // Show section
+  document.querySelectorAll(".section").forEach(s => {
+    s.classList.toggle("active", s.id === "section-" + section);
+    s.classList.toggle("hidden",  s.id !== "section-" + section);
+  });
+  // Sync desktop nav
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+  const desktopNav = document.querySelector(`.nav-item[onclick*="${section}"]`);
+  if (desktopNav) desktopNav.classList.add("active");
+  // Fuel auto-load
+  if (section === "fuel" && !fuelTabsLoaded) {
+    fuelTabsLoaded = true;
+    loadSheetTabs(fuelDeptFilter);
+  }
+};
+
+/* ══════════════════════════════════════
    APP SHOW / HIDE
 ══════════════════════════════════════ */
 function showApp() {
@@ -1038,6 +1150,9 @@ function showApp() {
   // Start session timeout
   startSessionTimer();
 
+  // Show mobile UI if on phone
+  showMobileUI();
+
   if (isSales) {
     // Go straight to fuel tracker — show loading state immediately
     document.querySelectorAll(".section").forEach(s => {
@@ -1061,10 +1176,10 @@ function showApp() {
 function showLogin() {
   document.getElementById("app-page").className   = "page hidden";
   document.getElementById("login-page").className = "page active";
-  // Clear login fields
   document.getElementById("login-email").value    = "";
   document.getElementById("login-password").value = "";
   document.getElementById("login-error").style.display = "none";
+  hideMobileUI();
 }
 
 /* ══════════════════════════════════════
