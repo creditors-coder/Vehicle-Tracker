@@ -1322,6 +1322,14 @@ window.syncGoogleSheet = async () => {
     });
     if(!fuelVehicles.length) throw new Error("No vehicle data found in this tab");
 
+    // ── Fetch sheet last updated date from H1 ──
+    let sheetDate = "";
+    try {
+      const dateRows = await fetchRange("H1");
+      const dateCell = dateRows[0]?.c?.[0];
+      if(dateCell) sheetDate = str(dateCell);
+    } catch(e) { /* ignore */ }
+
     // ── CRITICAL: Filter data at source for Sales role ──
     // Never store other departments' data in memory for sales users
     if(fuelDeptFilter) {
@@ -1355,9 +1363,12 @@ window.syncGoogleSheet = async () => {
       });
     }
 
-    fuelData={vehicles:fuelVehicles,monthly,deptSummary,sheetTab};
+    fuelData={vehicles:fuelVehicles,monthly,deptSummary,sheetTab,sheetDate};
     renderFuel();
-    document.getElementById("fuel-last-sync").textContent="Synced: "+new Date().toLocaleTimeString("en-ZA");
+    const syncMsg = sheetDate
+      ? `Sheet updated: ${sheetDate} · Synced: ${new Date().toLocaleTimeString("en-ZA")}`
+      : `Synced: ${new Date().toLocaleTimeString("en-ZA")}`;
+    document.getElementById("fuel-last-sync").textContent = syncMsg;
     fuelStatus(`✅ Loaded ${fuelVehicles.length} vehicles from "${sheetTab}"`, "✅");
   }catch(e){
     fuelStatus(`❌ ${e.message}`,"❌",true);
@@ -1399,9 +1410,15 @@ window.handleFuelUpload = async (e) => {
 };
 
 function renderFuel() {
-  const {vehicles:allVehicles,monthly,deptSummary}=fuelData;
+  const {vehicles:allVehicles,monthly,deptSummary,sheetDate}=fuelData;
   if(!allVehicles.length) return;
   const vehicles=fuelDeptFilter?allVehicles.filter(v=>v.dept===fuelDeptFilter):allVehicles;
+
+  // Show sheet date in subtitle
+  const subEl=document.querySelector("#section-fuel .section-sub");
+  if(subEl) subEl.textContent = sheetDate
+    ? `Fleet Card Fuel Spend · Sheet updated: ${sheetDate}`
+    : "Fleet Card Fuel Spend — Month to Date";
 
   // Sales filter notice
   const notice=document.getElementById("sales-filter-notice");
