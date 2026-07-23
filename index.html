@@ -741,6 +741,38 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
 </div>
 
 <!-- Firebase + App -->
+<!-- Global function bridge — safely wraps module functions for onclick handlers -->
+<script>
+function doLogin()   { if(window._doLogin)   window._doLogin();   else setTimeout(doLogin,100); }
+function doLogout()  { if(window._doLogout)  window._doLogout();  else setTimeout(doLogout,100); }
+function togglePw()  { if(window._togglePw)  window._togglePw();  else setTimeout(togglePw,100); }
+function navTo(s,el) { if(window._navTo)     window._navTo(s,el); }
+function mobNav(s,el){ if(window._mobNav)    window._mobNav(s,el);}
+function extendSession(){ if(window._extendSession) window._extendSession(); }
+function initTracking(){ if(window._initTracking) window._initTracking(); }
+function openVehicleModal(){ if(window._openVehicleModal) window._openVehicleModal(); }
+function editVehicle(id){ if(window._editVehicle) window._editVehicle(id); }
+function saveVehicle(){ if(window._saveVehicle) window._saveVehicle(); }
+function openDriverModal(){ if(window._openDriverModal) window._openDriverModal(); }
+function editDriver(id){ if(window._editDriver) window._editDriver(id); }
+function saveDriver(){ if(window._saveDriver) window._saveDriver(); }
+function openServiceModal(){ if(window._openServiceModal) window._openServiceModal(); }
+function editService(id){ if(window._editService) window._editService(id); }
+function saveService(){ if(window._saveService) window._saveService(); }
+function delConfirm(c,i,n){ if(window._delConfirm) window._delConfirm(c,i,n); }
+function closeModal(id){ if(window._closeModal) window._closeModal(id); }
+function bdClose(e,id){ if(window._bdClose) window._bdClose(e,id); }
+function exportExcel(){ if(window._exportExcel) window._exportExcel(); }
+function printVehicles(){ if(window._printVehicles) window._printVehicles(); }
+function syncGoogleSheet(){ if(window._syncGoogleSheet) window._syncGoogleSheet(); }
+function handleFuelUpload(e){ if(window._handleFuelUpload) window._handleFuelUpload(e); }
+function exportFuelExcel(){ if(window._exportFuelExcel) window._exportFuelExcel(); }
+function renderHistory(){ if(window._renderHistory) window._renderHistory(); }
+function refreshTracking(){ if(window._refreshTracking) window._refreshTracking(); }
+function toggleAutoRefresh(){ if(window._toggleAutoRefresh) window._toggleAutoRefresh(); }
+function focusAsset(id,lat,lng){ if(window._focusAsset) window._focusAsset(id,lat,lng); }
+</script>
+
 <script type="module">
 
 import { initializeApp }  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -854,7 +886,7 @@ function hideTimeoutModal() {
   document.getElementById("timeout-modal").classList.remove("show");
 }
 
-window.extendSession = () => {
+window._extendSession = window.extendSession = () => {
   hideTimeoutModal();
   sessionSecondsLeft = SESSION_MINUTES * 60;
   updateTimerDisplay();
@@ -863,7 +895,7 @@ window.extendSession = () => {
 /* ══════════════════════════════════════
    AUTH
 ══════════════════════════════════════ */
-window.doLogin = async () => {
+window._doLogin = window.doLogin = async () => {
   const email = document.getElementById("lin-email").value.trim().toLowerCase();
   const pass  = document.getElementById("lin-pass").value;
   const err   = document.getElementById("lerr");
@@ -888,7 +920,7 @@ window.doLogin = async () => {
   }
 };
 
-window.doLogout = async () => {
+window._doLogout = window.doLogout = async () => {
   stopSessionTimer();
   hideTimeoutModal();
   if(unsubV) unsubV();
@@ -904,7 +936,7 @@ window.doLogout = async () => {
   await signOut(auth);
 };
 
-window.togglePw = () => {
+window._togglePw = window.togglePw = () => {
   const i = document.getElementById("lin-pass");
   if (!i) return;
   i.type = i.type === "password" ? "text" : "password";
@@ -1046,7 +1078,7 @@ function showLogin() {
 /* ══════════════════════════════════════
    NAVIGATION
 ══════════════════════════════════════ */
-window.navTo = (section, el) => {
+window._navTo = window.navTo = (section, el) => {
   document.querySelectorAll(".nav-a").forEach(n => n.classList.remove("on"));
   el.classList.add("on");
   document.querySelectorAll(".sec").forEach(s => {
@@ -1162,7 +1194,7 @@ function syncDriverDropdown() {
 /* ══════════════════════════════════════
    VEHICLE CRUD
 ══════════════════════════════════════ */
-window.openVehicleModal = () => {
+window._openVehicleModal = window.openVehicleModal = () => {
   document.getElementById("vm-title").textContent="Add Vehicle";
   document.getElementById("vm-id").value="";
   ["vm-reg","vm-make","vm-model","vm-year","vm-licence","vm-service","vm-lastservice","vm-notes"].forEach(id=>document.getElementById(id).value="");
@@ -1172,7 +1204,7 @@ window.openVehicleModal = () => {
   openModal("vehicle-modal");
 };
 
-window.editVehicle = id => {
+window._editVehicle = window.editVehicle = id => {
   const v=vehicles.find(x=>x.id===id); if(!v) return;
   document.getElementById("vm-title").textContent="Edit Vehicle";
   document.getElementById("vm-id").value=v.id;
@@ -1190,7 +1222,7 @@ window.editVehicle = id => {
   openModal("vehicle-modal");
 };
 
-window.saveVehicle = async () => {
+window._saveVehicle = window.saveVehicle = async () => {
   const id=document.getElementById("vm-id").value;
   const data={
     reg:document.getElementById("vm-reg").value.trim().toUpperCase(),
@@ -1217,14 +1249,14 @@ window.saveVehicle = async () => {
 /* ══════════════════════════════════════
    DRIVER CRUD
 ══════════════════════════════════════ */
-window.openDriverModal = () => {
+window._openDriverModal = window.openDriverModal = () => {
   document.getElementById("dm-title").textContent="Add Driver";
   document.getElementById("dm-id").value="";
   ["dm-name","dm-phone","dm-email"].forEach(id=>document.getElementById(id).value="");
   openModal("driver-modal");
 };
 
-window.editDriver = id => {
+window._editDriver = window.editDriver = id => {
   const d=drivers.find(x=>x.id===id); if(!d) return;
   document.getElementById("dm-title").textContent="Edit Driver";
   document.getElementById("dm-id").value=d.id;
@@ -1234,7 +1266,7 @@ window.editDriver = id => {
   openModal("driver-modal");
 };
 
-window.saveDriver = async () => {
+window._saveDriver = window.saveDriver = async () => {
   const id=document.getElementById("dm-id").value;
   const data={name:document.getElementById("dm-name").value.trim(),phone:document.getElementById("dm-phone").value.trim(),email:document.getElementById("dm-email").value.trim(),updatedAt:new Date().toISOString()};
   if(!data.name){alert("Driver name is required.");return;}
@@ -1248,7 +1280,7 @@ window.saveDriver = async () => {
 /* ══════════════════════════════════════
    DELETE
 ══════════════════════════════════════ */
-window.delConfirm = (col, id, name) => {
+window._delConfirm = window.delConfirm = (col, id, name) => {
   document.getElementById("delete-msg").textContent=`Delete "${name}"? This cannot be undone.`;
   document.getElementById("del-confirm-btn").onclick=async()=>{
     try{await deleteDoc(doc(db,col,id)); closeModal("delete-modal");}
@@ -1270,7 +1302,7 @@ function syncServiceVehicleDropdown() {
   fil.value=filCur;
 }
 
-window.renderHistory = () => {
+window._renderHistory = window.renderHistory = () => {
   const tb=document.getElementById("history-tbody");
   const filter=document.getElementById("history-filter")?.value||"";
   const records=filter?serviceRecords.filter(r=>r.vehicleId===filter):serviceRecords;
@@ -1282,7 +1314,7 @@ window.renderHistory = () => {
   }).join("");
 };
 
-window.openServiceModal = () => {
+window._openServiceModal = window.openServiceModal = () => {
   document.getElementById("sm-title").textContent="Log Service";
   document.getElementById("sm-id").value="";
   ["sm-mileage","sm-cost","sm-workshop","sm-nextservice","sm-invoice","sm-notes"].forEach(id=>document.getElementById(id).value="");
@@ -1292,7 +1324,7 @@ window.openServiceModal = () => {
   openModal("service-modal");
 };
 
-window.editService = id => {
+window._editService = window.editService = id => {
   const r=serviceRecords.find(x=>x.id===id); if(!r) return;
   document.getElementById("sm-title").textContent="Edit Service Record";
   document.getElementById("sm-id").value=r.id;
@@ -1308,7 +1340,7 @@ window.editService = id => {
   openModal("service-modal");
 };
 
-window.saveService = async () => {
+window._saveService = window.saveService = async () => {
   const id=document.getElementById("sm-id").value;
   const vehicleId=document.getElementById("sm-vehicle").value;
   const date=document.getElementById("sm-date").value;
@@ -1329,7 +1361,7 @@ window.saveService = async () => {
 /* ══════════════════════════════════════
    EXPORT / PRINT
 ══════════════════════════════════════ */
-window.exportExcel = () => {
+window._exportExcel = window.exportExcel = () => {
   if(!vehicles.length){alert("No vehicles to export.");return;}
   const headers=["Registration","Make","Model","Year","Driver","Licence Expiry","Next Service","Last Service","Status","Notes"];
   const rows=vehicles.map(v=>{
@@ -1342,7 +1374,7 @@ window.exportExcel = () => {
   a.click(); URL.revokeObjectURL(a.href);
 };
 
-window.printVehicles = () => {
+window._printVehicles = window.printVehicles = () => {
   document.getElementById("print-date").textContent="Generated: "+new Date().toLocaleDateString("en-ZA",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
   document.querySelectorAll(".sec").forEach(s=>s.classList.remove("on"));
   document.getElementById("sec-vehicles").classList.add("on");
@@ -1416,7 +1448,7 @@ async function loadSheetTabs(deptFilter="") {
   }
 }
 
-window.syncGoogleSheet = async () => {
+window._syncGoogleSheet = window.syncGoogleSheet = async () => {
   const sel=document.getElementById("fuel-month-select");
   const identifier=sel.value||"348279363";
   const sheetTab=sel.options[sel.selectedIndex]?.dataset?.name||identifier;
@@ -1506,7 +1538,7 @@ window.syncGoogleSheet = async () => {
   }
 };
 
-window.handleFuelUpload = async (e) => {
+window._handleFuelUpload = window.handleFuelUpload = async (e) => {
   const file=e.target.files[0]; if(!file) return;
   fuelStatus(`Reading ${file.name}...`,"📁");
   try{
@@ -1606,7 +1638,7 @@ function renderFuel() {
   }).join("");
 }
 
-window.exportFuelExcel = () => {
+window._exportFuelExcel = window.exportFuelExcel = () => {
   if(!fuelData.vehicles.length){alert("No fuel data to export.");return;}
   const headers=["Registration","Vehicle","Driver","Department","Spend (R)","Limit (R)","Mileage (km)","% of Limit"];
   const rows=fuelData.vehicles.map(v=>{
@@ -1629,7 +1661,7 @@ window.bdClose=(e,id)=>{if(e.target===document.getElementById(id))closeModal(id)
 /* ── Mobile Navigation ─────────────────── */
 const isMob = () => window.innerWidth <= 768;
 
-window.mobNav = (sec, el) => {
+window._mobNav = window.mobNav = (sec, el) => {
   document.querySelectorAll(".mob-btn").forEach(b => b.classList.remove("on"));
   el.classList.add("on");
   document.querySelectorAll(".sec").forEach(s => {
@@ -1694,7 +1726,7 @@ async function tgFetch(action, params={}) {
   return JSON.parse(w.data);
 }
 
-window.initTracking = async function() {
+window._initTracking = window.initTracking = async function() {
   if (trackingLoaded) { await doRefresh(); return; }
   trackingLoaded = true;
   tgStatus("Connecting to TG Tracking...", true);
@@ -1818,13 +1850,13 @@ function updateCountdownBtn() {
   if (btn) btn.textContent = tgAutoRefresh ? `⏱ ${tgCountdown}s` : "⏱ Auto: OFF";
 }
 
-window.refreshTracking = async () => {
+window._refreshTracking = window.refreshTracking = async () => {
   tgCountdown = 30;
   updateCountdownBtn();
   await doRefresh();
 };
 
-window.toggleAutoRefresh = () => {
+window._toggleAutoRefresh = window.toggleAutoRefresh = () => {
   tgAutoRefresh = !tgAutoRefresh;
   updateCountdownBtn();
 };
@@ -1899,7 +1931,7 @@ function renderMapMarkers(assets) {
   document.getElementById("map-overlay").style.display = "none";
 }
 
-window.focusAsset = (id,lat,lng) => {
+window._focusAsset = window.focusAsset = (id,lat,lng) => {
   document.querySelectorAll(".acard").forEach(c=>c.classList.remove("sel"));
   document.getElementById(`card-${id}`)?.classList.add("sel");
   if (tgMap&&lat&&lng) { tgMap.setView([lat,lng],16); tgMarkers[id]?.openPopup(); }
