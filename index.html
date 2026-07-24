@@ -540,7 +540,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
   </div>
   <div id="mob-top-right">
     <span id="mob-role">Admin</span>
-    <button id="mob-signout" onclick="doLogout()">Sign Out</button>
+    <button id="mob-signout" onclick="doLogout()">⏻ Sign Out</button>
   </div>
 </div>
 
@@ -613,7 +613,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
         <div id="uemail"></div>
         <span class="rchip" id="role-chip">Admin</span>
       </div>
-      <button class="btn-g" style="width:100%;font-size:.76rem;margin-bottom:.4rem" onclick="doLogout()">Sign Out</button>
+      <button class="btn-g" style="width:100%;font-size:.76rem;margin-bottom:.4rem;color:#ff7b6b;border-color:rgba(224,58,47,.3)" onclick="doLogout()">⏻ Sign Out</button>
       <div id="sess-timer">Session: <span id="sess-disp">15:00</span></div>
     </div>
   </aside>
@@ -926,6 +926,9 @@ function stopSessionTimer() {
 }
 
 function resetSessionTimer() {
+  // Update login time on activity so active users don't get logged out
+  const loginTime = sessionStorage.getItem("xcorp_login_time");
+  if (loginTime) sessionStorage.setItem("xcorp_login_time", Date.now().toString());
   // Only reset if not already in warning modal
   if (document.getElementById("timeout-modal").classList.contains("show")) return;
   sessionSecondsLeft = SESSION_MINUTES * 60;
@@ -984,6 +987,7 @@ window._doLogin = window.doLogin = async () => {
   try {
     await setPersistence(auth, browserSessionPersistence);
     await signInWithEmailAndPassword(auth, email, pass);
+    sessionStorage.setItem("xcorp_login_time", Date.now().toString());
   } catch(e) {
     err.textContent = "Sign-in error: " + e.message;
     err.style.display = "block";
@@ -991,6 +995,7 @@ window._doLogin = window.doLogin = async () => {
 };
 
 window._doLogout = window.doLogout = async () => {
+  sessionStorage.removeItem("xcorp_login_time");
   stopSessionTimer();
   hideTimeoutModal();
   if(unsubV) unsubV();
@@ -1014,8 +1019,16 @@ window._togglePw = window.togglePw = () => {
   if (btn) btn.textContent = i.type === "password" ? "👁" : "🙈";
 };
 
-onAuthStateChanged(auth, user => {
+onAuthStateChanged(auth, async user => {
   if (user) {
+    // Check if session has expired (page refresh after 15 mins)
+    const loginTime = sessionStorage.getItem("xcorp_login_time");
+    const SESSION_MS = 15 * 60 * 1000; // 15 minutes
+    if (loginTime && (Date.now() - parseInt(loginTime)) > SESSION_MS) {
+      sessionStorage.removeItem("xcorp_login_time");
+      await signOut(auth);
+      return;
+    }
     currentUser = user;
     const record = USERS[user.email.toLowerCase()];
     isAdmin  = record?.role === "admin";
