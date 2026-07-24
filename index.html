@@ -1551,6 +1551,22 @@ function showApp() {
   // Reset fuel filter — only Sales gets dept filter
   fuelDeptFilter = isSales ? "Sales" : "";
 
+  // Hide Upload, Export and month dropdown for Sales
+  if (isSales) {
+    document.querySelectorAll("#sec-fuel .btn-ex").forEach(btn => {
+      const txt = btn.textContent || "";
+      if (txt.includes("Upload") || txt.includes("Export")) {
+        btn.style.display = "none";
+      }
+    });
+    const monthSel = document.getElementById("fuel-month-select");
+    if (monthSel) monthSel.style.display = "none";
+  } else {
+    document.querySelectorAll("#sec-fuel .btn-ex").forEach(btn => btn.style.display = "");
+    const monthSel = document.getElementById("fuel-month-select");
+    if (monthSel) monthSel.style.display = "";
+  }
+
   // Hide nav items for sales — only show fuel
   document.querySelectorAll(".nav-a").forEach(nav => {
     nav.style.display = isSales
@@ -1581,7 +1597,14 @@ function showApp() {
     document.getElementById("sales-notice").style.display="block";
     fuelStatus("Loading Sales fuel data...","🔄");
     fuelTabsLoaded = true;
-    loadSheetTabs("Sales");
+    // Sales: load current month directly, no discovery needed
+    fuelDeptFilter = "Sales";
+    const sel = document.getElementById("fuel-month-select");
+    if (sel) {
+      sel.innerHTML = '<option value="348279363" data-name="July 26 Summary">July 2026</option>';
+      sel.style.display = "none";
+    }
+    syncGoogleSheet();
   } else {
     startListeners();
   }
