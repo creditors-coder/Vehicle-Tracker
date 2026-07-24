@@ -2130,10 +2130,12 @@ function tgStatus(msg, loading) {
 
 /* ── navTo handled directly in HTML onclick ── */
 </script>
-<!-- PWA -->
+<!-- PWA: Unregister any old service workers -->
 <script>
 if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+  navigator.serviceWorker.getRegistrations().then(function(regs){
+    regs.forEach(function(reg){ reg.unregister(); });
+  });
 }
 </script>
 </body>
