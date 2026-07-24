@@ -1284,17 +1284,7 @@ window._doLogin = window.doLogin = async () => {
 let inspections = [];
 let unsubI = null;
 
-// Add inspection listener to startListeners
-const _origStartListeners = startListeners;
-function startListeners() {
-  _origStartListeners();
-  unsubI = onSnapshot(query(collection(db,"inspections"),orderBy("date","desc")), snap => {
-    inspections = snap.docs.map(d=>({id:d.id,...d.data()}));
-    renderInspections();
-    syncInspectVehicleDropdown();
-    updateInspectStats();
-  });
-}
+// Inspection listener added inside startListeners below
 
 // Toggle inspect option based on vehicle type
 window._toggleInspectOption = function(vtype) {
@@ -1638,6 +1628,12 @@ function startListeners() {
   unsubS = onSnapshot(query(collection(db,"serviceRecords"),orderBy("date","desc")), snap => {
     serviceRecords = snap.docs.map(d=>({id:d.id,...d.data()}));
     renderHistory(); syncServiceVehicleDropdown();
+  });
+  unsubI = onSnapshot(query(collection(db,"inspections"),orderBy("date","desc")), snap => {
+    inspections = snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderInspections();
+    syncInspectVehicleDropdown();
+    updateInspectStats();
   });
 }
 
