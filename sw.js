@@ -1,39 +1,30 @@
+// v4 - Network first, no stale cache
 var CACHE_NAME = 'xcorp-vt-v4';
-var ASSETS = [
-  '/Vehicle-Tracker/',
-  '/Vehicle-Tracker/index.html',
-  '/Vehicle-Tracker/manifest.json'
-];
 
 self.addEventListener('install', function(event) {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(function(cache) {
-      return cache.addAll(ASSETS).catch(function(e) {
-        console.log('Cache error:', e);
-      });
-    })
-  );
   self.skipWaiting();
 });
 
 self.addEventListener('activate', function(event) {
+  // Delete ALL old caches immediately
   event.waitUntil(
     caches.keys().then(function(keys) {
-      return Promise.all(
-        keys.filter(function(key) {
-          return key !== CACHE_NAME;
-        }).map(function(key) {
-          return caches.delete(key);
-        })
-      );
+      return Promise.all(keys.map(function(key) {
+        return caches.delete(key);
+      }));
+    }).then(function() {
+      return self.clients.claim();
     })
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', function(event) {
   var url = event.request.url;
+
+  // Skip non-HTTP
   if (url.indexOf('http') !== 0) return;
+
+  // Skip all external APIs - never cache these
   if (
     url.indexOf('firestore.googleapis') > -1 ||
     url.indexOf('firebase') > -1 ||
@@ -47,22 +38,13 @@ self.addEventListener('fetch', function(event) {
     url.indexOf('cdn-website') > -1
   ) { return; }
 
+  // For app files - ALWAYS go to network first, never serve stale
   event.respondWith(
-    fetch(event.request).then(function(response) {
-      if (response && response.ok && event.request.method === 'GET') {
-        var clone = response.clone();
-        caches.open(CACHE_NAME).then(function(cache) {
-          cache.put(event.request, clone);
-        });
-      }
+    fetch(event.request, { cache: 'no-cache' }).then(function(response) {
       return response;
     }).catch(function() {
-      return caches.match(event.request).then(function(cached) {
-        if (cached) return cached;
-        if (event.request.mode === 'navigate') {
-          return caches.match('/Vehicle-Tracker/index.html');
-        }
-      });
+      // Only use cache if completely offline
+      return caches.match(event.request);
     })
   );
 });
