@@ -1658,6 +1658,55 @@ function buildAlerts() {
     if(ld!==null&&ld<=WARN_DAYS) out.push({lvl:ld<0?"danger":"warn",icon:"📋",title:`${v.reg} — Licence ${ld<0?"EXPIRED":"expiring soon"}`,sub:ld<0?`Expired ${Math.abs(ld)} day(s) ago`:`Expires in ${ld} day(s) · ${fmtDate(v.licenceExpiry)}`,chip:ld<0?"Overdue":"Due Soon"});
     if(sd!==null&&sd<=WARN_DAYS) out.push({lvl:sd<0?"danger":"warn",icon:"🔧",title:`${v.reg} — Service ${sd<0?"OVERDUE":"due soon"}`,sub:sd<0?`Overdue by ${Math.abs(sd)} day(s)`:`Due in ${sd} day(s) · ${fmtDate(v.serviceDate)}`,chip:sd<0?"Overdue":"Due Soon"});
   });
+
+  // ── Weekly Inspection Alerts (every Monday) ──
+  const today      = new Date(); today.setHours(0,0,0,0);
+  const dayOfWeek  = today.getDay(); // 0=Sun, 1=Mon
+  const daysSinceMon = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const lastMonday = new Date(today); lastMonday.setDate(today.getDate() - daysSinceMon);
+  const nextMonday = new Date(lastMonday); nextMonday.setDate(lastMonday.getDate() + 7);
+  const daysToMon  = Math.ceil((nextMonday - today) / 86400000);
+
+  // Company vehicles with inspection enabled
+  const companyVehs = vehicles.filter(v => v.vtype !== "private");
+  companyVehs.forEach(v => {
+    // Check if this vehicle was inspected since last Monday
+    const lastInspection = inspections
+      .filter(i => i.vehicleId === v.id)
+      .sort((a,b) => new Date(b.date) - new Date(a.date))[0];
+
+    const lastInspDate = lastInspection ? new Date(lastInspection.date) : null;
+    const inspectedThisWeek = lastInspDate && lastInspDate >= lastMonday;
+
+    if (!inspectedThisWeek) {
+      if (dayOfWeek === 1) {
+        // It IS Monday — inspection due today
+        out.push({
+          lvl:"danger", icon:"📋",
+          title:`${v.reg} — Weekly inspection due TODAY`,
+          sub:`${v.make} ${v.model} · Monday inspection not yet completed`,
+          chip:"Due Today"
+        });
+      } else if (daysToMon <= 1) {
+        // Tomorrow is Monday — reminder
+        out.push({
+          lvl:"warn", icon:"📋",
+          title:`${v.reg} — Inspection due tomorrow (Monday)`,
+          sub:`${v.make} ${v.model} · Weekly walk-around required`,
+          chip:"Due Tomorrow"
+        });
+      } else if (dayOfWeek > 1 && !inspectedThisWeek) {
+        // Already past Monday this week with no inspection
+        out.push({
+          lvl:"danger", icon:"📋",
+          title:`${v.reg} — Weekly inspection OVERDUE`,
+          sub:`${v.make} ${v.model} · Not inspected since ${lastInspDate ? fmtDate(lastInspection.date) : "never"}`,
+          chip:"Overdue"
+        });
+      }
+    }
+  });
+
   return out;
 }
 function alertHTML(a) {
