@@ -607,6 +607,17 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
   #tg-map{height:260px!important;min-height:260px!important}
   .tg-list-col{height:auto;max-height:none;display:grid;grid-template-columns:1fr 1fr;gap:.4rem}
 }
+
+/* ── Inspection ── */
+.chk-lbl{display:flex;align-items:center;gap:.5rem;font-size:.78rem;color:var(--text);cursor:pointer}
+.chk{width:14px;height:14px;accent-color:var(--red);cursor:pointer;flex-shrink:0}
+.chk-sel{width:100%;margin-top:.6rem;background:var(--surf);border:1px solid var(--border);
+  color:var(--text);padding:.4rem .6rem;border-radius:var(--r);font-family:var(--font);font-size:.76rem}
+.ins-pass{color:var(--ok)}.ins-issue{color:var(--warn)}.ins-fail{color:var(--danger)}
+.ins-badge{font-size:.68rem;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.ins-badge.pass{background:var(--ok-dim);color:var(--ok)}
+.ins-badge.issue{background:var(--warn-dim);color:var(--warn)}
+.ins-badge.fail{background:var(--danger-dim);color:var(--danger)}
 </style>
 </head>
 <body>
@@ -646,6 +657,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
     <button class="mob-btn" id="mn-history"   onclick="mobNav('history',this)"><span class="i">🔧</span>Service</button>
     <button class="mob-btn" id="mn-fuel"      onclick="mobNav('fuel',this)"><span class="i">⛽</span>Fuel</button>
     <button class="mob-btn" id="mn-tracking"  onclick="mobNav('tracking',this);setTimeout(initTracking,300)"><span class="i">🗺️</span>Tracking</button>
+    <button class="mob-btn" id="mn-inspect"   onclick="mobNav('inspect',this)"><span class="i">📋</span>Inspect</button>
     <button class="mob-btn" id="mn-alerts"    onclick="mobNav('alerts',this)"><span class="i">🔔</span>Alerts</button>
   </div>
 </div>
@@ -833,6 +845,41 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
       </div>
     </section>
 
+    <!-- INSPECTION -->
+    <section id="sec-inspect" class="sec">
+      <div class="sh">
+        <div><h2>Vehicle Inspection</h2><div class="sh-sub">Weekly walk-around checklist — Company vehicles only</div></div>
+        <div class="sh-actions">
+          <button class="btn-p" onclick="openInspectModal()">+ New Inspection</button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="sg" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-bottom:1rem">
+        <div class="sc cr"><div class="sv" id="ins-stat-total">0</div><div class="sl">Total Done</div></div>
+        <div class="sc co"><div class="sv" id="ins-stat-pass">0</div><div class="sl">All Pass</div></div>
+        <div class="sc cw"><div class="sv" id="ins-stat-issues">0</div><div class="sl">Issues Found</div></div>
+        <div class="sc cd"><div class="sv" id="ins-stat-due">0</div><div class="sl">Due This Week</div></div>
+      </div>
+
+      <!-- Vehicle filter -->
+      <div style="margin-bottom:.85rem">
+        <select id="inspect-filter" onchange="renderInspections()" style="max-width:280px;background:var(--surf2);border:1px solid var(--border);color:var(--text);padding:.5rem .75rem;border-radius:var(--r);font-family:var(--font);font-size:.83rem">
+          <option value="">All Vehicles</option>
+        </select>
+      </div>
+
+      <!-- Inspection records table -->
+      <div class="tw"><table class="dt">
+        <thead><tr>
+          <th>Date</th><th>Vehicle</th><th>Inspector</th>
+          <th>Lights</th><th>Tyres</th><th>Wipers</th><th>Brakes</th><th>Fluids</th><th>Body</th>
+          <th>Result</th><th>Notes</th><th class="ao">Actions</th>
+        </tr></thead>
+        <tbody id="inspect-tbody"><tr><td colspan="12" class="es">No inspections yet. Click "+ New Inspection" to start.</td></tr></tbody>
+      </table></div>
+    </section>
+
     <!-- ALERTS -->
     <section id="sec-alerts" class="sec">
       <div class="sh"><div><h2>Alerts</h2><div class="sh-sub">Licence &amp; service warnings</div></div></div>
@@ -856,8 +903,11 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
       <div style="border-top:1px solid var(--border);margin-top:.5rem;padding-top:.9rem">
         <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--sub);margin-bottom:.65rem">Vehicle Type &amp; Tracking</div>
         <div class="fr">
-          <div class="fg"><label>Vehicle Type</label><select id="vm-vtype"><option value="company">Company Vehicle</option><option value="private">Private Vehicle</option></select></div>
+          <div class="fg"><label>Vehicle Type</label><select id="vm-vtype" onchange="toggleInspectOption(this.value)"><option value="company">Company Vehicle</option><option value="private">Private Vehicle</option></select></div>
           <div class="fg"><label>&nbsp;</label><label style="display:flex;align-items:center;gap:.55rem;cursor:pointer;text-transform:none;letter-spacing:0;font-size:.84rem;font-weight:500;color:var(--text);margin-top:.1rem"><input type="checkbox" id="vm-servicetrack" style="width:15px;height:15px;accent-color:var(--red);cursor:pointer"/> Enable Service tracking</label></div>
+        </div>
+        <div id="vm-inspect-wrap" style="margin-top:.6rem">
+          <label style="display:flex;align-items:center;gap:.55rem;cursor:pointer;text-transform:none;letter-spacing:0;font-size:.84rem;font-weight:500;color:var(--text)"><input type="checkbox" id="vm-inspect" style="width:15px;height:15px;accent-color:var(--red);cursor:pointer"/> Enable Weekly Inspection</label>
         </div>
       </div>
     </div>
@@ -904,6 +954,142 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
 </div>
 
 <!-- Firebase + App -->
+
+<!-- MODAL: Inspection -->
+<div id="inspect-modal" class="modal" onclick="bdClose(event,'inspect-modal')">
+  <div style="width:100%;max-width:640px"><div class="modal-card">
+    <div class="mh">
+      <div class="mhi"><h3 id="im-title">New Inspection</h3><div class="mal"></div></div>
+      <button class="mc-btn" onclick="closeModal('inspect-modal')">✕</button>
+    </div>
+    <div class="mb">
+      <input type="hidden" id="im-id"/>
+      <div class="fr">
+        <div class="fg"><label>Vehicle *</label>
+          <select id="im-vehicle"><option value="">— Select Company Vehicle —</option></select>
+        </div>
+        <div class="fg"><label>Inspection Date *</label>
+          <input type="date" id="im-date"/>
+        </div>
+      </div>
+      <div class="fg"><label>Inspector Name *</label>
+        <input type="text" id="im-inspector" placeholder="e.g. John Smith"/>
+      </div>
+
+      <!-- Checklist -->
+      <div style="border-top:1px solid var(--border);margin:.75rem 0 .85rem;padding-top:.85rem">
+        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--sub);margin-bottom:.85rem">Walk-Around Checklist</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.65rem">
+
+          <!-- Lights -->
+          <div style="background:var(--surf2);border:1px solid var(--border);border-radius:var(--r);padding:.75rem">
+            <div style="font-size:.78rem;font-weight:700;margin-bottom:.5rem">💡 Lights</div>
+            <div style="display:flex;flex-direction:column;gap:.4rem">
+              <label class="chk-lbl"><input type="checkbox" id="im-headlights" class="chk"/> Headlights</label>
+              <label class="chk-lbl"><input type="checkbox" id="im-taillights" class="chk"/> Tail lights</label>
+              <label class="chk-lbl"><input type="checkbox" id="im-indicators" class="chk"/> Indicators</label>
+              <label class="chk-lbl"><input type="checkbox" id="im-hazards" class="chk"/> Hazards</label>
+            </div>
+            <select id="im-lights-status" class="chk-sel">
+              <option value="pass">✅ Pass</option>
+              <option value="issue">⚠️ Issue</option>
+              <option value="fail">❌ Fail</option>
+            </select>
+          </div>
+
+          <!-- Tyres -->
+          <div style="background:var(--surf2);border:1px solid var(--border);border-radius:var(--r);padding:.75rem">
+            <div style="font-size:.78rem;font-weight:700;margin-bottom:.5rem">🛞 Tyres</div>
+            <div style="display:flex;flex-direction:column;gap:.4rem">
+              <label class="chk-lbl"><input type="checkbox" id="im-tyre-fl" class="chk"/> Front left</label>
+              <label class="chk-lbl"><input type="checkbox" id="im-tyre-fr" class="chk"/> Front right</label>
+              <label class="chk-lbl"><input type="checkbox" id="im-tyre-rl" class="chk"/> Rear left</label>
+              <label class="chk-lbl"><input type="checkbox" id="im-tyre-rr" class="chk"/> Rear right</label>
+            </div>
+            <select id="im-tyres-status" class="chk-sel">
+              <option value="pass">✅ Pass</option>
+              <option value="issue">⚠️ Issue</option>
+              <option value="fail">❌ Fail</option>
+            </select>
+          </div>
+
+          <!-- Wipers -->
+          <div style="background:var(--surf2);border:1px solid var(--border);border-radius:var(--r);padding:.75rem">
+            <div style="font-size:.78rem;font-weight:700;margin-bottom:.5rem">🌧️ Wipers</div>
+            <div style="display:flex;flex-direction:column;gap:.4rem">
+              <label class="chk-lbl"><input type="checkbox" id="im-wiper-front" class="chk"/> Front wipers</label>
+              <label class="chk-lbl"><input type="checkbox" id="im-wiper-rear" class="chk"/> Rear wiper</label>
+              <label class="chk-lbl"><input type="checkbox" id="im-washer" class="chk"/> Washer fluid</label>
+            </div>
+            <select id="im-wipers-status" class="chk-sel">
+              <option value="pass">✅ Pass</option>
+              <option value="issue">⚠️ Issue</option>
+              <option value="fail">❌ Fail</option>
+            </select>
+          </div>
+
+          <!-- Brakes -->
+          <div style="background:var(--surf2);border:1px solid var(--border);border-radius:var(--r);padding:.75rem">
+            <div style="font-size:.78rem;font-weight:700;margin-bottom:.5rem">🛑 Brakes</div>
+            <div style="display:flex;flex-direction:column;gap:.4rem">
+              <label class="chk-lbl"><input type="checkbox" id="im-brakes-resp" class="chk"/> Brake response</label>
+              <label class="chk-lbl"><input type="checkbox" id="im-handbrake" class="chk"/> Handbrake</label>
+              <label class="chk-lbl"><input type="checkbox" id="im-brake-fluid" class="chk"/> Brake fluid level</label>
+            </div>
+            <select id="im-brakes-status" class="chk-sel">
+              <option value="pass">✅ Pass</option>
+              <option value="issue">⚠️ Issue</option>
+              <option value="fail">❌ Fail</option>
+            </select>
+          </div>
+
+          <!-- Fluids -->
+          <div style="background:var(--surf2);border:1px solid var(--border);border-radius:var(--r);padding:.75rem">
+            <div style="font-size:.78rem;font-weight:700;margin-bottom:.5rem">🛢️ Fluids</div>
+            <div style="display:flex;flex-direction:column;gap:.4rem">
+              <label class="chk-lbl"><input type="checkbox" id="im-oil" class="chk"/> Engine oil</label>
+              <label class="chk-lbl"><input type="checkbox" id="im-coolant" class="chk"/> Coolant</label>
+              <label class="chk-lbl"><input type="checkbox" id="im-power-steering" class="chk"/> Power steering</label>
+            </div>
+            <select id="im-fluids-status" class="chk-sel">
+              <option value="pass">✅ Pass</option>
+              <option value="issue">⚠️ Issue</option>
+              <option value="fail">❌ Fail</option>
+            </select>
+          </div>
+
+          <!-- Body -->
+          <div style="background:var(--surf2);border:1px solid var(--border);border-radius:var(--r);padding:.75rem">
+            <div style="font-size:.78rem;font-weight:700;margin-bottom:.5rem">🚗 Body &amp; Safety</div>
+            <div style="display:flex;flex-direction:column;gap:.4rem">
+              <label class="chk-lbl"><input type="checkbox" id="im-mirrors" class="chk"/> Mirrors</label>
+              <label class="chk-lbl"><input type="checkbox" id="im-seatbelts" class="chk"/> Seatbelts</label>
+              <label class="chk-lbl"><input type="checkbox" id="im-body-damage" class="chk"/> No new damage</label>
+            </div>
+            <select id="im-body-status" class="chk-sel">
+              <option value="pass">✅ Pass</option>
+              <option value="issue">⚠️ Issue</option>
+              <option value="fail">❌ Fail</option>
+            </select>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="fg"><label>Notes / Issues Found</label>
+        <textarea id="im-notes" placeholder="Describe any issues found, damage observed, or items needing attention..."></textarea>
+      </div>
+      <div class="fg"><label>Mileage at Inspection (km)</label>
+        <input type="number" id="im-mileage" placeholder="e.g. 85000"/>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn-g" onclick="closeModal('inspect-modal')">Cancel</button>
+      <button class="btn-p" onclick="saveInspection()">Save Inspection</button>
+    </div>
+  </div></div>
+</div>
+
 <!-- Global function bridge — safely wraps module functions for onclick handlers -->
 <script>
 function doLogin()   { if(window._doLogin)   window._doLogin();   else setTimeout(doLogin,100); }
@@ -934,6 +1120,10 @@ function renderHistory(){ if(window._renderHistory) window._renderHistory(); }
 function refreshTracking(){ if(window._refreshTracking) window._refreshTracking(); }
 function toggleAutoRefresh(){ if(window._toggleAutoRefresh) window._toggleAutoRefresh(); }
 function focusAsset(id,lat,lng){ if(window._focusAsset) window._focusAsset(id,lat,lng); }
+function openInspectModal(){ if(window._openInspectModal) window._openInspectModal(); }
+function saveInspection(){ if(window._saveInspection) window._saveInspection(); }
+function editInspection(id){ if(window._editInspection) window._editInspection(id); }
+function toggleInspectOption(v){ if(window._toggleInspectOption) window._toggleInspectOption(v); }
 </script>
 
 <script type="module">
@@ -1087,6 +1277,176 @@ window._doLogin = window.doLogin = async () => {
   }
 };
 
+
+/* ══════════════════════════════════════
+   VEHICLE INSPECTION
+══════════════════════════════════════ */
+let inspections = [];
+let unsubI = null;
+
+// Add inspection listener to startListeners
+const _origStartListeners = startListeners;
+function startListeners() {
+  _origStartListeners();
+  unsubI = onSnapshot(query(collection(db,"inspections"),orderBy("date","desc")), snap => {
+    inspections = snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderInspections();
+    syncInspectVehicleDropdown();
+    updateInspectStats();
+  });
+}
+
+// Toggle inspect option based on vehicle type
+window._toggleInspectOption = function(vtype) {
+  const wrap = document.getElementById("vm-inspect-wrap");
+  if(wrap) wrap.style.display = vtype==="company" ? "block" : "none";
+};
+
+// Sync vehicle dropdown in inspection modal (company vehicles only)
+function syncInspectVehicleDropdown() {
+  const companyVehicles = vehicles.filter(v => v.vtype !== "private");
+  const sel = document.getElementById("im-vehicle");
+  const fil = document.getElementById("inspect-filter");
+  if(!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Select Company Vehicle —</option>' +
+    companyVehicles.map(v => `<option value="${v.id}">${v.reg} — ${v.make} ${v.model}</option>`).join("");
+  sel.value = cur;
+  if(fil) {
+    const fc = fil.value;
+    fil.innerHTML = '<option value="">All Vehicles</option>' +
+      companyVehicles.map(v => `<option value="${v.id}">${v.reg} — ${v.make} ${v.model}</option>`).join("");
+    fil.value = fc;
+  }
+}
+
+// Open inspection modal
+window._openInspectModal = function() {
+  document.getElementById("im-title").textContent = "New Inspection";
+  document.getElementById("im-id").value = "";
+  document.getElementById("im-vehicle").value = "";
+  document.getElementById("im-date").value = new Date().toISOString().split("T")[0];
+  document.getElementById("im-inspector").value = "";
+  document.getElementById("im-notes").value = "";
+  document.getElementById("im-mileage").value = "";
+  // Reset all checkboxes
+  document.querySelectorAll("#inspect-modal .chk").forEach(c => c.checked = false);
+  // Reset all selects to pass
+  ["im-lights-status","im-tyres-status","im-wipers-status","im-brakes-status","im-fluids-status","im-body-status"]
+    .forEach(id => { const el=document.getElementById(id); if(el) el.value="pass"; });
+  openModal("inspect-modal");
+};
+
+// Save inspection
+window._saveInspection = async function() {
+  const id       = document.getElementById("im-id").value;
+  const vehicleId= document.getElementById("im-vehicle").value;
+  const date     = document.getElementById("im-date").value;
+  const inspector= document.getElementById("im-inspector").value.trim();
+  if(!vehicleId||!date||!inspector){alert("Vehicle, Date and Inspector are required.");return;}
+
+  const getStatus = id => document.getElementById(id)?.value || "pass";
+  const getChecks = ids => ids.reduce((obj,id)=>({...obj,[id]:document.getElementById(id)?.checked||false}),{});
+
+  const statuses = {
+    lights: getStatus("im-lights-status"),
+    tyres:  getStatus("im-tyres-status"),
+    wipers: getStatus("im-wipers-status"),
+    brakes: getStatus("im-brakes-status"),
+    fluids: getStatus("im-fluids-status"),
+    body:   getStatus("im-body-status"),
+  };
+
+  const overall = Object.values(statuses).includes("fail") ? "fail"
+    : Object.values(statuses).includes("issue") ? "issue" : "pass";
+
+  const data = {
+    vehicleId, date, inspector,
+    statuses, overall,
+    notes:   document.getElementById("im-notes").value.trim(),
+    mileage: document.getElementById("im-mileage").value || "",
+    updatedAt: new Date().toISOString()
+  };
+
+  try {
+    if(id) await updateDoc(doc(db,"inspections",id), data);
+    else { data.createdAt = new Date().toISOString(); await addDoc(collection(db,"inspections"), data); }
+    closeModal("inspect-modal");
+  } catch(e){ alert("Save failed: "+e.message); }
+};
+
+// Render inspections table
+window.renderInspections = function() {
+  const tb     = document.getElementById("inspect-tbody");
+  const filter = document.getElementById("inspect-filter")?.value || "";
+  const list   = filter ? inspections.filter(r=>r.vehicleId===filter) : inspections;
+
+  if(!list.length){
+    tb.innerHTML='<tr><td colspan="12" class="es">No inspections yet.</td></tr>';
+    return;
+  }
+
+  const statusIcon = s => s==="pass"?"✅":s==="issue"?"⚠️":"❌";
+
+  tb.innerHTML = list.map(r => {
+    const v    = vehicles.find(x=>x.id===r.vehicleId);
+    const st   = r.statuses||{};
+    const badgeCls = r.overall==="pass"?"pass":r.overall==="issue"?"issue":"fail";
+    const badge= `<span class="ins-badge ${badgeCls}">${r.overall==="pass"?"✅ Pass":r.overall==="issue"?"⚠️ Issues":"❌ Fail"}</span>`;
+    const acts = isAdmin
+      ? `<td><button class="btn-ic" onclick="editInspection('${r.id}')">✏️</button><button class="btn-ic" onclick="delConfirm('inspections','${r.id}','inspection record')">🗑️</button></td>`
+      : `<td></td>`;
+    return `<tr>
+      <td style="white-space:nowrap">${r.date||"—"}</td>
+      <td><span class="rp">${v?v.reg:"—"}</span></td>
+      <td>${r.inspector||"—"}</td>
+      <td style="text-align:center">${statusIcon(st.lights)}</td>
+      <td style="text-align:center">${statusIcon(st.tyres)}</td>
+      <td style="text-align:center">${statusIcon(st.wipers)}</td>
+      <td style="text-align:center">${statusIcon(st.brakes)}</td>
+      <td style="text-align:center">${statusIcon(st.fluids)}</td>
+      <td style="text-align:center">${statusIcon(st.body)}</td>
+      <td>${badge}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.notes||""}">${r.notes||"—"}</td>
+      ${acts}
+    </tr>`;
+  }).join("");
+};
+
+// Edit inspection
+window._editInspection = function(id) {
+  const r = inspections.find(x=>x.id===id); if(!r) return;
+  document.getElementById("im-title").textContent = "Edit Inspection";
+  document.getElementById("im-id").value = r.id;
+  document.getElementById("im-vehicle").value = r.vehicleId||"";
+  document.getElementById("im-date").value = r.date||"";
+  document.getElementById("im-inspector").value = r.inspector||"";
+  document.getElementById("im-notes").value = r.notes||"";
+  document.getElementById("im-mileage").value = r.mileage||"";
+  // Restore statuses
+  const st = r.statuses||{};
+  ["lights","tyres","wipers","brakes","fluids","body"].forEach(k=>{
+    const el=document.getElementById(`im-${k}-status`); if(el) el.value=st[k]||"pass";
+  });
+  openModal("inspect-modal");
+};
+
+// Update stats
+function updateInspectStats() {
+  const thisWeek = new Date(); thisWeek.setDate(thisWeek.getDate()-7);
+  const companyVehs = vehicles.filter(v=>v.vtype!=="private"&&v.inspect!==false);
+  document.getElementById("ins-stat-total").textContent  = inspections.length;
+  document.getElementById("ins-stat-pass").textContent   = inspections.filter(i=>i.overall==="pass").length;
+  document.getElementById("ins-stat-issues").textContent = inspections.filter(i=>i.overall!=="pass").length;
+
+  // Vehicles due this week (no inspection in last 7 days)
+  const inspectedIds = new Set(
+    inspections.filter(i=>new Date(i.date)>=thisWeek).map(i=>i.vehicleId)
+  );
+  const due = companyVehs.filter(v=>!inspectedIds.has(v.id)).length;
+  document.getElementById("ins-stat-due").textContent = due;
+}
+
 window._doLogout = window.doLogout = async () => {
   try { sessionStorage.removeItem("xcorp_login_time"); } catch(e){}
   try { stopSessionTimer(); } catch(e){}
@@ -1094,6 +1454,7 @@ window._doLogout = window.doLogout = async () => {
   try { if(unsubV) unsubV(); } catch(e){}
   try { if(unsubD) unsubD(); } catch(e){}
   try { if(unsubS) unsubS(); } catch(e){}
+  try { if(typeof unsubI !== "undefined" && unsubI) unsubI(); } catch(e){}
   try { fuelDeptFilter = ""; fuelTabsLoaded = false; } catch(e){}
   try { window._tgCleanup && window._tgCleanup(); } catch(e){}
   try { await signOut(auth); } catch(e){ console.error("signOut error:", e); }
@@ -1390,6 +1751,8 @@ window._editVehicle = window.editVehicle = id => {
   document.getElementById("vm-driver").value=v.driverId||"";
   document.getElementById("vm-vtype").value=v.vtype||"company";
   document.getElementById("vm-servicetrack").checked=v.serviceTracking!==false;
+  const inspEl=document.getElementById("vm-inspect"); if(inspEl) inspEl.checked=v.inspect===true;
+  const inspWrap=document.getElementById("vm-inspect-wrap"); if(inspWrap) inspWrap.style.display=(v.vtype||"company")==="company"?"block":"none";
   openModal("vehicle-modal");
 };
 
@@ -1407,6 +1770,7 @@ window._saveVehicle = window.saveVehicle = async () => {
     notes:document.getElementById("vm-notes").value.trim(),
     vtype:document.getElementById("vm-vtype").value,
     serviceTracking:document.getElementById("vm-servicetrack").checked,
+    inspect:document.getElementById("vm-vtype").value==="company" && document.getElementById("vm-inspect")?.checked,
     updatedAt:new Date().toISOString()
   };
   if(!data.reg||!data.make||!data.model){alert("Registration, Make and Model are required.");return;}
