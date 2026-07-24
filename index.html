@@ -995,20 +995,15 @@ window._doLogin = window.doLogin = async () => {
 };
 
 window._doLogout = window.doLogout = async () => {
-  sessionStorage.removeItem("xcorp_login_time");
-  stopSessionTimer();
-  hideTimeoutModal();
-  if(unsubV) unsubV();
-  if(unsubD) unsubD();
-  if(unsubS) unsubS();
-  fuelDeptFilter = "";
-  fuelTabsLoaded = false;
-  trackingLoaded = false;
-  tgMapReady     = false;
-  tgMap          = null;
-  tgMarkers      = {};
-  tgAssets       = [];
-  await signOut(auth);
+  try { sessionStorage.removeItem("xcorp_login_time"); } catch(e){}
+  try { stopSessionTimer(); } catch(e){}
+  try { hideTimeoutModal(); } catch(e){}
+  try { if(unsubV) unsubV(); } catch(e){}
+  try { if(unsubD) unsubD(); } catch(e){}
+  try { if(unsubS) unsubS(); } catch(e){}
+  try { fuelDeptFilter = ""; fuelTabsLoaded = false; } catch(e){}
+  try { window._tgCleanup && window._tgCleanup(); } catch(e){}
+  try { await signOut(auth); } catch(e){ console.error("signOut error:", e); }
 };
 
 window._togglePw = window.togglePw = () => {
@@ -1798,6 +1793,16 @@ let tgCountdown    = 30;
 let tgCountdownInt = null;
 let trackingLoaded = false;
 let tgMapReady     = false;
+
+// Expose cleanup to other modules
+window._tgCleanup = function() {
+  trackingLoaded = false;
+  tgMapReady     = false;
+  if(tgMap){ try{ tgMap.remove(); }catch(e){} tgMap = null; }
+  tgMarkers = {};
+  tgAssets  = [];
+  if(tgCountdownInt){ clearInterval(tgCountdownInt); tgCountdownInt = null; }
+};
 
 async function tgFetch(action, params={}) {
   const qs = new URLSearchParams({action, ...params}).toString();
