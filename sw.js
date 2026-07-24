@@ -1,4 +1,4 @@
-var CACHE_NAME = 'xcorp-vt-v1';
+var CACHE_NAME = 'xcorp-vt-v4';
 var ASSETS = [
   '/Vehicle-Tracker/',
   '/Vehicle-Tracker/index.html',
