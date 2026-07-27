@@ -637,6 +637,8 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
 .db-tile-blue::before{background:linear-gradient(90deg,#4a7fff,#7aa3ff)}
 .db-tile-green::before{background:linear-gradient(90deg,#22c55e,#4ade80)}
 .db-tile-purple::before{background:linear-gradient(90deg,#7b3fa0,#a855f7)}
+.db-tile-orange::before{background:linear-gradient(90deg,#ef4444,#f87171)}
+.db-tile-orange .db-tile-val{color:#f87171}
 .db-tile-icon{font-size:1.5rem;margin-bottom:.5rem;display:block}
 .db-tile-val{font-size:2.4rem;font-weight:800;font-family:var(--mono);line-height:1;margin-bottom:.25rem}
 .db-tile-red .db-tile-val{color:#ff7b6b}
@@ -820,11 +822,17 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
           <div class="db-tile-lbl">Total Drivers</div>
           <div class="db-tile-arrow">→</div>
         </div>
-        <div class="db-tile db-tile-green" id="db-driving">
-          <div class="db-tile-icon">🟢</div>
-          <div class="db-tile-val" id="db-total-driving">—</div>
-          <div class="db-tile-lbl">Driving Now</div>
-          <div class="db-tile-sub" id="db-total-parked">— parked</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
+          <div class="db-tile db-tile-green" style="cursor:default">
+            <div class="db-tile-icon">🟢</div>
+            <div class="db-tile-val" id="db-total-driving">—</div>
+            <div class="db-tile-lbl">Driving</div>
+          </div>
+          <div class="db-tile db-tile-orange" style="cursor:default">
+            <div class="db-tile-icon">🔴</div>
+            <div class="db-tile-val" id="db-total-parked">—</div>
+            <div class="db-tile-lbl">Parked</div>
+          </div>
         </div>
         <div class="db-tile db-tile-purple" id="db-inspections" onclick="navTo('inspect',document.querySelector('.nav-a[onclick*=inspect]'))">
           <div class="db-tile-icon">📋</div>
@@ -1315,6 +1323,7 @@ let vehicles=[], drivers=[], serviceRecords=[];
 let unsubV=null, unsubD=null, unsubS=null;
 let fuelTabsLoaded=false, fuelDeptFilter="";
 let fuelData={vehicles:[],monthly:[],deptSummary:[],sheetTab:""};
+window._fuelData = fuelData;
 const WARN_DAYS=30;
 const SHEET_ID="1PMoNZOLaYsHDRCeweE4jGV9OpoZ9RFTpMxN1yqTFI4w";
 
@@ -1910,14 +1919,16 @@ function renderDashboard() {
   document.getElementById("db-licence-foot").textContent = `${total - licencesDue - licencesOverdue} vehicles OK`;
 
   // ── Live Tracking: Driving vs Parked ──
-  if (typeof tgAssets !== "undefined" && tgAssets.length) {
-    const driving = tgAssets.filter(a => a.speedKmH > 0).length;
-    const parked  = tgAssets.length - driving;
+  // tgAssets lives in the tracking module - access via window
+  const assets = window._tgAssets || [];
+  if (assets.length) {
+    const driving = assets.filter(a => a.speedKmH > 0).length;
+    const parked  = assets.length - driving;
     document.getElementById("db-total-driving").textContent = driving;
-    document.getElementById("db-total-parked").textContent  = parked + " parked";
+    document.getElementById("db-total-parked").textContent  = parked;
   } else {
     document.getElementById("db-total-driving").textContent = "—";
-    document.getElementById("db-total-parked").textContent  = "Open Live Tracking";
+    document.getElementById("db-total-parked").textContent  = "—";
   }
 
   // ── Inspections Due ──
@@ -1933,9 +1944,10 @@ function renderDashboard() {
 
   // ── Fuel by Department ──
   const fuelDepts = document.getElementById("db-fuel-depts");
-  if (fuelData && fuelData.vehicles && fuelData.vehicles.length) {
+  const _fd = window._fuelData || fuelData;
+  if (_fd && _fd.vehicles && _fd.vehicles.length) {
     const depts = {};
-    fuelData.vehicles.forEach(v => {
+    _fd.vehicles.forEach(v => {
       if (!v.dept || typeof v.dept !== "string" || !isNaN(v.dept)) return;
       if (!depts[v.dept]) depts[v.dept] = { spend:0, count:0 };
       depts[v.dept].spend += v.spend;
@@ -2550,6 +2562,7 @@ const TG_PROXY = "https://script.google.com/macros/s/AKfycbzpmYF3QzowoErAM4VbP3R
 let tgMap          = null;
 let tgMarkers      = {};
 let tgAssets       = [];
+window._tgAssets   = tgAssets; // expose to other modules
 let tgAutoRefresh  = true;
 let tgCountdown    = 30;
 let tgCountdownInt = null;
@@ -2651,6 +2664,7 @@ async function loadAssets() {
   try {
     const data = await tgFetch("assets");
     tgAssets = Array.isArray(data) ? data : [];
+    window._tgAssets = tgAssets;
     if (!tgAssets.length) throw new Error("No vehicles found");
     tgStatus(`✅ ${tgAssets.length} vehicles`, false);
     renderAssetList(tgAssets);
@@ -2667,6 +2681,7 @@ async function doRefresh() {
   try {
     const data = await tgFetch("assets");
     tgAssets = Array.isArray(data) ? data : [];
+    window._tgAssets = tgAssets;
     tgStatus(`✅ ${tgAssets.length} vehicles`, false);
     renderAssetList(tgAssets);
     if (tgMapReady) renderMapMarkers(tgAssets);
