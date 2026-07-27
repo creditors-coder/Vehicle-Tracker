@@ -1323,7 +1323,6 @@ let vehicles=[], drivers=[], serviceRecords=[];
 let unsubV=null, unsubD=null, unsubS=null;
 let fuelTabsLoaded=false, fuelDeptFilter="";
 let fuelData={vehicles:[],monthly:[],deptSummary:[],sheetTab:""};
-window._fuelData = fuelData;
 const WARN_DAYS=30;
 const SHEET_ID="1PMoNZOLaYsHDRCeweE4jGV9OpoZ9RFTpMxN1yqTFI4w";
 
@@ -1944,7 +1943,7 @@ function renderDashboard() {
 
   // ── Fuel by Department ──
   const fuelDepts = document.getElementById("db-fuel-depts");
-  const _fd = window._fuelData || fuelData;
+  const _fd = window._fuelData || {};
   if (_fd && _fd.vehicles && _fd.vehicles.length) {
     const depts = {};
     _fd.vehicles.forEach(v => {
@@ -2378,6 +2377,7 @@ window._syncGoogleSheet = window.syncGoogleSheet = async () => {
     }
 
     fuelData={vehicles:fuelVehicles,monthly,deptSummary,sheetTab,sheetDate};
+    window._fuelData=fuelData;
     renderFuel();
     const syncMsg = sheetDate
       ? `Sheet updated: ${sheetDate} · Synced: ${new Date().toLocaleTimeString("en-ZA")}`
@@ -2489,6 +2489,9 @@ function renderFuel() {
     return`<tr><td><span class="rp">${v.reg||"—"}</span></td><td style="font-size:0.82rem">${v.vehicle||"—"}</td><td>${v.driver||"—"}</td><td><span class="dc" style="color:${col};border-color:${col}33">${v.dept||"—"}</span></td><td style="font-family:var(--mono);color:${v.spend>0?"var(--success)":"var(--text-sub)"}">R${v.spend.toLocaleString("en-ZA",{minimumFractionDigits:2})}</td><td style="font-family:var(--mono)">R${v.limit.toLocaleString("en-ZA",{minimumFractionDigits:2})}</td><td style="font-family:var(--mono)">${v.mileage>0?v.mileage.toLocaleString("en-ZA"):"—"}</td><td style="min-width:150px">${v.limit>0?`<div style="display:flex;align-items:center;gap:0.5rem"><span style="font-size:0.75rem;font-family:var(--mono);min-width:2.8rem;color:${pct>100?"var(--danger)":pct>75?"var(--warn)":"var(--text)"}">${pctDisplay}</span><div class="flb" style="flex:1"><div class="flf ${pctClass}" style="width:${barWidth}%"></div></div>${overLimit}</div>`:"—"}</td></tr>`;
   }).join("");
 }
+  // Notify dashboard
+  try { if(typeof renderDashboard==="function") setTimeout(renderDashboard, 50); } catch(e){}
+
 
 window._exportFuelExcel = window.exportFuelExcel = () => {
   if(!fuelData.vehicles.length){alert("No fuel data to export.");return;}
@@ -2686,6 +2689,7 @@ async function doRefresh() {
     renderAssetList(tgAssets);
     if (tgMapReady) renderMapMarkers(tgAssets);
     updateLastRefresh();
+    try { if(typeof renderDashboard==="function") renderDashboard(); } catch(e){}
   } catch(e) {
     tgStatus(`⚠️ ${e.message}`, false);
   }
