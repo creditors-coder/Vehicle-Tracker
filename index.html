@@ -618,6 +618,78 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
 .ins-badge.pass{background:var(--ok-dim);color:var(--ok)}
 .ins-badge.issue{background:var(--warn-dim);color:var(--warn)}
 .ins-badge.fail{background:var(--danger-dim);color:var(--danger)}
+
+/* ══ DASHBOARD ══════════════════════════ */
+.db-grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:.85rem}
+.db-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:.85rem}
+.db-fuel-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.85rem}
+
+/* Small stat tiles */
+.db-tile{
+  background:var(--surf);border:1px solid var(--border);
+  border-radius:14px;padding:1.1rem 1.15rem;
+  position:relative;overflow:hidden;cursor:pointer;
+  transition:transform .15s,box-shadow .15s;
+}
+.db-tile:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.db-tile::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.db-tile-red::before{background:linear-gradient(90deg,#e03a2f,#ff6b5b)}
+.db-tile-blue::before{background:linear-gradient(90deg,#4a7fff,#7aa3ff)}
+.db-tile-green::before{background:linear-gradient(90deg,#22c55e,#4ade80)}
+.db-tile-purple::before{background:linear-gradient(90deg,#7b3fa0,#a855f7)}
+.db-tile-icon{font-size:1.5rem;margin-bottom:.5rem;display:block}
+.db-tile-val{font-size:2.4rem;font-weight:800;font-family:var(--mono);line-height:1;margin-bottom:.25rem}
+.db-tile-red .db-tile-val{color:#ff7b6b}
+.db-tile-blue .db-tile-val{color:#7aa3ff}
+.db-tile-green .db-tile-val{color:#4ade80}
+.db-tile-purple .db-tile-val{color:#c084fc}
+.db-tile-lbl{font-size:.72rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.db-tile-sub{font-size:.7rem;color:var(--sub);margin-top:.2rem}
+.db-tile-arrow{position:absolute;bottom:.85rem;right:.9rem;color:var(--sub);font-size:.85rem;transition:color .15s}
+.db-tile:hover .db-tile-arrow{color:var(--text)}
+
+/* Wide compliance tiles */
+.db-tile-wide{
+  background:var(--surf);border:1px solid var(--border);
+  border-radius:14px;padding:1.15rem 1.25rem;
+  position:relative;overflow:hidden;cursor:pointer;
+  transition:transform .15s,box-shadow .15s;
+}
+.db-tile-wide:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.db-tile-warn{border-top:3px solid var(--warn)}
+.db-tile-danger{border-top:3px solid var(--danger)}
+.db-tw-lbl{font-size:.7rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.3rem}
+.db-tw-val{font-size:2.8rem;font-weight:800;font-family:var(--mono);line-height:1;margin-bottom:.2rem}
+.db-tile-warn .db-tw-val{color:var(--warn)}
+.db-tile-danger .db-tw-val{color:var(--danger)}
+.db-tw-sub{font-size:.72rem;color:var(--muted);margin-bottom:.75rem}
+.db-big-icon{font-size:2.5rem;opacity:.15}
+.db-progress-wrap{height:5px;background:var(--border);border-radius:3px;margin:.75rem 0 .5rem;overflow:hidden}
+.db-progress-bar{height:100%;border-radius:3px;transition:width .6s ease}
+.db-progress-bar.warn{background:linear-gradient(90deg,var(--warn),#fbbf24)}
+.db-progress-bar.danger{background:linear-gradient(90deg,var(--danger),#f87171)}
+.db-tw-foot{font-size:.7rem;color:var(--sub)}
+
+/* Fuel department tiles */
+.db-fuel-tile{
+  background:var(--surf);border:1px solid var(--border);
+  border-radius:14px;padding:1rem 1.15rem;
+  transition:transform .15s;
+}
+.db-fuel-tile:hover{transform:translateY(-2px)}
+.db-fuel-dept{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem}
+.db-fuel-amt{font-size:1.6rem;font-weight:800;font-family:var(--mono);line-height:1;margin-bottom:.25rem;color:var(--ok)}
+.db-fuel-veh{font-size:.7rem;color:var(--muted)}
+.db-fuel-bar-wrap{height:4px;background:var(--border);border-radius:2px;margin-top:.65rem;overflow:hidden}
+.db-fuel-bar-fill{height:100%;border-radius:2px;background:var(--ok)}
+
+@media(max-width:768px){
+  .db-grid-4{grid-template-columns:1fr 1fr;gap:.5rem}
+  .db-grid-2{grid-template-columns:1fr;gap:.5rem}
+  .db-tile-val{font-size:1.8rem}
+  .db-tw-val{font-size:2rem}
+  .db-tile{padding:.85rem .9rem}
+}
 </style>
 </head>
 <body>
@@ -727,19 +799,91 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
   <!-- MAIN -->
   <main id="main">
 
-    <!-- DASHBOARD -->
+        <!-- DASHBOARD -->
     <section id="sec-dashboard" class="sec active">
       <div class="sh">
         <div><h2>Dashboard</h2><div class="sh-sub" id="today-date"></div></div>
       </div>
-      <div class="sg">
-        <div class="sc cr"><div class="sv" id="st-total">0</div><div class="sl">Total Vehicles</div></div>
-        <div class="sc co"><div class="sv" id="st-ok">0</div><div class="sl">All Good</div></div>
-        <div class="sc cw"><div class="sv" id="st-warn">0</div><div class="sl">Due Soon</div></div>
-        <div class="sc cd"><div class="sv" id="st-over">0</div><div class="sl">Overdue</div></div>
+
+      <!-- Row 1: Fleet Overview -->
+      <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--sub);margin-bottom:.6rem">Fleet Overview</div>
+      <div class="db-grid-4" style="margin-bottom:1.25rem">
+        <div class="db-tile db-tile-red" id="db-vehicles" onclick="navTo('vehicles',document.querySelector('.nav-a[onclick*=vehicles]'))">
+          <div class="db-tile-icon">🚘</div>
+          <div class="db-tile-val" id="db-total-vehicles">0</div>
+          <div class="db-tile-lbl">Total Vehicles</div>
+          <div class="db-tile-arrow">→</div>
+        </div>
+        <div class="db-tile db-tile-blue" id="db-drivers" onclick="navTo('drivers',document.querySelector('.nav-a[onclick*=drivers]'))">
+          <div class="db-tile-icon">👤</div>
+          <div class="db-tile-val" id="db-total-drivers">0</div>
+          <div class="db-tile-lbl">Total Drivers</div>
+          <div class="db-tile-arrow">→</div>
+        </div>
+        <div class="db-tile db-tile-green" id="db-driving">
+          <div class="db-tile-icon">🟢</div>
+          <div class="db-tile-val" id="db-total-driving">—</div>
+          <div class="db-tile-lbl">Driving Now</div>
+          <div class="db-tile-sub" id="db-total-parked">— parked</div>
+        </div>
+        <div class="db-tile db-tile-purple" id="db-inspections" onclick="navTo('inspect',document.querySelector('.nav-a[onclick*=inspect]'))">
+          <div class="db-tile-icon">📋</div>
+          <div class="db-tile-val" id="db-insp-due">0</div>
+          <div class="db-tile-lbl">Inspections Due</div>
+          <div class="db-tile-arrow">→</div>
+        </div>
       </div>
-      <div class="alt">Active Alerts</div>
-      <div id="dash-alerts" class="al"><p class="es">Loading...</p></div>
+
+      <!-- Row 2: Compliance -->
+      <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--sub);margin-bottom:.6rem">Compliance</div>
+      <div class="db-grid-2" style="margin-bottom:1.25rem">
+        <div class="db-tile-wide db-tile-warn" onclick="navTo('vehicles',document.querySelector('.nav-a[onclick*=vehicles]'))">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <div class="db-tw-lbl">🔧 Services Due</div>
+              <div class="db-tw-val" id="db-services-due">0</div>
+              <div class="db-tw-sub" id="db-services-overdue"></div>
+            </div>
+            <div class="db-big-icon">🔧</div>
+          </div>
+          <div class="db-progress-wrap" id="db-service-bar-wrap">
+            <div class="db-progress-bar warn" id="db-service-bar" style="width:0%"></div>
+          </div>
+          <div class="db-tw-foot" id="db-service-foot"></div>
+        </div>
+        <div class="db-tile-wide db-tile-danger" onclick="navTo('vehicles',document.querySelector('.nav-a[onclick*=vehicles]'))">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <div class="db-tw-lbl">📋 Licences Due</div>
+              <div class="db-tw-val" id="db-licences-due">0</div>
+              <div class="db-tw-sub" id="db-licences-overdue"></div>
+            </div>
+            <div class="db-big-icon">📋</div>
+          </div>
+          <div class="db-progress-wrap" id="db-licence-bar-wrap">
+            <div class="db-progress-bar danger" id="db-licence-bar" style="width:0%"></div>
+          </div>
+          <div class="db-tw-foot" id="db-licence-foot"></div>
+        </div>
+      </div>
+
+      <!-- Row 3: Fuel by Department -->
+      <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--sub);margin-bottom:.6rem">Fuel Spend — Current Month</div>
+      <div class="db-fuel-row" style="margin-bottom:1.25rem" id="db-fuel-depts">
+        <div class="db-fuel-tile" style="color:var(--muted)">
+          <div class="db-tile-icon" style="font-size:1.5rem">⛽</div>
+          <div style="font-size:.8rem">Sync Fuel Tracker to see department totals</div>
+        </div>
+      </div>
+
+      <!-- Row 4: Recent Activity -->
+      <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--sub);margin-bottom:.6rem">Recent Inspections</div>
+      <div class="tw" id="db-recent-inspections">
+        <table class="dt">
+          <thead><tr><th>Date</th><th>Vehicle</th><th>Inspector</th><th>Result</th></tr></thead>
+          <tbody id="db-inspect-tbody"><tr><td colspan="4" class="es">No inspections yet</td></tr></tbody>
+        </table>
+      </div>
     </section>
 
     <!-- VEHICLES -->
@@ -1740,14 +1884,106 @@ function alertHTML(a) {
    RENDER FUNCTIONS
 ══════════════════════════════════════ */
 function renderDashboard() {
-  const alerts=buildAlerts();
-  document.getElementById("st-total").textContent   = vehicles.length;
-  document.getElementById("st-ok").textContent      = vehicles.filter(v=>vStatus(v)==="ok").length;
-  document.getElementById("st-warn").textContent    = vehicles.filter(v=>vStatus(v)==="warn").length;
-  document.getElementById("st-over").textContent = vehicles.filter(v=>vStatus(v)==="danger").length;
-  const badge=document.getElementById("ab");
-  badge.style.display=alerts.length?"inline":"none"; badge.textContent=alerts.length;
-  document.getElementById("dash-alerts").innerHTML=alerts.length?alerts.map(alertHTML).join(""):'<p class="es">No alerts right now ✅</p>';
+  const total   = vehicles.length;
+  const today   = new Date(); today.setHours(0,0,0,0);
+
+  // ── Vehicles & Drivers ──
+  document.getElementById("db-total-vehicles").textContent = total;
+  document.getElementById("db-total-drivers").textContent  = drivers.length;
+
+  // ── Services Due ──
+  const servicesDue     = vehicles.filter(v => { const d=daysUntil(v.serviceDate); return d!==null && d<=30 && d>=0; }).length;
+  const servicesOverdue = vehicles.filter(v => { const d=daysUntil(v.serviceDate); return d!==null && d<0; }).length;
+  document.getElementById("db-services-due").textContent     = servicesDue + servicesOverdue;
+  document.getElementById("db-services-overdue").textContent = servicesOverdue > 0 ? `${servicesOverdue} overdue` : `${servicesDue} due within 30 days`;
+  const svcPct = total > 0 ? Math.min(((servicesDue+servicesOverdue)/total)*100, 100) : 0;
+  document.getElementById("db-service-bar").style.width = svcPct + "%";
+  document.getElementById("db-service-foot").textContent = `${total - servicesDue - servicesOverdue} vehicles OK`;
+
+  // ── Licences Due ──
+  const licencesDue     = vehicles.filter(v => { const d=daysUntil(v.licenceExpiry); return d!==null && d<=30 && d>=0; }).length;
+  const licencesOverdue = vehicles.filter(v => { const d=daysUntil(v.licenceExpiry); return d!==null && d<0; }).length;
+  document.getElementById("db-licences-due").textContent     = licencesDue + licencesOverdue;
+  document.getElementById("db-licences-overdue").textContent = licencesOverdue > 0 ? `${licencesOverdue} expired` : `${licencesDue} expiring within 30 days`;
+  const licPct = total > 0 ? Math.min(((licencesDue+licencesOverdue)/total)*100, 100) : 0;
+  document.getElementById("db-licence-bar").style.width = licPct + "%";
+  document.getElementById("db-licence-foot").textContent = `${total - licencesDue - licencesOverdue} vehicles OK`;
+
+  // ── Live Tracking: Driving vs Parked ──
+  if (typeof tgAssets !== "undefined" && tgAssets.length) {
+    const driving = tgAssets.filter(a => a.speedKmH > 0).length;
+    const parked  = tgAssets.length - driving;
+    document.getElementById("db-total-driving").textContent = driving;
+    document.getElementById("db-total-parked").textContent  = parked + " parked";
+  } else {
+    document.getElementById("db-total-driving").textContent = "—";
+    document.getElementById("db-total-parked").textContent  = "Open Live Tracking";
+  }
+
+  // ── Inspections Due ──
+  const dayOfWeek    = today.getDay();
+  const daysSinceMon = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const lastMonday   = new Date(today); lastMonday.setDate(today.getDate() - daysSinceMon);
+  const companyVehs  = vehicles.filter(v => v.vtype !== "private");
+  const inspectedIds = new Set(
+    inspections.filter(i => new Date(i.date) >= lastMonday).map(i => i.vehicleId)
+  );
+  const inspDue = companyVehs.filter(v => !inspectedIds.has(v.id)).length;
+  document.getElementById("db-insp-due").textContent = inspDue;
+
+  // ── Fuel by Department ──
+  const fuelDepts = document.getElementById("db-fuel-depts");
+  if (fuelData && fuelData.vehicles && fuelData.vehicles.length) {
+    const depts = {};
+    fuelData.vehicles.forEach(v => {
+      if (!v.dept || typeof v.dept !== "string" || !isNaN(v.dept)) return;
+      if (!depts[v.dept]) depts[v.dept] = { spend:0, count:0 };
+      depts[v.dept].spend += v.spend;
+      depts[v.dept].count++;
+    });
+    const grandTotal = Object.values(depts).reduce((s,d) => s+d.spend, 0) || 1;
+    const deptColors = { Finance:"#4a7fff", Sales:"#22c55e", Technical:"#f59e0b" };
+    const sorted = Object.entries(depts).sort((a,b) => b[1].spend - a[1].spend);
+    fuelDepts.innerHTML = sorted.map(([dept, d]) => {
+      const pct = Math.min((d.spend/grandTotal)*100, 100);
+      const col = deptColors[dept] || "#8899bb";
+      return `<div class="db-fuel-tile">
+        <div class="db-fuel-dept" style="color:${col}">${dept}</div>
+        <div class="db-fuel-amt">R${d.spend.toLocaleString("en-ZA",{minimumFractionDigits:0,maximumFractionDigits:0})}</div>
+        <div class="db-fuel-veh">${d.count} vehicle${d.count!==1?"s":""} · ${pct.toFixed(0)}% of total</div>
+        <div class="db-fuel-bar-wrap"><div class="db-fuel-bar-fill" style="width:${pct}%;background:${col}"></div></div>
+      </div>`;
+    }).join("");
+  } else {
+    fuelDepts.innerHTML = `<div class="db-fuel-tile" style="grid-column:1/-1;text-align:center;color:var(--sub)">
+      <div style="font-size:1.5rem;margin-bottom:.5rem">⛽</div>
+      <div style="font-size:.82rem">Go to Fuel Tracker and click Sync to load department totals</div>
+    </div>`;
+  }
+
+  // ── Recent Inspections ──
+  const recent = inspections.slice(0, 5);
+  const tbody  = document.getElementById("db-inspect-tbody");
+  if (!tbody) return;
+  if (!recent.length) {
+    tbody.innerHTML = '<tr><td colspan="4" class="es">No inspections yet</td></tr>';
+  } else {
+    tbody.innerHTML = recent.map(r => {
+      const v   = vehicles.find(x => x.id === r.vehicleId);
+      const cls = r.overall==="pass"?"pass":r.overall==="issue"?"issue":"fail";
+      return `<tr>
+        <td>${r.date||"—"}</td>
+        <td><span class="rp">${v?v.reg:"—"}</span></td>
+        <td>${r.inspector||"—"}</td>
+        <td><span class="ins-badge ${cls}">${r.overall==="pass"?"✅ Pass":r.overall==="issue"?"⚠️ Issues":"❌ Fail"}</span></td>
+      </tr>`;
+    }).join("");
+  }
+
+  // ── Alert badge (keep for nav) ──
+  const alerts = buildAlerts();
+  const badge  = document.getElementById("ab");
+  if (badge) { badge.style.display = alerts.length?"inline":"none"; badge.textContent = alerts.length; }
 }
 
 function renderAlerts() {
