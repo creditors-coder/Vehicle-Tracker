@@ -1777,6 +1777,7 @@ function showLogin() {
    NAVIGATION
 ══════════════════════════════════════ */
 window._navTo = window.navTo = (section, el) => {
+  if(section==="dashboard") setTimeout(renderDashboard, 200);
   document.querySelectorAll(".nav-a").forEach(n => n.classList.remove("on"));
   el.classList.add("on");
   document.querySelectorAll(".sec").forEach(s => {
@@ -1892,37 +1893,36 @@ function alertHTML(a) {
    RENDER FUNCTIONS
 ══════════════════════════════════════ */
 function renderDashboard() {
-  const total   = vehicles.length;
-  const today   = new Date(); today.setHours(0,0,0,0);
+  const total = vehicles.length;
+  const today = new Date(); today.setHours(0,0,0,0);
 
   // ── Vehicles & Drivers ──
   document.getElementById("db-total-vehicles").textContent = total;
   document.getElementById("db-total-drivers").textContent  = drivers.length;
 
   // ── Services Due ──
-  const servicesDue     = vehicles.filter(v => { const d=daysUntil(v.serviceDate); return d!==null && d<=30 && d>=0; }).length;
-  const servicesOverdue = vehicles.filter(v => { const d=daysUntil(v.serviceDate); return d!==null && d<0; }).length;
-  document.getElementById("db-services-due").textContent     = servicesDue + servicesOverdue;
-  document.getElementById("db-services-overdue").textContent = servicesOverdue > 0 ? `${servicesOverdue} overdue` : `${servicesDue} due within 30 days`;
-  const svcPct = total > 0 ? Math.min(((servicesDue+servicesOverdue)/total)*100, 100) : 0;
-  document.getElementById("db-service-bar").style.width = svcPct + "%";
-  document.getElementById("db-service-foot").textContent = `${total - servicesDue - servicesOverdue} vehicles OK`;
+  const svcDue  = vehicles.filter(v=>{const d=daysUntil(v.serviceDate);return d!==null&&d<=30&&d>=0;}).length;
+  const svcOver = vehicles.filter(v=>{const d=daysUntil(v.serviceDate);return d!==null&&d<0;}).length;
+  document.getElementById("db-services-due").textContent     = svcDue + svcOver;
+  document.getElementById("db-services-overdue").textContent = svcOver>0 ? svcOver+" overdue" : svcDue+" due within 30 days";
+  const svcPct = total>0 ? Math.min(((svcDue+svcOver)/total)*100,100) : 0;
+  document.getElementById("db-service-bar").style.width = svcPct+"%";
+  document.getElementById("db-service-foot").textContent = (total-svcDue-svcOver)+" vehicles OK";
 
   // ── Licences Due ──
-  const licencesDue     = vehicles.filter(v => { const d=daysUntil(v.licenceExpiry); return d!==null && d<=30 && d>=0; }).length;
-  const licencesOverdue = vehicles.filter(v => { const d=daysUntil(v.licenceExpiry); return d!==null && d<0; }).length;
-  document.getElementById("db-licences-due").textContent     = licencesDue + licencesOverdue;
-  document.getElementById("db-licences-overdue").textContent = licencesOverdue > 0 ? `${licencesOverdue} expired` : `${licencesDue} expiring within 30 days`;
-  const licPct = total > 0 ? Math.min(((licencesDue+licencesOverdue)/total)*100, 100) : 0;
-  document.getElementById("db-licence-bar").style.width = licPct + "%";
-  document.getElementById("db-licence-foot").textContent = `${total - licencesDue - licencesOverdue} vehicles OK`;
+  const licDue  = vehicles.filter(v=>{const d=daysUntil(v.licenceExpiry);return d!==null&&d<=30&&d>=0;}).length;
+  const licOver = vehicles.filter(v=>{const d=daysUntil(v.licenceExpiry);return d!==null&&d<0;}).length;
+  document.getElementById("db-licences-due").textContent     = licDue + licOver;
+  document.getElementById("db-licences-overdue").textContent = licOver>0 ? licOver+" expired" : licDue+" expiring within 30 days";
+  const licPct = total>0 ? Math.min(((licDue+licOver)/total)*100,100) : 0;
+  document.getElementById("db-licence-bar").style.width = licPct+"%";
+  document.getElementById("db-licence-foot").textContent = (total-licDue-licOver)+" vehicles OK";
 
-  // ── Live Tracking: Driving vs Parked ──
-  // tgAssets lives in the tracking module - access via window
-  const assets = window._tgAssets || [];
-  if (assets.length) {
-    const driving = assets.filter(a => a.speedKmH > 0).length;
-    const parked  = assets.length - driving;
+  // ── Driving / Parked — read from TG asset list tiles in DOM ──
+  const tiles   = document.querySelectorAll(".vtile");
+  const driving = document.querySelectorAll(".vtile-bar.on").length;
+  const parked  = tiles.length - driving;
+  if (tiles.length > 0) {
     document.getElementById("db-total-driving").textContent = driving;
     document.getElementById("db-total-parked").textContent  = parked;
   } else {
@@ -1931,56 +1931,81 @@ function renderDashboard() {
   }
 
   // ── Inspections Due ──
-  const dayOfWeek    = today.getDay();
-  const daysSinceMon = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  const lastMonday   = new Date(today); lastMonday.setDate(today.getDate() - daysSinceMon);
-  const companyVehs  = vehicles.filter(v => v.vtype !== "private");
-  const inspectedIds = new Set(
-    inspections.filter(i => new Date(i.date) >= lastMonday).map(i => i.vehicleId)
-  );
-  const inspDue = companyVehs.filter(v => !inspectedIds.has(v.id)).length;
-  document.getElementById("db-insp-due").textContent = inspDue;
+  const daysSinceMon = today.getDay()===0 ? 6 : today.getDay()-1;
+  const lastMonday   = new Date(today); lastMonday.setDate(today.getDate()-daysSinceMon);
+  const companyVehs  = vehicles.filter(v=>v.vtype!=="private");
+  const inspectedIds = new Set(inspections.filter(i=>new Date(i.date)>=lastMonday).map(i=>i.vehicleId));
+  document.getElementById("db-insp-due").textContent = companyVehs.filter(v=>!inspectedIds.has(v.id)).length;
 
-  // ── Fuel by Department ──
+  // ── Fuel by Department — read from fuel dept table in DOM ──
   const fuelDepts = document.getElementById("db-fuel-depts");
-  const _fd = window._fuelData || {};
-  if (_fd && _fd.vehicles && _fd.vehicles.length) {
-    const depts = {};
-    _fd.vehicles.forEach(v => {
-      if (!v.dept || typeof v.dept !== "string" || !isNaN(v.dept)) return;
-      if (!depts[v.dept]) depts[v.dept] = { spend:0, count:0 };
-      depts[v.dept].spend += v.spend;
-      depts[v.dept].count++;
+  const deptRows  = document.querySelectorAll("#fuel-dept-tbody tr");
+  const deptColors= {Finance:"#4a7fff", Sales:"#22c55e", Technical:"#f59e0b"};
+
+  if (deptRows.length && deptRows[0].cells.length > 1 && !deptRows[0].querySelector(".es")) {
+    const depts = [];
+    deptRows.forEach(row => {
+      const cells = row.cells;
+      if (!cells || cells.length < 3) return;
+      const dept  = cells[0].textContent.trim();
+      const spend = cells[2].textContent.trim();
+      const pct   = cells[3] ? cells[3].textContent.trim() : "";
+      if (dept && spend && dept !== "—") depts.push({dept, spend, pct});
     });
-    const grandTotal = Object.values(depts).reduce((s,d) => s+d.spend, 0) || 1;
-    const deptColors = { Finance:"#4a7fff", Sales:"#22c55e", Technical:"#f59e0b" };
-    const sorted = Object.entries(depts).sort((a,b) => b[1].spend - a[1].spend);
-    fuelDepts.innerHTML = sorted.map(([dept, d]) => {
-      const pct = Math.min((d.spend/grandTotal)*100, 100);
-      const col = deptColors[dept] || "#8899bb";
-      return `<div class="db-fuel-tile">
-        <div class="db-fuel-dept" style="color:${col}">${dept}</div>
-        <div class="db-fuel-amt">R${d.spend.toLocaleString("en-ZA",{minimumFractionDigits:0,maximumFractionDigits:0})}</div>
-        <div class="db-fuel-veh">${d.count} vehicle${d.count!==1?"s":""} · ${pct.toFixed(0)}% of total</div>
-        <div class="db-fuel-bar-wrap"><div class="db-fuel-bar-fill" style="width:${pct}%;background:${col}"></div></div>
-      </div>`;
-    }).join("");
-  } else {
-    fuelDepts.innerHTML = `<div class="db-fuel-tile" style="grid-column:1/-1;text-align:center;color:var(--sub)">
-      <div style="font-size:1.5rem;margin-bottom:.5rem">⛽</div>
-      <div style="font-size:.82rem">Go to Fuel Tracker and click Sync to load department totals</div>
-    </div>`;
+    if (depts.length) {
+      fuelDepts.innerHTML = depts.map(d => {
+        const col   = deptColors[d.dept] || "#8899bb";
+        const pctNum= parseFloat(d.pct) || 0;
+        return `<div class="db-fuel-tile">
+          <div class="db-fuel-dept" style="color:${col}">${d.dept}</div>
+          <div class="db-fuel-amt">${d.spend}</div>
+          <div class="db-fuel-veh">${d.pct} of total fleet spend</div>
+          <div class="db-fuel-bar-wrap"><div class="db-fuel-bar-fill" style="width:${Math.min(pctNum,100)}%;background:${col}"></div></div>
+        </div>`;
+      }).join("");
+      return;
+    }
   }
 
+  // Fallback — try fuelData directly  
+  if (typeof fuelData !== "undefined" && fuelData.vehicles && fuelData.vehicles.length) {
+    const dmap = {};
+    fuelData.vehicles.forEach(v=>{
+      if(!v.dept||typeof v.dept!=="string"||!isNaN(v.dept)) return;
+      if(!dmap[v.dept]) dmap[v.dept]={spend:0,count:0};
+      dmap[v.dept].spend+=v.spend; dmap[v.dept].count++;
+    });
+    const grand = Object.values(dmap).reduce((s,d)=>s+d.spend,0)||1;
+    const sorted= Object.entries(dmap).sort((a,b)=>b[1].spend-a[1].spend);
+    if (sorted.length) {
+      fuelDepts.innerHTML = sorted.map(([dept,d])=>{
+        const col = deptColors[dept]||"#8899bb";
+        const pct = Math.min((d.spend/grand)*100,100);
+        return `<div class="db-fuel-tile">
+          <div class="db-fuel-dept" style="color:${col}">${dept}</div>
+          <div class="db-fuel-amt">R${d.spend.toLocaleString("en-ZA",{minimumFractionDigits:0,maximumFractionDigits:0})}</div>
+          <div class="db-fuel-veh">${d.count} vehicle${d.count!==1?"s":""} · ${pct.toFixed(0)}% of total</div>
+          <div class="db-fuel-bar-wrap"><div class="db-fuel-bar-fill" style="width:${pct}%;background:${col}"></div></div>
+        </div>`;
+      }).join("");
+      return;
+    }
+  }
+
+  fuelDepts.innerHTML = `<div class="db-fuel-tile" style="grid-column:1/-1;text-align:center;color:var(--sub)">
+    <div style="font-size:1.5rem;margin-bottom:.5rem">⛽</div>
+    <div style="font-size:.82rem">Go to Fuel Tracker and click Sync to load department totals</div>
+  </div>`;
+
   // ── Recent Inspections ──
-  const recent = inspections.slice(0, 5);
-  const tbody  = document.getElementById("db-inspect-tbody");
+  const tbody = document.getElementById("db-inspect-tbody");
   if (!tbody) return;
+  const recent = inspections.slice(0,5);
   if (!recent.length) {
-    tbody.innerHTML = '<tr><td colspan="4" class="es">No inspections yet</td></tr>';
+    tbody.innerHTML='<tr><td colspan="4" class="es">No inspections yet</td></tr>';
   } else {
-    tbody.innerHTML = recent.map(r => {
-      const v   = vehicles.find(x => x.id === r.vehicleId);
+    tbody.innerHTML = recent.map(r=>{
+      const v   = vehicles.find(x=>x.id===r.vehicleId);
       const cls = r.overall==="pass"?"pass":r.overall==="issue"?"issue":"fail";
       return `<tr>
         <td>${r.date||"—"}</td>
@@ -1991,10 +2016,10 @@ function renderDashboard() {
     }).join("");
   }
 
-  // ── Alert badge (keep for nav) ──
+  // ── Alert badge ──
   const alerts = buildAlerts();
   const badge  = document.getElementById("ab");
-  if (badge) { badge.style.display = alerts.length?"inline":"none"; badge.textContent = alerts.length; }
+  if (badge) { badge.style.display=alerts.length?"inline":"none"; badge.textContent=alerts.length; }
 }
 
 function renderAlerts() {
