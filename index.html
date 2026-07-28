@@ -987,10 +987,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
               <span class="db-week-lbl">⛽ Fuel synced</span>
               <span class="db-week-val ok" id="db-week-fuel">—</span>
             </div>
-            <div class="db-week-row">
-              <span class="db-week-lbl">🚗 Fleet utilisation</span>
-              <span class="db-week-val" id="db-week-util">—</span>
-            </div>
+
           </div>
         </div>
 
@@ -1003,14 +1000,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
         </div>
       </div>
 
-      <!-- Row 5: Recent Inspections -->
-      <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--sub);margin-bottom:.6rem">Recent Inspections</div>
-      <div class="tw" id="db-recent-inspections">
-        <table class="dt">
-          <thead><tr><th>Date</th><th>Vehicle</th><th>Inspector</th><th>Result</th></tr></thead>
-          <tbody id="db-inspect-tbody"><tr><td colspan="4" class="es">No inspections yet</td></tr></tbody>
-        </table>
-      </div>
+
     </section>
 
     <!-- VEHICLES -->
@@ -2160,10 +2150,7 @@ function renderDashboard() {
   const fuelSynced = fuelData && fuelData.vehicles && fuelData.vehicles.length > 0;
   setVal("db-week-fuel", fuelSynced ? "✅ "+fuelData.vehicles.length+" vehicles" : "Not synced", fuelSynced?"ok":"");
 
-  // Fleet utilisation (inspected vehicles / total company vehicles this week)
-  const compVehs = vehicles.filter(v => v.vtype !== "private");
-  const util = compVehs.length > 0 ? Math.round((weekInsp.length / compVehs.length)*100) : 0;
-  setVal("db-week-util", util+"%", util>=80?"ok":util>=50?"warn":"danger");
+
 
   // ── Fuel Trend Chart ──
   const chartEl = document.getElementById("db-fuel-chart");
@@ -2197,14 +2184,7 @@ function renderDashboard() {
   } else if (chartEl && !(fuelData && fuelData.monthly && fuelData.monthly.length)) {
     chartEl.innerHTML = "<div style='color:var(--sub);font-size:.78rem;text-align:center;width:100%;padding-top:2rem'>Sync Fuel Tracker to see trend</div>";
   }
-
-  // ── Recent Inspections ──
-  const tbody = document.getElementById("db-inspect-tbody");
-  if (!tbody) return;
-  const recent = inspections.slice(0,5);
-  if (!recent.length) {
-    tbody.innerHTML='<tr><td colspan="4" class="es">No inspections yet</td></tr>';
-  } else {
+} else {
     tbody.innerHTML = recent.map(r=>{
       const v   = vehicles.find(x=>x.id===r.vehicleId);
       const cls = r.overall==="pass"?"pass":r.overall==="issue"?"issue":"fail";
