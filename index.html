@@ -2714,8 +2714,25 @@ function renderFuel() {
     const overLimit=pct>100?`<span style="font-size:0.68rem;background:var(--danger-dim);color:var(--danger);padding:2px 6px;border-radius:4px;font-weight:700;margin-left:4px">OVER</span>`:"";
     return`<tr><td><span class="rp">${v.reg||"—"}</span></td><td style="font-size:0.82rem">${v.vehicle||"—"}</td><td>${v.driver||"—"}</td><td><span class="dc" style="color:${col};border-color:${col}33">${v.dept||"—"}</span></td><td style="font-family:var(--mono);color:${v.spend>0?"var(--success)":"var(--text-sub)"}">R${v.spend.toLocaleString("en-ZA",{minimumFractionDigits:2})}</td><td style="font-family:var(--mono)">R${v.limit.toLocaleString("en-ZA",{minimumFractionDigits:2})}</td><td style="font-family:var(--mono)">${v.mileage>0?v.mileage.toLocaleString("en-ZA"):"—"}</td><td style="min-width:150px">${v.limit>0?`<div style="display:flex;align-items:center;gap:0.5rem"><span style="font-size:0.75rem;font-family:var(--mono);min-width:2.8rem;color:${pct>100?"var(--danger)":pct>75?"var(--warn)":"var(--text)"}">${pctDisplay}</span><div class="flb" style="flex:1"><div class="flf ${pctClass}" style="width:${barWidth}%"></div></div>${overLimit}</div>`:"—"}</td></tr>`;
   }).join("");
-  // Refresh dashboard after fuel loads
-  renderDashboard();
+
+  // Update dashboard fuel tiles directly
+  try {
+    const _fmt = n => 'R'+n.toLocaleString('en-ZA',{minimumFractionDigits:0,maximumFractionDigits:0});
+    const _allV = fuelData.vehicles || [];
+    const _grand = _allV.reduce((s,v)=>s+v.spend,0) || 1;
+    ['Technical','Sales','Finance'].forEach(function(dept){
+      const key  = dept.toLowerCase();
+      const vehs = _allV.filter(function(v){return v.dept===dept;});
+      const spend= vehs.reduce(function(s,v){return s+v.spend;},0);
+      const pct  = Math.min((spend/_grand)*100,100);
+      const el=document.getElementById('db-fuel-'+key); if(el) el.textContent=_fmt(spend);
+      const sb=document.getElementById('db-fuel-'+key+'-sub'); if(sb) sb.textContent=vehs.length+' vehicle'+(vehs.length!==1?'s':'')+' · '+pct.toFixed(0)+'% of total';
+      const br=document.getElementById('db-fuel-'+key+'-bar'); if(br) br.style.width=pct+'%';
+    });
+    const tEl=document.getElementById('db-fuel-total'); if(tEl) tEl.textContent=_fmt(_grand);
+    const tSb=document.getElementById('db-fuel-total-sub'); if(tSb) tSb.textContent=_allV.length+' vehicles · 100% total';
+    const tBr=document.getElementById('db-fuel-total-bar'); if(tBr) tBr.style.width='100%';
+  } catch(e){}
 }
   // Notify dashboard
   try { if(typeof renderDashboard==="function") setTimeout(renderDashboard, 50); } catch(e){}
