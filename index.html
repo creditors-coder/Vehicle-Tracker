@@ -721,6 +721,31 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
   .db-tw-val{font-size:2rem}
   .db-tile{padding:.85rem .9rem}
 }
+
+/* ── This Week Summary ── */
+.db-week-row{display:flex;align-items:center;justify-content:space-between;
+  padding:.3rem 0;border-bottom:1px solid var(--border)}
+.db-week-row:last-child{border-bottom:none}
+.db-week-lbl{font-size:.78rem;color:var(--muted)}
+.db-week-val{font-size:.82rem;font-weight:700;font-family:var(--mono)}
+.db-week-val.ok{color:var(--ok)}
+.db-week-val.warn{color:var(--warn)}
+.db-week-val.danger{color:var(--danger)}
+
+/* ── Fuel Chart ── */
+.db-bar-col{display:flex;flex-direction:column;align-items:center;flex:1;min-width:0;gap:4px}
+.db-bar-fill{width:100%;border-radius:4px 4px 0 0;background:linear-gradient(180deg,#22c55e,#16a34a);
+  transition:height .5s ease;min-height:2px;position:relative;}
+.db-bar-fill:hover .db-bar-tip{display:block}
+.db-bar-tip{display:none;position:absolute;top:-28px;left:50%;transform:translateX(-50%);
+  background:var(--surf2);border:1px solid var(--border);border-radius:4px;
+  padding:2px 6px;font-size:.65rem;white-space:nowrap;color:var(--text);z-index:10}
+.db-bar-lbl{font-size:.6rem;color:var(--sub);text-align:center;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;width:100%}
+
+@media(max-width:768px){
+  #db-row4{grid-template-columns:1fr!important}
+}
 </style>
 </head>
 <body>
@@ -913,7 +938,51 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
         </div>
       </div>
 
-      <!-- Row 4: Recent Activity -->
+      <!-- Row 4: This Week Summary + Fuel Trend -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.85rem;margin-bottom:1.25rem" id="db-row4">
+
+        <!-- This Week Summary -->
+        <div style="background:var(--surf);border:1px solid var(--border);border-radius:14px;padding:1.15rem 1.25rem">
+          <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--sub);margin-bottom:.85rem">📅 This Week Summary</div>
+          <div style="display:flex;flex-direction:column;gap:.6rem" id="db-week-summary">
+            <div class="db-week-row">
+              <span class="db-week-lbl">🔍 Inspections done</span>
+              <span class="db-week-val" id="db-week-insp">—</span>
+            </div>
+            <div class="db-week-row">
+              <span class="db-week-lbl">✅ Inspections passed</span>
+              <span class="db-week-val ok" id="db-week-insp-pass">—</span>
+            </div>
+            <div class="db-week-row">
+              <span class="db-week-lbl">⚠️ Issues found</span>
+              <span class="db-week-val warn" id="db-week-insp-issues">—</span>
+            </div>
+            <div style="border-top:1px solid var(--border);margin:.25rem 0"></div>
+            <div class="db-week-row">
+              <span class="db-week-lbl">🔧 Services this month</span>
+              <span class="db-week-val" id="db-week-services">—</span>
+            </div>
+            <div class="db-week-row">
+              <span class="db-week-lbl">⛽ Fuel synced</span>
+              <span class="db-week-val ok" id="db-week-fuel">—</span>
+            </div>
+            <div class="db-week-row">
+              <span class="db-week-lbl">🚗 Fleet utilisation</span>
+              <span class="db-week-val" id="db-week-util">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Fuel Trend Chart -->
+        <div style="background:var(--surf);border:1px solid var(--border);border-radius:14px;padding:1.15rem 1.25rem">
+          <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--sub);margin-bottom:.85rem">📈 Fuel Spend Trend</div>
+          <div id="db-fuel-chart" style="height:160px;display:flex;align-items:flex-end;gap:6px;padding-bottom:24px;position:relative">
+            <div style="color:var(--sub);font-size:.78rem;text-align:center;width:100%;padding-top:2rem">Sync Fuel Tracker to see trend</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 5: Recent Inspections -->
       <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--sub);margin-bottom:.6rem">Recent Inspections</div>
       <div class="tw" id="db-recent-inspections">
         <table class="dt">
@@ -2032,6 +2101,71 @@ function renderDashboard() {
     }
   } else {
     fuelDepts.innerHTML = "<div class='db-fuel-tile' style='grid-column:1/-1;text-align:center;color:var(--sub)'><div style='font-size:1.5rem;margin-bottom:.5rem'>⛽</div><div style='font-size:.82rem'>Go to Fuel Tracker and click Sync to load department totals</div></div>";
+  }
+
+  // ── This Week Summary ──
+  const weekStart = new Date(); weekStart.setHours(0,0,0,0);
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay() + (weekStart.getDay()===0?-6:1));
+  const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0,0,0,0);
+
+  // Inspections this week
+  const weekInsp       = inspections.filter(i => new Date(i.date) >= weekStart);
+  const weekInspPass   = weekInsp.filter(i => i.overall === "pass").length;
+  const weekInspIssues = weekInsp.filter(i => i.overall !== "pass").length;
+  const setVal = (id, val, cls) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = val;
+    el.className = "db-week-val" + (cls ? " "+cls : "");
+  };
+  setVal("db-week-insp",        weekInsp.length);
+  setVal("db-week-insp-pass",   weekInspPass,   weekInspPass>0?"ok":"");
+  setVal("db-week-insp-issues", weekInspIssues, weekInspIssues>0?"warn":"ok");
+
+  // Services this month
+  const monthServices = serviceRecords.filter(r => new Date(r.date) >= monthStart).length;
+  setVal("db-week-services", monthServices);
+
+  // Fuel sync status
+  const fuelSynced = fuelData && fuelData.vehicles && fuelData.vehicles.length > 0;
+  setVal("db-week-fuel", fuelSynced ? "✅ "+fuelData.vehicles.length+" vehicles" : "Not synced", fuelSynced?"ok":"");
+
+  // Fleet utilisation (inspected vehicles / total company vehicles this week)
+  const compVehs = vehicles.filter(v => v.vtype !== "private");
+  const util = compVehs.length > 0 ? Math.round((weekInsp.length / compVehs.length)*100) : 0;
+  setVal("db-week-util", util+"%", util>=80?"ok":util>=50?"warn":"danger");
+
+  // ── Fuel Trend Chart ──
+  const chartEl = document.getElementById("db-fuel-chart");
+  if (chartEl && fuelData && fuelData.monthly && fuelData.monthly.length > 0) {
+    // Get last 6 months
+    const validMonths = fuelData.monthly
+      .filter(m => m.month && isNaN(m.month) && m.spend > 0)
+      .slice(-6);
+
+    if (validMonths.length > 0) {
+      const maxSpend = Math.max(...validMonths.map(m => m.spend));
+      const chartH   = 140; // px
+
+      chartEl.innerHTML = validMonths.map(m => {
+        const barH   = maxSpend > 0 ? Math.max(Math.round((m.spend/maxSpend)*chartH), 4) : 4;
+        const amt    = "R"+Math.round(m.spend/1000)+"k";
+        const lbl    = m.month.length > 8 ? m.month.substring(0,8) : m.month;
+        const fullAmt= "R"+m.spend.toLocaleString("en-ZA",{minimumFractionDigits:0,maximumFractionDigits:0});
+        return "<div class='db-bar-col'>"
+          + "<div class='db-bar-fill' style='height:"+barH+"px' title='"+m.month+": "+fullAmt+"'>"
+          + "<div class='db-bar-tip'>"+fullAmt+"</div>"
+          + "</div>"
+          + "<div class='db-bar-lbl'>"+lbl+"</div>"
+          + "</div>";
+      }).join("");
+
+      // Add Y-axis label
+      const maxLabel = "R"+Math.round(maxSpend/1000)+"k";
+      chartEl.style.position = "relative";
+    }
+  } else if (chartEl && !(fuelData && fuelData.monthly && fuelData.monthly.length)) {
+    chartEl.innerHTML = "<div style='color:var(--sub);font-size:.78rem;text-align:center;width:100%;padding-top:2rem'>Sync Fuel Tracker to see trend</div>";
   }
 
   // ── Recent Inspections ──
