@@ -745,6 +745,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
 
 @media(max-width:768px){
   #db-row4{grid-template-columns:1fr!important}
+  #db-fuel-depts{grid-template-columns:1fr 1fr!important}
 }
 </style>
 </head>
@@ -929,12 +930,32 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
         </div>
       </div>
 
-      <!-- Row 3: Fuel by Department -->
-      <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--sub);margin-bottom:.6rem">Fuel Spend — Current Month</div>
-      <div class="db-fuel-row" style="margin-bottom:1.25rem" id="db-fuel-depts">
-        <div class="db-fuel-tile" style="color:var(--muted)">
-          <div class="db-tile-icon" style="font-size:1.5rem">⛽</div>
-          <div style="font-size:.8rem">Sync Fuel Tracker to see department totals</div>
+      <!-- Row 3: Fuel by Department — Fixed 4 tiles -->
+      <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--sub);margin-bottom:.6rem">⛽ Fuel Spend — Current Month</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.85rem;margin-bottom:1.25rem" id="db-fuel-depts">
+        <div class="db-fuel-tile" style="border-top:3px solid #f59e0b">
+          <div class="db-fuel-dept" style="color:#f59e0b">Technical</div>
+          <div class="db-fuel-amt" id="db-fuel-tech">—</div>
+          <div class="db-fuel-veh" id="db-fuel-tech-sub">Sync to load</div>
+          <div class="db-fuel-bar-wrap"><div class="db-fuel-bar-fill" id="db-fuel-tech-bar" style="background:#f59e0b;width:0%"></div></div>
+        </div>
+        <div class="db-fuel-tile" style="border-top:3px solid #22c55e">
+          <div class="db-fuel-dept" style="color:#22c55e">Sales</div>
+          <div class="db-fuel-amt" id="db-fuel-sales">—</div>
+          <div class="db-fuel-veh" id="db-fuel-sales-sub">Sync to load</div>
+          <div class="db-fuel-bar-wrap"><div class="db-fuel-bar-fill" id="db-fuel-sales-bar" style="background:#22c55e;width:0%"></div></div>
+        </div>
+        <div class="db-fuel-tile" style="border-top:3px solid #4a7fff">
+          <div class="db-fuel-dept" style="color:#4a7fff">Finance</div>
+          <div class="db-fuel-amt" id="db-fuel-finance">—</div>
+          <div class="db-fuel-veh" id="db-fuel-finance-sub">Sync to load</div>
+          <div class="db-fuel-bar-wrap"><div class="db-fuel-bar-fill" id="db-fuel-finance-bar" style="background:#4a7fff;width:0%"></div></div>
+        </div>
+        <div class="db-fuel-tile" style="border-top:3px solid var(--red)">
+          <div class="db-fuel-dept" style="color:var(--red)">Total Fleet</div>
+          <div class="db-fuel-amt" id="db-fuel-total">—</div>
+          <div class="db-fuel-veh" id="db-fuel-total-sub">Sync to load</div>
+          <div class="db-fuel-bar-wrap"><div class="db-fuel-bar-fill" id="db-fuel-total-bar" style="background:var(--red);width:100%"></div></div>
         </div>
       </div>
 
