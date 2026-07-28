@@ -2184,18 +2184,6 @@ function renderDashboard() {
   } else if (chartEl && !(fuelData && fuelData.monthly && fuelData.monthly.length)) {
     chartEl.innerHTML = "<div style='color:var(--sub);font-size:.78rem;text-align:center;width:100%;padding-top:2rem'>Sync Fuel Tracker to see trend</div>";
   }
-} else {
-    tbody.innerHTML = recent.map(r=>{
-      const v   = vehicles.find(x=>x.id===r.vehicleId);
-      const cls = r.overall==="pass"?"pass":r.overall==="issue"?"issue":"fail";
-      return `<tr>
-        <td>${r.date||"—"}</td>
-        <td><span class="rp">${v?v.reg:"—"}</span></td>
-        <td>${r.inspector||"—"}</td>
-        <td><span class="ins-badge ${cls}">${r.overall==="pass"?"✅ Pass":r.overall==="issue"?"⚠️ Issues":"❌ Fail"}</span></td>
-      </tr>`;
-    }).join("");
-  }
 
   // ── Alert badge ──
   const alerts = buildAlerts();
