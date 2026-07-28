@@ -1937,65 +1937,38 @@ function renderDashboard() {
   const inspectedIds = new Set(inspections.filter(i=>new Date(i.date)>=lastMonday).map(i=>i.vehicleId));
   document.getElementById("db-insp-due").textContent = companyVehs.filter(v=>!inspectedIds.has(v.id)).length;
 
-  // ── Fuel by Department — read from fuel dept table in DOM ──
+  // ── Fuel by Department ──
   const fuelDepts = document.getElementById("db-fuel-depts");
-  const deptRows  = document.querySelectorAll("#fuel-dept-tbody tr");
-  const deptColors= {Finance:"#4a7fff", Sales:"#22c55e", Technical:"#f59e0b"};
+  const deptColors = {Finance:"#4a7fff", Sales:"#22c55e", Technical:"#f59e0b"};
 
-  if (deptRows.length && deptRows[0].cells.length > 1 && !deptRows[0].querySelector(".es")) {
-    const depts = [];
-    deptRows.forEach(row => {
-      const cells = row.cells;
-      if (!cells || cells.length < 3) return;
-      const dept  = cells[0].textContent.trim();
-      const spend = cells[2].textContent.trim();
-      const pct   = cells[3] ? cells[3].textContent.trim() : "";
-      if (dept && spend && dept !== "—") depts.push({dept, spend, pct});
-    });
-    if (depts.length) {
-      fuelDepts.innerHTML = depts.map(d => {
-        const col   = deptColors[d.dept] || "#8899bb";
-        const pctNum= parseFloat(d.pct) || 0;
-        return `<div class="db-fuel-tile">
-          <div class="db-fuel-dept" style="color:${col}">${d.dept}</div>
-          <div class="db-fuel-amt">${d.spend}</div>
-          <div class="db-fuel-veh">${d.pct} of total fleet spend</div>
-          <div class="db-fuel-bar-wrap"><div class="db-fuel-bar-fill" style="width:${Math.min(pctNum,100)}%;background:${col}"></div></div>
-        </div>`;
-      }).join("");
-      return;
-    }
-  }
-
-  // Fallback — try fuelData directly  
-  if (typeof fuelData !== "undefined" && fuelData.vehicles && fuelData.vehicles.length) {
+  if (fuelData && fuelData.vehicles && fuelData.vehicles.length > 0) {
     const dmap = {};
-    fuelData.vehicles.forEach(v=>{
-      if(!v.dept||typeof v.dept!=="string"||!isNaN(v.dept)) return;
-      if(!dmap[v.dept]) dmap[v.dept]={spend:0,count:0};
-      dmap[v.dept].spend+=v.spend; dmap[v.dept].count++;
+    fuelData.vehicles.forEach(v => {
+      if (!v.dept || typeof v.dept !== "string" || !isNaN(v.dept)) return;
+      if (!dmap[v.dept]) dmap[v.dept] = {spend:0, count:0};
+      dmap[v.dept].spend += v.spend;
+      dmap[v.dept].count++;
     });
-    const grand = Object.values(dmap).reduce((s,d)=>s+d.spend,0)||1;
-    const sorted= Object.entries(dmap).sort((a,b)=>b[1].spend-a[1].spend);
-    if (sorted.length) {
-      fuelDepts.innerHTML = sorted.map(([dept,d])=>{
-        const col = deptColors[dept]||"#8899bb";
-        const pct = Math.min((d.spend/grand)*100,100);
-        return `<div class="db-fuel-tile">
-          <div class="db-fuel-dept" style="color:${col}">${dept}</div>
-          <div class="db-fuel-amt">R${d.spend.toLocaleString("en-ZA",{minimumFractionDigits:0,maximumFractionDigits:0})}</div>
-          <div class="db-fuel-veh">${d.count} vehicle${d.count!==1?"s":""} · ${pct.toFixed(0)}% of total</div>
-          <div class="db-fuel-bar-wrap"><div class="db-fuel-bar-fill" style="width:${pct}%;background:${col}"></div></div>
-        </div>`;
-      }).join("");
-      return;
-    }
-  }
+    const grand  = Object.values(dmap).reduce((s,d) => s+d.spend, 0) || 1;
+    const sorted = Object.entries(dmap).sort((a,b) => b[1].spend - a[1].spend);
 
-  fuelDepts.innerHTML = `<div class="db-fuel-tile" style="grid-column:1/-1;text-align:center;color:var(--sub)">
-    <div style="font-size:1.5rem;margin-bottom:.5rem">⛽</div>
-    <div style="font-size:.82rem">Go to Fuel Tracker and click Sync to load department totals</div>
-  </div>`;
+    if (sorted.length > 0) {
+      fuelDepts.innerHTML = sorted.map(([dept, d]) => {
+        const col = deptColors[dept] || "#8899bb";
+        const pct = Math.min((d.spend/grand)*100, 100);
+        return "<div class='db-fuel-tile'>"
+          + "<div class='db-fuel-dept' style='color:"+col+"'>"+dept+"</div>"
+          + "<div class='db-fuel-amt'>R"+d.spend.toLocaleString("en-ZA",{minimumFractionDigits:0,maximumFractionDigits:0})+"</div>"
+          + "<div class='db-fuel-veh'>"+d.count+" vehicle"+(d.count!==1?"s":"")+" · "+pct.toFixed(0)+"% of total</div>"
+          + "<div class='db-fuel-bar-wrap'><div class='db-fuel-bar-fill' style='width:"+pct+"%;background:"+col+"'></div></div>"
+          + "</div>";
+      }).join("");
+    } else {
+      fuelDepts.innerHTML = "<div class='db-fuel-tile' style='grid-column:1/-1;text-align:center;color:var(--sub)'><div style='font-size:1.5rem;margin-bottom:.5rem'>⛽</div><div style='font-size:.82rem'>No department data found in fuel data</div></div>";
+    }
+  } else {
+    fuelDepts.innerHTML = "<div class='db-fuel-tile' style='grid-column:1/-1;text-align:center;color:var(--sub)'><div style='font-size:1.5rem;margin-bottom:.5rem'>⛽</div><div style='font-size:.82rem'>Go to Fuel Tracker and click Sync to load department totals</div></div>";
+  }
 
   // ── Recent Inspections ──
   const tbody = document.getElementById("db-inspect-tbody");
@@ -2513,6 +2486,8 @@ function renderFuel() {
     const overLimit=pct>100?`<span style="font-size:0.68rem;background:var(--danger-dim);color:var(--danger);padding:2px 6px;border-radius:4px;font-weight:700;margin-left:4px">OVER</span>`:"";
     return`<tr><td><span class="rp">${v.reg||"—"}</span></td><td style="font-size:0.82rem">${v.vehicle||"—"}</td><td>${v.driver||"—"}</td><td><span class="dc" style="color:${col};border-color:${col}33">${v.dept||"—"}</span></td><td style="font-family:var(--mono);color:${v.spend>0?"var(--success)":"var(--text-sub)"}">R${v.spend.toLocaleString("en-ZA",{minimumFractionDigits:2})}</td><td style="font-family:var(--mono)">R${v.limit.toLocaleString("en-ZA",{minimumFractionDigits:2})}</td><td style="font-family:var(--mono)">${v.mileage>0?v.mileage.toLocaleString("en-ZA"):"—"}</td><td style="min-width:150px">${v.limit>0?`<div style="display:flex;align-items:center;gap:0.5rem"><span style="font-size:0.75rem;font-family:var(--mono);min-width:2.8rem;color:${pct>100?"var(--danger)":pct>75?"var(--warn)":"var(--text)"}">${pctDisplay}</span><div class="flb" style="flex:1"><div class="flf ${pctClass}" style="width:${barWidth}%"></div></div>${overLimit}</div>`:"—"}</td></tr>`;
   }).join("");
+  // Refresh dashboard after fuel loads
+  renderDashboard();
 }
   // Notify dashboard
   try { if(typeof renderDashboard==="function") setTimeout(renderDashboard, 50); } catch(e){}
@@ -2848,4 +2823,4 @@ if('serviceWorker' in navigator){
 }
 </script>
 </body>
-</html>
+</html>\
