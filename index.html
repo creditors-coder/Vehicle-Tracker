@@ -32,6 +32,35 @@ html,body{height:100%;overflow:hidden}
   --r:8px;--rlg:14px;
   --font:'Inter',sans-serif;--mono:'JetBrains Mono',monospace;
 }
+body.light-mode{
+  --bg:#f0f4f8;--surf:#ffffff;--surf2:#e8edf5;--surf3:#dde4f0;
+  --border:#c8d4e8;--border2:#b0c0d8;
+  --text:#0d1829;--muted:#4a5a80;--sub:#8899bb;
+  --red-dim:rgba(224,58,47,.08);
+  --warn-dim:rgba(245,158,11,.1);
+  --ok-dim:rgba(34,197,94,.08);
+  --danger-dim:rgba(239,68,68,.1);
+}
+body.light-mode .lf input{background:#fff;border-color:#c8d4e8;color:#0d1829}
+body.light-mode .vtile{background:#fff}
+body.light-mode .db-tile{background:#fff}
+body.light-mode .db-tile-wide{background:#fff}
+body.light-mode .db-fuel-tile{background:#fff}
+body.light-mode .tw{background:#fff}
+body.light-mode .dt thead tr{background:#e8edf5}
+body.light-mode select,body.light-mode input,body.light-mode textarea{background:#fff;color:#0d1829;border-color:#c8d4e8}
+body.light-mode .acard{background:#fff}
+body.light-mode #sidebar{background:#fff}
+body.light-mode #mob-top{background:#fff}
+body.light-mode #mob-nav{background:#fff}
+body.light-mode #main{background:#f0f4f8}
+/* Light mode toggle button */
+.theme-btn{
+  background:transparent;border:1px solid var(--border2);
+  color:var(--muted);padding:.3rem .55rem;border-radius:6px;
+  font-size:.85rem;cursor:pointer;transition:all .15s;line-height:1;
+}
+.theme-btn:hover{color:var(--text);border-color:var(--muted)}
 
 body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
 
@@ -718,7 +747,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
   </div>
   <div id="mob-top-right">
     <span id="mob-role">Admin</span>
-    <button id="mob-signout" onclick="doLogout()">⏻ Sign Out</button>
+    <button class="theme-btn" id="mob-theme-btn" onclick="toggleTheme()" style="border-color:var(--border)">🌙</button><button id="mob-signout" onclick="doLogout()">⏻ Sign Out</button>
   </div>
 </div>
 
@@ -793,7 +822,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
         <div id="uemail"></div>
         <span class="rchip" id="role-chip">Admin</span>
       </div>
-      <button class="btn-g" style="width:100%;font-size:.76rem;margin-bottom:.4rem;color:#ff7b6b;border-color:rgba(224,58,47,.3)" onclick="doLogout()">⏻ Sign Out</button>
+      <div style="display:flex;gap:.4rem;margin-bottom:.4rem"><button class="btn-g" style="flex:1;font-size:.76rem;color:#ff7b6b;border-color:rgba(224,58,47,.3)" onclick="doLogout()">⏻ Sign Out</button><button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle light/dark mode">🌙</button></div>
       <div id="sess-timer">Session: <span id="sess-disp">15:00</span></div>
     </div>
   </aside>
@@ -1272,6 +1301,7 @@ function exportFuelExcel(){ if(window._exportFuelExcel) window._exportFuelExcel(
 function renderHistory(){ if(window._renderHistory) window._renderHistory(); }
 function refreshTracking(){ if(window._refreshTracking) window._refreshTracking(); }
 function toggleAutoRefresh(){ if(window._toggleAutoRefresh) window._toggleAutoRefresh(); }
+function toggleTheme(){ if(window._toggleTheme) window._toggleTheme(); }
 function focusAsset(id,lat,lng){ if(window._focusAsset) window._focusAsset(id,lat,lng); }
 function openInspectModal(){ if(window._openInspectModal) window._openInspectModal(); }
 function saveInspection(){ if(window._saveInspection) window._saveInspection(); }
@@ -1590,6 +1620,34 @@ function updateInspectStats() {
   document.getElementById("ins-stat-due").textContent = due;
 }
 
+/* ── Theme Toggle ── */
+window._toggleTheme = function() {
+  const isLight = document.body.classList.toggle("light-mode");
+  localStorage.setItem("xcorp_theme", isLight ? "light" : "dark");
+  const icon = isLight ? "☀️" : "🌙";
+  const btn  = document.getElementById("theme-btn");
+  const mbtn = document.getElementById("mob-theme-btn");
+  if(btn)  btn.textContent  = icon;
+  if(mbtn) mbtn.textContent = icon;
+};
+
+// Apply saved theme on load
+(function(){
+  const saved = localStorage.getItem("xcorp_theme");
+  if(saved === "light"){
+    document.body.classList.add("light-mode");
+    const setIcon = () => {
+      const btn  = document.getElementById("theme-btn");
+      const mbtn = document.getElementById("mob-theme-btn");
+      if(btn)  btn.textContent  = "☀️";
+      if(mbtn) mbtn.textContent = "☀️";
+    };
+    // Wait for DOM
+    if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", setIcon);
+    else setIcon();
+  }
+})();
+
 window._doLogout = window.doLogout = async () => {
   try { sessionStorage.removeItem("xcorp_login_time"); } catch(e){}
   try { stopSessionTimer(); } catch(e){}
@@ -1613,10 +1671,16 @@ window._togglePw = window.togglePw = () => {
 
 onAuthStateChanged(auth, async user => {
   if (user) {
-    // Check if session has expired (page refresh after 15 mins)
-    const loginTime = sessionStorage.getItem("xcorp_login_time");
-    const SESSION_MS = 15 * 60 * 1000; // 15 minutes
-    if (loginTime && (Date.now() - parseInt(loginTime)) > SESSION_MS) {
+    // Check if session has expired (15 mins since login)
+    const loginTime  = sessionStorage.getItem("xcorp_login_time");
+    const SESSION_MS = 15 * 60 * 1000;
+    if (!loginTime) {
+      // No login time stored — must be a stale session, sign out
+      await signOut(auth);
+      return;
+    }
+    if ((Date.now() - parseInt(loginTime)) > SESSION_MS) {
+      // Expired — sign out
       sessionStorage.removeItem("xcorp_login_time");
       await signOut(auth);
       return;
@@ -2823,4 +2887,4 @@ if('serviceWorker' in navigator){
 }
 </script>
 </body>
-</html>\
+</html>
