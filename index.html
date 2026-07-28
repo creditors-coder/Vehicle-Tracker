@@ -2091,38 +2091,47 @@ function renderDashboard() {
   const inspectedIds = new Set(inspections.filter(i=>new Date(i.date)>=lastMonday).map(i=>i.vehicleId));
   document.getElementById("db-insp-due").textContent = companyVehs.filter(v=>!inspectedIds.has(v.id)).length;
 
-  // ── Fuel by Department ──
-  const fuelDepts = document.getElementById("db-fuel-depts");
-  const deptColors = {Finance:"#4a7fff", Sales:"#22c55e", Technical:"#f59e0b"};
+  // ── Fuel by Department — Fixed tiles ──
+  const fmt = n => "R"+n.toLocaleString("en-ZA",{minimumFractionDigits:0,maximumFractionDigits:0});
 
-  if (fuelData && fuelData.vehicles && fuelData.vehicles.length > 0) {
-    const dmap = {};
-    fuelData.vehicles.forEach(v => {
-      if (!v.dept || typeof v.dept !== "string" || !isNaN(v.dept)) return;
-      if (!dmap[v.dept]) dmap[v.dept] = {spend:0, count:0};
-      dmap[v.dept].spend += v.spend;
-      dmap[v.dept].count++;
-    });
-    const grand  = Object.values(dmap).reduce((s,d) => s+d.spend, 0) || 1;
-    const sorted = Object.entries(dmap).sort((a,b) => b[1].spend - a[1].spend);
-
-    if (sorted.length > 0) {
-      fuelDepts.innerHTML = sorted.map(([dept, d]) => {
-        const col = deptColors[dept] || "#8899bb";
-        const pct = Math.min((d.spend/grand)*100, 100);
-        return "<div class='db-fuel-tile'>"
-          + "<div class='db-fuel-dept' style='color:"+col+"'>"+dept+"</div>"
-          + "<div class='db-fuel-amt'>R"+d.spend.toLocaleString("en-ZA",{minimumFractionDigits:0,maximumFractionDigits:0})+"</div>"
-          + "<div class='db-fuel-veh'>"+d.count+" vehicle"+(d.count!==1?"s":"")+" · "+pct.toFixed(0)+"% of total</div>"
-          + "<div class='db-fuel-bar-wrap'><div class='db-fuel-bar-fill' style='width:"+pct+"%;background:"+col+"'></div></div>"
-          + "</div>";
-      }).join("");
+  const setTile = (dept, id) => {
+    const el = document.getElementById("db-fuel-"+id);
+    const sb = document.getElementById("db-fuel-"+id+"-sub");
+    const br = document.getElementById("db-fuel-"+id+"-bar");
+    if (!el) return;
+    if (fuelData && fuelData.vehicles && fuelData.vehicles.length > 0) {
+      const vehs  = fuelData.vehicles.filter(v => v.dept === dept);
+      const spend = vehs.reduce((s,v) => s+v.spend, 0);
+      const grand = fuelData.vehicles.reduce((s,v) => s+v.spend, 0) || 1;
+      const pct   = Math.min((spend/grand)*100, 100);
+      el.textContent = fmt(spend);
+      if (sb) sb.textContent = vehs.length+" vehicle"+(vehs.length!==1?"s":"")+" · "+pct.toFixed(0)+"% of total";
+      if (br) br.style.width = pct+"%";
     } else {
-      fuelDepts.innerHTML = "<div class='db-fuel-tile' style='grid-column:1/-1;text-align:center;color:var(--sub)'><div style='font-size:1.5rem;margin-bottom:.5rem'>⛽</div><div style='font-size:.82rem'>No department data found in fuel data</div></div>";
+      el.textContent = "—";
+      if (sb) sb.textContent = "Sync to load";
+      if (br) br.style.width = "0%";
     }
+  };
+
+  setTile("Technical", "tech");
+  setTile("Sales",     "sales");
+  setTile("Finance",   "finance");
+
+  // Total tile
+  const totalEl  = document.getElementById("db-fuel-total");
+  const totalSub = document.getElementById("db-fuel-total-sub");
+  const totalBar = document.getElementById("db-fuel-total-bar");
+  if (fuelData && fuelData.vehicles && fuelData.vehicles.length > 0) {
+    const grand = fuelData.vehicles.reduce((s,v) => s+v.spend, 0);
+    if (totalEl)  totalEl.textContent  = fmt(grand);
+    if (totalSub) totalSub.textContent = fuelData.vehicles.length+" vehicles · 100% total";
+    if (totalBar) totalBar.style.width = "100%";
   } else {
-    fuelDepts.innerHTML = "<div class='db-fuel-tile' style='grid-column:1/-1;text-align:center;color:var(--sub)'><div style='font-size:1.5rem;margin-bottom:.5rem'>⛽</div><div style='font-size:.82rem'>Go to Fuel Tracker and click Sync to load department totals</div></div>";
+    if (totalEl)  totalEl.textContent  = "—";
+    if (totalSub) totalSub.textContent = "Sync to load";
   }
+
 
   // ── This Week Summary ──
   const weekStart = new Date(); weekStart.setHours(0,0,0,0);
