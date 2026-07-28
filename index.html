@@ -931,7 +931,10 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
       </div>
 
       <!-- Row 3: Fuel by Department — Fixed 4 tiles -->
-      <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--sub);margin-bottom:.6rem">⛽ Fuel Spend — Current Month</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem">
+        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--sub)">⛽ Fuel Spend — Current Month</div>
+        <button class="btn-ex" style="font-size:.68rem;padding:.25rem .65rem" onclick="syncFromDashboard()">🔄 Sync</button>
+      </div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.85rem;margin-bottom:1.25rem" id="db-fuel-depts">
         <div class="db-fuel-tile" style="border-top:3px solid #f59e0b">
           <div class="db-fuel-dept" style="color:#f59e0b">Technical</div>
@@ -1382,6 +1385,7 @@ function renderHistory(){ if(window._renderHistory) window._renderHistory(); }
 function refreshTracking(){ if(window._refreshTracking) window._refreshTracking(); }
 function toggleAutoRefresh(){ if(window._toggleAutoRefresh) window._toggleAutoRefresh(); }
 function toggleTheme(){ if(window._toggleTheme) window._toggleTheme(); }
+function syncFromDashboard(){ if(window._syncFromDashboard) window._syncFromDashboard(); }
 function focusAsset(id,lat,lng){ if(window._focusAsset) window._focusAsset(id,lat,lng); }
 function openInspectModal(){ if(window._openInspectModal) window._openInspectModal(); }
 function saveInspection(){ if(window._saveInspection) window._saveInspection(); }
@@ -1701,6 +1705,11 @@ function updateInspectStats() {
 }
 
 /* ── Theme Toggle ── */
+window._syncFromDashboard = function() {
+  if(!fuelTabsLoaded) { fuelTabsLoaded=true; loadSheetTabs(fuelDeptFilter); }
+  else syncGoogleSheet();
+};
+
 window._toggleTheme = function() {
   const isLight = document.body.classList.toggle("light-mode");
   localStorage.setItem("xcorp_theme", isLight ? "light" : "dark");
@@ -1921,7 +1930,14 @@ function showLogin() {
    NAVIGATION
 ══════════════════════════════════════ */
 window._navTo = window.navTo = (section, el) => {
-  if(section==="dashboard") setTimeout(renderDashboard, 200);
+  if(section==="dashboard") {
+    setTimeout(renderDashboard, 200);
+    // Auto-sync fuel if not yet loaded
+    if(!fuelData || !fuelData.vehicles || !fuelData.vehicles.length) {
+      if(!fuelTabsLoaded) { fuelTabsLoaded=true; loadSheetTabs(fuelDeptFilter); }
+      else syncGoogleSheet();
+    }
+  }
   document.querySelectorAll(".nav-a").forEach(n => n.classList.remove("on"));
   el.classList.add("on");
   document.querySelectorAll(".sec").forEach(s => {
@@ -2730,6 +2746,13 @@ window.bdClose=(e,id)=>{if(e.target===document.getElementById(id))closeModal(id)
 const isMob = () => window.innerWidth <= 768;
 
 window._mobNav = window.mobNav = (sec, el) => {
+  if(sec==="dashboard") {
+    setTimeout(renderDashboard, 200);
+    if(!fuelData || !fuelData.vehicles || !fuelData.vehicles.length) {
+      if(!fuelTabsLoaded) { fuelTabsLoaded=true; loadSheetTabs(fuelDeptFilter); }
+      else syncGoogleSheet();
+    }
+  }
   document.querySelectorAll(".mob-btn").forEach(b => b.classList.remove("on"));
   el.classList.add("on");
   document.querySelectorAll(".sec").forEach(s => {
