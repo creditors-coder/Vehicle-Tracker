@@ -1705,9 +1705,10 @@ function updateInspectStats() {
 }
 
 /* ── Theme Toggle ── */
-window._syncFromDashboard = function() {
-  if(!fuelTabsLoaded) { fuelTabsLoaded=true; loadSheetTabs(fuelDeptFilter); }
-  else syncGoogleSheet();
+window._syncFromDashboard = async function() {
+  if(!fuelTabsLoaded) { fuelTabsLoaded=true; await loadSheetTabs(fuelDeptFilter); }
+  else await syncGoogleSheet();
+  renderDashboard();
 };
 
 window._toggleTheme = function() {
@@ -1931,8 +1932,8 @@ function showLogin() {
 ══════════════════════════════════════ */
 window._navTo = window.navTo = (section, el) => {
   if(section==="dashboard") {
-    setTimeout(renderDashboard, 200);
-    // Auto-sync fuel if not yet loaded
+    renderDashboard();
+    // Auto-sync fuel if not yet loaded - dashboard updates via callback
     if(!fuelData || !fuelData.vehicles || !fuelData.vehicles.length) {
       if(!fuelTabsLoaded) { fuelTabsLoaded=true; loadSheetTabs(fuelDeptFilter); }
       else syncGoogleSheet();
@@ -2717,6 +2718,9 @@ function renderFuel() {
     const tSb=document.getElementById('db-fuel-total-sub'); if(tSb) tSb.textContent=_allV.length+' vehicles · 100% total';
     const tBr=document.getElementById('db-fuel-total-bar'); if(tBr) tBr.style.width='100%';
   } catch(e){}
+
+  // Refresh full dashboard after fuel loads
+  setTimeout(renderDashboard, 100);
 }
   // Notify dashboard
   try { if(typeof renderDashboard==="function") setTimeout(renderDashboard, 50); } catch(e){}
@@ -2747,7 +2751,7 @@ const isMob = () => window.innerWidth <= 768;
 
 window._mobNav = window.mobNav = (sec, el) => {
   if(sec==="dashboard") {
-    setTimeout(renderDashboard, 200);
+    renderDashboard();
     if(!fuelData || !fuelData.vehicles || !fuelData.vehicles.length) {
       if(!fuelTabsLoaded) { fuelTabsLoaded=true; loadSheetTabs(fuelDeptFilter); }
       else syncGoogleSheet();
