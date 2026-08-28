@@ -2880,29 +2880,33 @@ window._handleFuelUpload = window.handleFuelUpload = function(e) {
 window._confirmUpload = function() {
   if (!pendingUploadRows.length) return;
 
-  // Merge uploaded transactions into fuelData
-  // Group by registration and sum spend
-  const uploadByReg = {};
-  pendingUploadRows.forEach(r => {
-    if (!uploadByReg[r.reg]) uploadByReg[r.reg] = { spend:0, vehDesc:r.vehDesc, transactions:[] };
-    uploadByReg[r.reg].spend += r.amount;
-    uploadByReg[r.reg].transactions.push(r);
+  // Group uploaded transactions by registration
+  var uploadByReg = {};
+  pendingUploadRows.forEach(function(r) {
+    var key = r.reg;
+    if (!uploadByReg[key]) uploadByReg[key] = {spend:0, veh:r.veh, txns:[]};
+    uploadByReg[key].spend += r.amt;
+    uploadByReg[key].txns.push(r);
   });
 
-  // Merge into existing fuelData.vehicles
   if (!fuelData.vehicles) fuelData.vehicles = [];
 
-  Object.entries(uploadByReg).forEach(([reg, data]) => {
-    const existing = fuelData.vehicles.find(v => v.reg === reg);
+  // For each vehicle in upload, find existing and UPDATE spend
+  Object.keys(uploadByReg).forEach(function(reg) {
+    var uData    = uploadByReg[reg];
+    var existing = null;
+    for (var i=0; i<fuelData.vehicles.length; i++) {
+      if (fuelData.vehicles[i].reg === reg) { existing = fuelData.vehicles[i]; break; }
+    }
     if (existing) {
-      // Add to existing vehicle spend
-      existing.spend = (existing.spend || 0) + data.spend;
+      // Replace spend with uploaded total (more accurate than adding)
+      existing.spend = uData.spend;
     } else {
-      // Add new vehicle from upload
+      // New vehicle not in Google Sheet — add it
       fuelData.vehicles.push({
-        reg,
-        spend:   data.spend,
-        vehicle: data.vehDesc,
+        reg:     reg,
+        spend:   uData.spend,
+        vehicle: uData.veh,
         dept:    "",
         driver:  "",
         limit:   0,
@@ -2911,12 +2915,16 @@ window._confirmUpload = function() {
     }
   });
 
+  // Also update vehicles that ARE in fuelData but NOT in upload — keep their existing spend
+  // (no action needed — they stay as is)
+
   window._fuelData = fuelData;
   renderFuel();
   closeModal("upload-modal");
   pendingUploadRows = [];
 
-  fuelStatus("✅ " + Object.keys(uploadByReg).length + " vehicles added from Standard Bank upload", "✅");
+  var vehCount = Object.keys(uploadByReg).length;
+  fuelStatus("✅ " + vehCount + " vehicles updated from Standard Bank upload", "✅");
 };
 
 window._exportFuelExcel = window.exportFuelExcel = () => {
