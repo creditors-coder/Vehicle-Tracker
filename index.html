@@ -2630,38 +2630,7 @@ window._syncGoogleSheet = window.syncGoogleSheet = async () => {
   }
 };
 
-window._handleFuelUpload = window.handleFuelUpload = async (e) => {
-  const file=e.target.files[0]; if(!file) return;
-  fuelStatus(`Reading ${file.name}...`,"📁");
-  try{
-    const text=await file.text();
-    const lines=text.split("\n").map(l=>l.split(",").map(c=>c.replace(/^"|"$/g,"").trim()));
-    let headerIdx=lines.findIndex(l=>l.some(c=>c.toLowerCase().includes("registration")));
-    if(headerIdx===-1) headerIdx=1;
-    const headers=lines[headerIdx].map(h=>h.toLowerCase());
-    const regI=headers.findIndex(h=>h.includes("registration")||h.includes("reg"));
-    const spendI=headers.findIndex(h=>h.includes("value")||h.includes("spend")||h.includes("amount"));
-    const deptI=headers.findIndex(h=>h.includes("dept")||h.includes("department"));
-    const driverI=headers.findIndex(h=>h.includes("driver"));
-    const vehicleI=headers.findIndex(h=>h.includes("vehicle")||h.includes("make")||h.includes("model"));
-    const limitI=headers.findIndex(h=>h.includes("limit"));
-    const mileageI=headers.findIndex(h=>h.includes("mileage")||h.includes("km")||h.includes("odometer"));
-    const fuelVehicles=[];
-    for(let i=headerIdx+1;i<lines.length;i++){
-      const l=lines[i];
-      if(!l||!l[0]||l[0].toLowerCase().includes("grand")||l[0].toLowerCase().includes("total")) continue;
-      if(l.every(c=>!c)) continue;
-      fuelVehicles.push({reg:regI>=0?l[regI]||"":"",spend:spendI>=0?parseFloat(l[spendI])||0:0,dept:deptI>=0?l[deptI]||"":"",driver:driverI>=0?l[driverI]||"":"",vehicle:vehicleI>=0?l[vehicleI]||"":"",limit:limitI>=0?parseFloat(l[limitI])||0:0,mileage:mileageI>=0?parseFloat(l[mileageI])||0:0});
-    }
-    fuelData.vehicles=fuelVehicles;
-    renderFuel();
-    fuelStatus(`Loaded ${fuelVehicles.length} vehicles from ${file.name}`,"✅");
-  }catch(ex){
-    fuelStatus("Failed to read file — please use CSV or Excel format","❌",true);
-    console.error(ex);
-  }
-  e.target.value="";
-};
+
 
 function renderFuel() {
   const {vehicles:allVehicles,monthly,deptSummary,sheetDate}=fuelData;
