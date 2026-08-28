@@ -861,6 +861,9 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
     <section id="sec-dashboard" class="sec active">
       <div class="sh">
         <div><h2>Dashboard</h2><div class="sh-sub" id="today-date"></div></div>
+        <div class="sh-actions">
+          <button class="btn-ex" onclick="generateReport()">📄 Monthly Report</button>
+        </div>
       </div>
 
       <!-- Row 1: Fleet Overview -->
@@ -1414,6 +1417,7 @@ function refreshTracking(){ if(window._refreshTracking) window._refreshTracking(
 function toggleAutoRefresh(){ if(window._toggleAutoRefresh) window._toggleAutoRefresh(); }
 function toggleTheme(){ if(window._toggleTheme) window._toggleTheme(); }
 function syncFromDashboard(){ if(window._syncFromDashboard) window._syncFromDashboard(); }
+function generateReport(){ if(window._generateReport) window._generateReport(); }
 function confirmUpload(){ if(window._confirmUpload) window._confirmUpload(); }
 function focusAsset(id,lat,lng){ if(window._focusAsset) window._focusAsset(id,lat,lng); }
 function openInspectModal(){ if(window._openInspectModal) window._openInspectModal(); }
@@ -2720,8 +2724,6 @@ function renderFuel() {
   // Refresh full dashboard after fuel loads
   setTimeout(renderDashboard, 100);
 }
-  // Notify dashboard
-  try { if(typeof renderDashboard==="function") setTimeout(renderDashboard, 50); } catch(e){}
 
 
 /* ══════════════════════════════════════
@@ -2894,6 +2896,205 @@ window._confirmUpload = function() {
 
   var vehCount = Object.keys(uploadByReg).length;
   fuelStatus("✅ " + vehCount + " vehicles updated from Standard Bank upload", "✅");
+};
+
+/* ══════════════════════════════════════
+   MONTHLY FLEET REPORT — PDF via Print
+══════════════════════════════════════ */
+window._generateReport = function() {
+  var now       = new Date();
+  var monthName = now.toLocaleString("en-ZA", {month:"long", year:"numeric"});
+  var genDate   = now.toLocaleDateString("en-ZA", {weekday:"long", year:"numeric", month:"long", day:"numeric"});
+
+  // ── Gather data ──
+  var totalVeh  = vehicles.length;
+  var totalDrv  = drivers.length;
+
+  var svcDue    = vehicles.filter(function(v){ var d=daysUntil(v.serviceDate); return d!==null&&d<=30&&d>=0; }).length;
+  var svcOver   = vehicles.filter(function(v){ var d=daysUntil(v.serviceDate); return d!==null&&d<0; }).length;
+  var licDue    = vehicles.filter(function(v){ var d=daysUntil(v.licenceExpiry); return d!==null&&d<=30&&d>=0; }).length;
+  var licOver   = vehicles.filter(function(v){ var d=daysUntil(v.licenceExpiry); return d!==null&&d<0; }).length;
+
+  var today     = new Date(); today.setHours(0,0,0,0);
+  var daysSince = today.getDay()===0 ? 6 : today.getDay()-1;
+  var lastMon   = new Date(today); lastMon.setDate(today.getDate()-daysSince);
+  var weekInsp  = inspections.filter(function(i){ return new Date(i.date)>=lastMon; });
+  var compVehs  = vehicles.filter(function(v){ return v.vtype!=="private"; });
+
+  // Fuel data
+  var fuelVehs  = (fuelData && fuelData.vehicles) ? fuelData.vehicles : [];
+  var fuelTotal = fuelVehs.reduce(function(s,v){ return s+v.spend; }, 0);
+  var deptMap   = {};
+  fuelVehs.forEach(function(v){
+    if(!v.dept||typeof v.dept!=="string"||!isNaN(v.dept)) return;
+    if(!deptMap[v.dept]) deptMap[v.dept]={spend:0,count:0};
+    deptMap[v.dept].spend+=v.spend; deptMap[v.dept].count++;
+  });
+
+  var fmt = function(n){ return "R"+n.toLocaleString("en-ZA",{minimumFractionDigits:2,maximumFractionDigits:2}); };
+
+  // ── Build report HTML ──
+  var html = [
+    "<!DOCTYPE html><html><head><meta charset='UTF-8'>",
+    "<title>X-Corp Fleet Report — "+monthName+"</title>",
+    "<style>",
+    "*{margin:0;padding:0;box-sizing:border-box}",
+    "body{font-family:'Arial',sans-serif;color:#1a2040;background:#fff;font-size:11px}",
+    "@page{size:A4;margin:15mm 15mm 20mm 15mm}",
+    "@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}",
+
+    /* Header */
+    ".header{background:#0d1829;color:#fff;padding:20px 24px;margin-bottom:20px;border-radius:6px;display:flex;justify-content:space-between;align-items:center}",
+    ".logo-area h1{font-size:20px;font-weight:800;letter-spacing:-0.5px;color:#fff}",
+    ".logo-area p{font-size:11px;color:#8899bb;margin-top:2px}",
+    ".report-meta{text-align:right}",
+    ".report-meta .month{font-size:16px;font-weight:700;color:#fff}",
+    ".report-meta .gen{font-size:10px;color:#8899bb;margin-top:3px}",
+    ".report-meta .conf{font-size:9px;color:#e03a2f;margin-top:2px;font-weight:600;text-transform:uppercase}",
+
+    /* Section titles */
+    ".section-title{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#8899bb;margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid #e0e8f0}",
+
+    /* Stat grid */
+    ".stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}",
+    ".stat-box{border:1px solid #e0e8f0;border-radius:6px;padding:12px;position:relative;overflow:hidden}",
+    ".stat-box::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}",
+    ".stat-red::before{background:#e03a2f}.stat-blue::before{background:#4a7fff}",
+    ".stat-green::before{background:#22c55e}.stat-warn::before{background:#f59e0b}",
+    ".stat-val{font-size:22px;font-weight:800;font-family:monospace;margin-bottom:3px}",
+    ".stat-red .stat-val{color:#e03a2f}.stat-blue .stat-val{color:#4a7fff}",
+    ".stat-green .stat-val{color:#22c55e}.stat-warn .stat-val{color:#f59e0b}",
+    ".stat-lbl{font-size:9px;color:#8899bb;font-weight:600;text-transform:uppercase;letter-spacing:0.06em}",
+
+    /* Tables */
+    "table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:10px}",
+    "thead tr{background:#0d1829}",
+    "thead th{color:#fff;padding:7px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em}",
+    "tbody tr:nth-child(even){background:#f7f9fc}",
+    "tbody tr:hover{background:#eef2f9}",
+    "td{padding:6px 10px;border-bottom:1px solid #e8edf5;vertical-align:middle}",
+    ".reg{font-family:monospace;font-size:10px;font-weight:700;background:#e8edf5;padding:2px 6px;border-radius:4px}",
+    ".badge-ok{background:#d4edda;color:#155724;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700}",
+    ".badge-warn{background:#fff3cd;color:#856404;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700}",
+    ".badge-danger{background:#f8d7da;color:#721c24;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700}",
+    ".badge-dept{padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700}",
+    ".dept-tech{background:#fff3cd;color:#856404}",
+    ".dept-sales{background:#d4edda;color:#155724}",
+    ".dept-finance{background:#cce5ff;color:#004085}",
+
+    /* Fuel bars */
+    ".fuel-bar-wrap{background:#e0e8f0;border-radius:2px;height:5px;width:80px;display:inline-block;vertical-align:middle;margin-left:6px}",
+    ".fuel-bar-fill{height:100%;border-radius:2px}",
+
+    /* Footer */
+    ".footer{margin-top:20px;padding-top:10px;border-top:1px solid #e0e8f0;display:flex;justify-content:space-between;font-size:9px;color:#8899bb}",
+    ".confidential{color:#e03a2f;font-weight:700;font-size:9px}",
+    "</style></head><body>",
+
+    /* ── Header ── */
+    "<div class='header'>",
+    "<div class='logo-area'><h1>X-CORP</h1><p>Vehicle Tracker — Monthly Fleet Report</p></div>",
+    "<div class='report-meta'>",
+    "<div class='month'>"+monthName+"</div>",
+    "<div class='gen'>Generated: "+genDate+"</div>",
+    "<div class='conf'>⚠ Confidential</div>",
+    "</div></div>",
+
+    /* ── Summary Stats ── */
+    "<div class='section-title'>Fleet Summary</div>",
+    "<div class='stat-grid'>",
+    "<div class='stat-box stat-red'><div class='stat-val'>"+totalVeh+"</div><div class='stat-lbl'>Total Vehicles</div></div>",
+    "<div class='stat-box stat-blue'><div class='stat-val'>"+totalDrv+"</div><div class='stat-lbl'>Total Drivers</div></div>",
+    "<div class='stat-box stat-warn'><div class='stat-val'>"+(svcDue+svcOver)+"</div><div class='stat-lbl'>Services Due</div></div>",
+    "<div class='stat-box stat-warn'><div class='stat-val'>"+(licDue+licOver)+"</div><div class='stat-lbl'>Licences Due</div></div>",
+    "</div>",
+
+    /* ── Fuel Summary ── */
+    fuelTotal > 0 ? [
+      "<div class='section-title'>Fuel Spend — "+monthName+"</div>",
+      "<table>",
+      "<thead><tr><th>Department</th><th>Vehicles</th><th>Total Spend</th><th>% of Total</th><th>vs Budget</th></tr></thead>",
+      "<tbody>",
+      Object.entries(deptMap).sort(function(a,b){return b[1].spend-a[1].spend;}).map(function(entry){
+        var dept=entry[0], d=entry[1];
+        var pct  = fuelTotal>0 ? ((d.spend/fuelTotal)*100).toFixed(1) : 0;
+        var cls  = dept==="Technical"?"dept-tech":dept==="Sales"?"dept-sales":"dept-finance";
+        var bar  = "<div class='fuel-bar-wrap'><div class='fuel-bar-fill' style='width:"+Math.min(pct,100)+"%;background:"+(dept==="Technical"?"#f59e0b":dept==="Sales"?"#22c55e":"#4a7fff")+"'></div></div>";
+        return "<tr><td><span class='badge-dept "+cls+"'>"+dept+"</span></td><td>"+d.count+"</td><td><strong>"+fmt(d.spend)+"</strong></td><td>"+pct+"%"+bar+"</td><td>—</td></tr>";
+      }).join(""),
+      "<tr style='background:#f0f4ff'><td><strong>Total Fleet</strong></td><td><strong>"+fuelVehs.length+"</strong></td><td><strong>"+fmt(fuelTotal)+"</strong></td><td>100%</td><td>—</td></tr>",
+      "</tbody></table>",
+
+      "<div class='section-title'>Fuel — Per Vehicle Detail</div>",
+      "<table>",
+      "<thead><tr><th>Registration</th><th>Vehicle</th><th>Driver</th><th>Department</th><th>Spend (R)</th><th>Limit (R)</th><th>% of Limit</th></tr></thead>",
+      "<tbody>",
+      fuelVehs.map(function(v){
+        var pct    = v.limit>0 ? ((v.spend/v.limit)*100).toFixed(0) : null;
+        var dCls   = v.dept==="Technical"?"dept-tech":v.dept==="Sales"?"dept-sales":v.dept==="Finance"?"dept-finance":"";
+        var pctBadge= pct ? ("<span class='"+(pct>100?"badge-danger":pct>75?"badge-warn":"badge-ok")+"'>"+pct+"%</span>") : "—";
+        return "<tr><td><span class='reg'>"+v.reg+"</span></td><td>"+(v.vehicle||"—")+"</td><td>"+(v.driver||"—")+"</td>"
+          +"<td>"+(v.dept?"<span class='badge-dept "+dCls+"'>"+v.dept+"</span>":"—")+"</td>"
+          +"<td>"+fmt(v.spend)+"</td>"
+          +"<td>"+(v.limit>0?fmt(v.limit):"—")+"</td>"
+          +"<td>"+pctBadge+"</td></tr>";
+      }).join(""),
+      "</tbody></table>"
+    ].join("") : "",
+
+    /* ── Vehicle Compliance ── */
+    "<div class='section-title'>Vehicle Compliance</div>",
+    "<table>",
+    "<thead><tr><th>Registration</th><th>Make / Model</th><th>Driver</th><th>Licence Expiry</th><th>Next Service</th><th>Status</th></tr></thead>",
+    "<tbody>",
+    vehicles.map(function(v){
+      var drv  = drivers.find(function(d){return d.id===v.driverId;});
+      var ld   = daysUntil(v.licenceExpiry);
+      var sd   = daysUntil(v.serviceDate);
+      var wst  = Math.min(ld!==null?ld:999, sd!==null?sd:999);
+      var badge= wst<0?"<span class='badge-danger'>Overdue</span>":wst<=7?"<span class='badge-danger'>Critical</span>":wst<=30?"<span class='badge-warn'>Due Soon</span>":"<span class='badge-ok'>OK</span>";
+      return "<tr><td><span class='reg'>"+v.reg+"</span></td><td>"+v.make+" "+v.model+"</td><td>"+(drv?drv.name:"—")+"</td>"
+        +"<td>"+(v.licenceExpiry||"—")+"</td><td>"+(v.serviceDate||"—")+"</td><td>"+badge+"</td></tr>";
+    }).join(""),
+    "</tbody></table>",
+
+    /* ── Inspections ── */
+    weekInsp.length > 0 ? [
+      "<div class='section-title'>Inspections — This Week</div>",
+      "<table>",
+      "<thead><tr><th>Date</th><th>Vehicle</th><th>Inspector</th><th>Lights</th><th>Tyres</th><th>Brakes</th><th>Fluids</th><th>Result</th></tr></thead>",
+      "<tbody>",
+      weekInsp.map(function(r){
+        var v   = vehicles.find(function(x){return x.id===r.vehicleId;});
+        var st  = r.statuses||{};
+        var ico = function(s){ return s==="pass"?"✅":s==="issue"?"⚠️":"❌"; };
+        var cls = r.overall==="pass"?"badge-ok":r.overall==="issue"?"badge-warn":"badge-danger";
+        return "<tr><td>"+r.date+"</td><td><span class='reg'>"+(v?v.reg:"—")+"</span></td><td>"+r.inspector+"</td>"
+          +"<td style='text-align:center'>"+ico(st.lights)+"</td>"
+          +"<td style='text-align:center'>"+ico(st.tyres)+"</td>"
+          +"<td style='text-align:center'>"+ico(st.brakes)+"</td>"
+          +"<td style='text-align:center'>"+ico(st.fluids)+"</td>"
+          +"<td><span class='"+cls+"'>"+(r.overall==="pass"?"Pass":r.overall==="issue"?"Issues":"Fail")+"</span></td></tr>";
+      }).join(""),
+      "</tbody></table>"
+    ].join("") : "",
+
+    /* ── Footer ── */
+    "<div class='footer'>",
+    "<div><strong>X-Corp Business Solutions</strong> — Vehicle Tracker · "+genDate+"</div>",
+    "<div class='confidential'>CONFIDENTIAL — Internal Use Only</div>",
+    "</div>",
+    "</body></html>"
+  ].join("");
+
+  // Open in new window and print as PDF
+  var win = window.open("", "_blank");
+  if (!win) { alert("Please allow popups to generate the PDF report."); return; }
+  win.document.write(html);
+  win.document.close();
+  win.onload = function() {
+    setTimeout(function() { win.print(); }, 500);
+  };
 };
 
 window._exportFuelExcel = window.exportFuelExcel = () => {
