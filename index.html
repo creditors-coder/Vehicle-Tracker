@@ -14,6 +14,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
 <style>
 /* ── Reset ─────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -1059,7 +1060,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
         <div class="sh-actions">
           <select id="fuel-month-select" onchange="syncGoogleSheet()" style="background:var(--surf2);border:1px solid var(--border);color:var(--text);padding:.48rem .75rem;border-radius:var(--r);font-family:var(--font);font-size:.8rem"><option value="">Loading...</option></select>
           <button class="btn-ex" onclick="syncGoogleSheet()">🔄 Sync</button>
-          <label class="btn-ex" style="cursor:pointer">📁 Upload<input type="file" id="fuel-upload" accept=".csv" style="display:none" onchange="handleFuelUpload(event)"/></label>
+          <label class="btn-ex" style="cursor:pointer">📁 Upload<input type="file" id="fuel-upload" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleFuelUpload(event)"/></label>
           <button class="btn-ex" onclick="exportFuelExcel()">📊 Export</button>
         </div>
       </div>
@@ -1209,6 +1210,33 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
   </div></div>
 </div>
 
+
+<!-- MODAL: Standard Bank Upload -->
+<div id="upload-modal" class="modal" onclick="bdClose(event,'upload-modal')">
+  <div style="width:100%;max-width:580px"><div class="modal-card">
+    <div class="mh">
+      <div class="mhi"><h3>Standard Bank Upload</h3><div class="mal"></div></div>
+      <button class="mc-btn" onclick="closeModal('upload-modal')">✕</button>
+    </div>
+    <div class="mb">
+      <div id="upload-status" style="margin-bottom:1rem;padding:.75rem 1rem;border-radius:var(--r);background:var(--surf2);border:1px solid var(--border);font-size:.82rem;color:var(--muted)">Ready to upload</div>
+      <div style="margin-bottom:1rem">
+        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--sub);margin-bottom:.5rem">Preview — Accepted Transactions</div>
+        <div class="tw" style="max-height:280px;overflow-y:auto">
+          <table class="dt" id="upload-preview-table">
+            <thead><tr><th>Date</th><th>Registration</th><th>Vehicle</th><th>Station</th><th>Amount (R)</th><th>Odometer</th></tr></thead>
+            <tbody id="upload-preview-tbody"><tr><td colspan="6" class="es">Upload a file to preview</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="upload-summary" style="display:none;background:var(--ok-dim);border:1px solid rgba(34,197,94,.2);border-radius:var(--r);padding:.75rem 1rem;font-size:.82rem;color:var(--ok)"></div>
+    </div>
+    <div class="mf">
+      <button class="btn-g" onclick="closeModal('upload-modal')">Cancel</button>
+      <button class="btn-p" id="upload-confirm-btn" onclick="confirmUpload()" style="display:none">✅ Add to Fuel Data</button>
+    </div>
+  </div></div>
+</div>
 <!-- MODAL: Delete -->
 <div id="delete-modal" class="modal" onclick="bdClose(event,'delete-modal')">
   <div style="width:100%;max-width:380px"><div class="modal-card">
@@ -1386,6 +1414,7 @@ function refreshTracking(){ if(window._refreshTracking) window._refreshTracking(
 function toggleAutoRefresh(){ if(window._toggleAutoRefresh) window._toggleAutoRefresh(); }
 function toggleTheme(){ if(window._toggleTheme) window._toggleTheme(); }
 function syncFromDashboard(){ if(window._syncFromDashboard) window._syncFromDashboard(); }
+function confirmUpload(){ if(window._confirmUpload) window._confirmUpload(); }
 function focusAsset(id,lat,lng){ if(window._focusAsset) window._focusAsset(id,lat,lng); }
 function openInspectModal(){ if(window._openInspectModal) window._openInspectModal(); }
 function saveInspection(){ if(window._saveInspection) window._saveInspection(); }
@@ -2725,6 +2754,161 @@ function renderFuel() {
   // Notify dashboard
   try { if(typeof renderDashboard==="function") setTimeout(renderDashboard, 50); } catch(e){}
 
+
+/* ══════════════════════════════════════
+   STANDARD BANK FILE UPLOAD
+   Columns: DateTime(0), Date(1), Time(2), Account(3), Card(4),
+   Registration(5), VehicleDesc(6), Merchant(7), Status(8),
+   Override(9), DeclineReason(10), Value(11), ..., Odometer(14)
+══════════════════════════════════════ */
+let pendingUploadRows = [];
+
+window._handleFuelUpload = window.handleFuelUpload = async function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  e.target.value = "";
+
+  // Open preview modal
+  openModal("upload-modal");
+  const statusEl  = document.getElementById("upload-status");
+  const tbodyEl   = document.getElementById("upload-preview-tbody");
+  const summaryEl = document.getElementById("upload-summary");
+  const confirmBtn= document.getElementById("upload-confirm-btn");
+  summaryEl.style.display = "none";
+  confirmBtn.style.display = "none";
+  statusEl.textContent = "Reading file...";
+  statusEl.style.color = "var(--muted)";
+
+  try {
+    let rows = [];
+
+    if (file.name.endsWith(".csv")) {
+      // Read CSV
+      const text = await file.text();
+      const lines = text.split("\n");
+      // Find header row
+      const headerIdx = lines.findIndex(l => l.toLowerCase().includes("registration"));
+      if (headerIdx === -1) throw new Error("Could not find header row. Make sure this is a Standard Bank Live Transactions file.");
+      for (let i = headerIdx + 1; i < lines.length; i++) {
+        const cols = lines[i].split("\t");
+        if (cols.length < 9) continue;
+        rows.push(cols);
+      }
+    } else {
+      // Read XLSX/XLS using SheetJS
+      if (typeof XLSX === "undefined") throw new Error("Excel reader not loaded. Please refresh and try again.");
+      const buf  = await file.arrayBuffer();
+      const wb   = XLSX.read(buf, {type:"array"});
+      const ws   = wb.Sheets[wb.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(ws, {header:1, defval:""});
+      // Find header row
+      const headerIdx = data.findIndex(r => r.some(c => String(c).toLowerCase().includes("registration")));
+      if (headerIdx === -1) throw new Error("Could not find header row. Make sure this is a Standard Bank Live Transactions file.");
+      rows = data.slice(headerIdx + 1).map(r => r.map(c => String(c)));
+    }
+
+    if (!rows.length) throw new Error("No transaction rows found in file.");
+
+    // Parse rows — only Accepted transactions
+    const parsed = [];
+    rows.forEach(cols => {
+      const status = (cols[8] || "").trim();
+      if (status !== "Accepted") return;
+      const dateRaw = (cols[0] || "").trim();
+      const reg     = (cols[5] || "").trim().toUpperCase();
+      const vehDesc = (cols[6] || "").trim();
+      const merchant= (cols[7] || "").trim();
+      const amount  = parseFloat((cols[11] || "0").replace(/[^0-9.-]/g,"")) || 0;
+      const odo     = (cols[14] || "").trim();
+      if (!reg || !amount) return;
+      // Parse date
+      let dateStr = "";
+      if (dateRaw.includes("-")) dateStr = dateRaw.split(" ")[0];
+      else if (dateRaw) dateStr = dateRaw;
+      parsed.push({ dateStr, reg, vehDesc, merchant, amount, odo });
+    });
+
+    if (!parsed.length) throw new Error("No accepted transactions found in file.");
+
+    // Check against existing fuelData — find last date already loaded
+    const existingRegs = {};
+    if (fuelData && fuelData.vehicles) {
+      fuelData.vehicles.forEach(v => { existingRegs[v.reg] = v.spend || 0; });
+    }
+
+    // Show preview
+    tbodyEl.innerHTML = parsed.map(r =>
+      "<tr><td style='font-size:.75rem'>" + (r.dateStr||"—") + "</td>" +
+      "<td><span class='rp'>" + r.reg + "</span></td>" +
+      "<td style='font-size:.74rem;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'>" + r.vehDesc + "</td>" +
+      "<td style='font-size:.74rem;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'>" + r.merchant + "</td>" +
+      "<td style='font-family:var(--mono);color:var(--ok)'>R" + r.amount.toLocaleString("en-ZA",{minimumFractionDigits:2}) + "</td>" +
+      "<td style='font-family:var(--mono);font-size:.74rem'>" + (r.odo||"—") + "</td>" +
+      "</tr>"
+    ).join("");
+
+    // Summary
+    const totalAmt  = parsed.reduce((s,r) => s+r.amount, 0);
+    const uniqueVehs= new Set(parsed.map(r => r.reg)).size;
+    statusEl.textContent = "✅ " + parsed.length + " accepted transactions found · " + uniqueVehs + " vehicles";
+    statusEl.style.color = "var(--ok)";
+
+    summaryEl.style.display = "block";
+    summaryEl.textContent   = "Total: R" + totalAmt.toLocaleString("en-ZA",{minimumFractionDigits:2}) +
+      " across " + uniqueVehs + " vehicles · " + parsed.length + " transactions. " +
+      "Click 'Add to Fuel Data' to merge with current fuel data.";
+
+    pendingUploadRows = parsed;
+    confirmBtn.style.display = "inline-flex";
+
+  } catch(err) {
+    statusEl.textContent = "❌ " + err.message;
+    statusEl.style.color = "var(--danger)";
+    tbodyEl.innerHTML = "<tr><td colspan='6' class='es'>Error reading file</td></tr>";
+  }
+};
+
+window._confirmUpload = function() {
+  if (!pendingUploadRows.length) return;
+
+  // Merge uploaded transactions into fuelData
+  // Group by registration and sum spend
+  const uploadByReg = {};
+  pendingUploadRows.forEach(r => {
+    if (!uploadByReg[r.reg]) uploadByReg[r.reg] = { spend:0, vehDesc:r.vehDesc, transactions:[] };
+    uploadByReg[r.reg].spend += r.amount;
+    uploadByReg[r.reg].transactions.push(r);
+  });
+
+  // Merge into existing fuelData.vehicles
+  if (!fuelData.vehicles) fuelData.vehicles = [];
+
+  Object.entries(uploadByReg).forEach(([reg, data]) => {
+    const existing = fuelData.vehicles.find(v => v.reg === reg);
+    if (existing) {
+      // Add to existing vehicle spend
+      existing.spend = (existing.spend || 0) + data.spend;
+    } else {
+      // Add new vehicle from upload
+      fuelData.vehicles.push({
+        reg,
+        spend:   data.spend,
+        vehicle: data.vehDesc,
+        dept:    "",
+        driver:  "",
+        limit:   0,
+        mileage: 0
+      });
+    }
+  });
+
+  window._fuelData = fuelData;
+  renderFuel();
+  closeModal("upload-modal");
+  pendingUploadRows = [];
+
+  fuelStatus("✅ " + Object.keys(uploadByReg).length + " vehicles added from Standard Bank upload", "✅");
+};
 
 window._exportFuelExcel = window.exportFuelExcel = () => {
   if(!fuelData.vehicles.length){alert("No fuel data to export.");return;}
