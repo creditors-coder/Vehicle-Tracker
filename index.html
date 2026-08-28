@@ -14,7 +14,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+<script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 /* ── Reset ─────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -2763,109 +2763,118 @@ function renderFuel() {
 ══════════════════════════════════════ */
 let pendingUploadRows = [];
 
-window._handleFuelUpload = window.handleFuelUpload = async function(e) {
-  const file = e.target.files[0];
+window._handleFuelUpload = window.handleFuelUpload = function(e) {
+  var file = e.target.files[0];
   if (!file) return;
   e.target.value = "";
 
-  // Open preview modal
   openModal("upload-modal");
-  const statusEl  = document.getElementById("upload-status");
-  const tbodyEl   = document.getElementById("upload-preview-tbody");
-  const summaryEl = document.getElementById("upload-summary");
-  const confirmBtn= document.getElementById("upload-confirm-btn");
-  summaryEl.style.display = "none";
+  var statusEl   = document.getElementById("upload-status");
+  var tbodyEl    = document.getElementById("upload-preview-tbody");
+  var summaryEl  = document.getElementById("upload-summary");
+  var confirmBtn = document.getElementById("upload-confirm-btn");
+  summaryEl.style.display  = "none";
   confirmBtn.style.display = "none";
-  statusEl.textContent = "Reading file...";
-  statusEl.style.color = "var(--muted)";
+  statusEl.textContent     = "Reading file...";
+  statusEl.style.color     = "var(--muted)";
 
-  try {
-    let rows = [];
+  var reader = new FileReader();
 
-    if (file.name.endsWith(".csv")) {
-      // Read CSV
-      const text = await file.text();
-      const lines = text.split("\n");
-      // Find header row
-      const headerIdx = lines.findIndex(l => l.toLowerCase().includes("registration"));
-      if (headerIdx === -1) throw new Error("Could not find header row. Make sure this is a Standard Bank Live Transactions file.");
-      for (let i = headerIdx + 1; i < lines.length; i++) {
-        const cols = lines[i].split("\t");
-        if (cols.length < 9) continue;
-        rows.push(cols);
+  reader.onload = function(ev) {
+    try {
+      var rows = [];
+      var isExcel = file.name.match(/\.xlsx?$/i);
+
+      if (isExcel) {
+        if (typeof XLSX === "undefined") throw new Error("Excel reader not loaded — try refreshing the page.");
+        var data  = new Uint8Array(ev.target.result);
+        var wb    = XLSX.read(data, {type:"array"});
+        var ws    = wb.Sheets[wb.SheetNames[0]];
+        var allRows = XLSX.utils.sheet_to_json(ws, {header:1, defval:"", raw:false});
+        // Find header row containing "Registration"
+        var hIdx = -1;
+        for (var i=0; i<allRows.length; i++) {
+          if (allRows[i].some(function(c){ return String(c).toLowerCase().indexOf("registration") > -1; })) {
+            hIdx = i; break;
+          }
+        }
+        if (hIdx === -1) throw new Error("Header row not found. Make sure this is a Standard Bank Live Transactions file.");
+        rows = allRows.slice(hIdx+1);
+      } else {
+        // CSV — tab separated
+        var text  = ev.target.result;
+        var lines = text.split("\n");
+        var hIdx  = -1;
+        for (var i=0; i<lines.length; i++) {
+          if (lines[i].toLowerCase().indexOf("registration") > -1) { hIdx=i; break; }
+        }
+        if (hIdx === -1) throw new Error("Header row not found. Make sure this is a Standard Bank Live Transactions file.");
+        for (var i=hIdx+1; i<lines.length; i++) {
+          if (lines[i].trim()) rows.push(lines[i].split("\t"));
+        }
       }
-    } else {
-      // Read XLSX/XLS using SheetJS
-      if (typeof XLSX === "undefined") throw new Error("Excel reader not loaded. Please refresh and try again.");
-      const buf  = await file.arrayBuffer();
-      const wb   = XLSX.read(buf, {type:"array"});
-      const ws   = wb.Sheets[wb.SheetNames[0]];
-      const data = XLSX.utils.sheet_to_json(ws, {header:1, defval:""});
-      // Find header row
-      const headerIdx = data.findIndex(r => r.some(c => String(c).toLowerCase().includes("registration")));
-      if (headerIdx === -1) throw new Error("Could not find header row. Make sure this is a Standard Bank Live Transactions file.");
-      rows = data.slice(headerIdx + 1).map(r => r.map(c => String(c)));
+
+      if (!rows.length) throw new Error("No data rows found in file.");
+
+      // Parse — Accepted transactions only
+      // Columns: 0=DateTime, 5=Registration, 6=VehicleDesc, 7=Merchant, 8=Status, 11=Value, 14=Odometer
+      var parsed = [];
+      rows.forEach(function(cols) {
+        if (!cols || cols.length < 9) return;
+        var status = String(cols[8]||"").trim();
+        if (status !== "Accepted") return;
+        var dateRaw = String(cols[0]||"").trim();
+        var reg     = String(cols[5]||"").trim().toUpperCase();
+        var veh     = String(cols[6]||"").trim();
+        var merch   = String(cols[7]||"").trim();
+        var amt     = parseFloat(String(cols[11]||"0").replace(/[^0-9.-]/g,"")) || 0;
+        var odo     = String(cols[14]||"").trim();
+        if (!reg || reg.length < 4 || !amt) return;
+        var dateStr = dateRaw.indexOf("-") > -1 ? dateRaw.split(" ")[0] : dateRaw;
+        parsed.push({dateStr:dateStr, reg:reg, veh:veh, merch:merch, amt:amt, odo:odo});
+      });
+
+      if (!parsed.length) throw new Error("No accepted transactions found. Check that the file contains 'Accepted' transactions.");
+
+      // Show preview
+      tbodyEl.innerHTML = parsed.slice(0,100).map(function(r) {
+        return "<tr>" +
+          "<td style='font-size:.73rem;white-space:nowrap'>" + (r.dateStr||"—") + "</td>" +
+          "<td><span class='rp'>" + r.reg + "</span></td>" +
+          "<td style='font-size:.72rem;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'>" + r.veh + "</td>" +
+          "<td style='font-size:.72rem;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'>" + r.merch + "</td>" +
+          "<td style='font-family:var(--mono);color:var(--ok)'>R" + r.amt.toLocaleString("en-ZA",{minimumFractionDigits:2}) + "</td>" +
+          "<td style='font-family:var(--mono);font-size:.72rem'>" + (r.odo||"—") + "</td>" +
+          "</tr>";
+      }).join("") + (parsed.length > 100 ? "<tr><td colspan='6' class='es'>... and " + (parsed.length-100) + " more rows</td></tr>" : "");
+
+      var total     = parsed.reduce(function(s,r){return s+r.amt;},0);
+      var uniqueVeh = {};
+      parsed.forEach(function(r){uniqueVeh[r.reg]=1;});
+      var vehCount  = Object.keys(uniqueVeh).length;
+
+      statusEl.textContent = "✅ " + parsed.length + " accepted transactions · " + vehCount + " vehicles";
+      statusEl.style.color = "var(--ok)";
+      summaryEl.style.display = "block";
+      summaryEl.textContent   = "Total spend: R" + total.toLocaleString("en-ZA",{minimumFractionDigits:2}) +
+        " across " + vehCount + " vehicles · " + parsed.length + " transactions. Click 'Add to Fuel Data' to merge.";
+
+      pendingUploadRows  = parsed;
+      confirmBtn.style.display = "inline-flex";
+
+    } catch(err) {
+      statusEl.textContent = "❌ " + err.message;
+      statusEl.style.color = "var(--danger)";
+      tbodyEl.innerHTML    = "<tr><td colspan='6' class='es'>Could not read file</td></tr>";
     }
+  };
 
-    if (!rows.length) throw new Error("No transaction rows found in file.");
+  reader.onerror = function() {
+    document.getElementById("upload-status").textContent = "❌ Failed to read file";
+  };
 
-    // Parse rows — only Accepted transactions
-    const parsed = [];
-    rows.forEach(cols => {
-      const status = (cols[8] || "").trim();
-      if (status !== "Accepted") return;
-      const dateRaw = (cols[0] || "").trim();
-      const reg     = (cols[5] || "").trim().toUpperCase();
-      const vehDesc = (cols[6] || "").trim();
-      const merchant= (cols[7] || "").trim();
-      const amount  = parseFloat((cols[11] || "0").replace(/[^0-9.-]/g,"")) || 0;
-      const odo     = (cols[14] || "").trim();
-      if (!reg || !amount) return;
-      // Parse date
-      let dateStr = "";
-      if (dateRaw.includes("-")) dateStr = dateRaw.split(" ")[0];
-      else if (dateRaw) dateStr = dateRaw;
-      parsed.push({ dateStr, reg, vehDesc, merchant, amount, odo });
-    });
-
-    if (!parsed.length) throw new Error("No accepted transactions found in file.");
-
-    // Check against existing fuelData — find last date already loaded
-    const existingRegs = {};
-    if (fuelData && fuelData.vehicles) {
-      fuelData.vehicles.forEach(v => { existingRegs[v.reg] = v.spend || 0; });
-    }
-
-    // Show preview
-    tbodyEl.innerHTML = parsed.map(r =>
-      "<tr><td style='font-size:.75rem'>" + (r.dateStr||"—") + "</td>" +
-      "<td><span class='rp'>" + r.reg + "</span></td>" +
-      "<td style='font-size:.74rem;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'>" + r.vehDesc + "</td>" +
-      "<td style='font-size:.74rem;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'>" + r.merchant + "</td>" +
-      "<td style='font-family:var(--mono);color:var(--ok)'>R" + r.amount.toLocaleString("en-ZA",{minimumFractionDigits:2}) + "</td>" +
-      "<td style='font-family:var(--mono);font-size:.74rem'>" + (r.odo||"—") + "</td>" +
-      "</tr>"
-    ).join("");
-
-    // Summary
-    const totalAmt  = parsed.reduce((s,r) => s+r.amount, 0);
-    const uniqueVehs= new Set(parsed.map(r => r.reg)).size;
-    statusEl.textContent = "✅ " + parsed.length + " accepted transactions found · " + uniqueVehs + " vehicles";
-    statusEl.style.color = "var(--ok)";
-
-    summaryEl.style.display = "block";
-    summaryEl.textContent   = "Total: R" + totalAmt.toLocaleString("en-ZA",{minimumFractionDigits:2}) +
-      " across " + uniqueVehs + " vehicles · " + parsed.length + " transactions. " +
-      "Click 'Add to Fuel Data' to merge with current fuel data.";
-
-    pendingUploadRows = parsed;
-    confirmBtn.style.display = "inline-flex";
-
-  } catch(err) {
-    statusEl.textContent = "❌ " + err.message;
-    statusEl.style.color = "var(--danger)";
-    tbodyEl.innerHTML = "<tr><td colspan='6' class='es'>Error reading file</td></tr>";
-  }
+  if (file.name.match(/\.xlsx?$/i)) reader.readAsArrayBuffer(file);
+  else reader.readAsText(file);
 };
 
 window._confirmUpload = function() {
