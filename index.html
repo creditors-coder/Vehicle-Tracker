@@ -1936,11 +1936,20 @@ function showApp() {
     document.getElementById("sales-notice").style.display="block";
     fuelStatus("Loading Sales fuel data...","🔄");
     fuelTabsLoaded = true;
-    // Sales: load current month directly, no discovery needed
     fuelDeptFilter = "Sales";
+    // Detect current month and load it directly
+    const now = new Date();
+    const MONTH_GIDS = {
+      "2026-08": {gid:"", name:"August 26 Summary", label:"August 2026"},
+      "2026-07": {gid:"348279363", name:"July 26 Summary", label:"July 2026"},
+      "2026-06": {gid:"", name:"June 26 Summary", label:"June 2026"},
+      "2026-05": {gid:"", name:"May 26 Summary", label:"May 2026"},
+    };
+    const monthKey = now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0");
+    const monthInfo = MONTH_GIDS[monthKey] || {gid:"348279363", name:"July 26 Summary", label:"July 2026"};
     const sel = document.getElementById("fuel-month-select");
     if (sel) {
-      sel.innerHTML = '<option value="348279363" data-name="July 26 Summary">July 2026</option>';
+      sel.innerHTML = `<option value="${monthInfo.gid||monthInfo.name}" data-name="${monthInfo.name}">${monthInfo.label}</option>`;
       sel.style.display = "none";
     }
     syncGoogleSheet();
