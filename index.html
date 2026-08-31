@@ -1431,7 +1431,7 @@ function toggleInspectOption(v){ if(window._toggleInspectOption) window._toggleI
 import { initializeApp }  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, browserSessionPersistence, setPersistence }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy }
+import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, setDoc, getDoc }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 /* ── Config ── */
@@ -2557,6 +2557,22 @@ window._syncGoogleSheet = window.syncGoogleSheet = async () => {
   const identifier=sel.value||"348279363";
   const sheetTab=sel.options[sel.selectedIndex]?.dataset?.name||identifier;
   fuelStatus(`Syncing "${sheetTab}"...`,"🔄");
+
+  // Check if there's uploaded data in Firestore first (more up to date than Google Sheets)
+  try {
+    const saved = await loadFuelDataFromFirestore();
+    if (saved && saved.vehicles && saved.vehicles.length > 0) {
+      fuelData = saved;
+      window._fuelData = fuelData;
+      renderFuel();
+      const uploadedBy = saved.updatedBy || "admin";
+      const uploadedAt = saved.updatedAt ? new Date(saved.updatedAt).toLocaleString("en-ZA") : "";
+      fuelStatus(`✅ Loaded ${saved.vehicles.length} vehicles · Last uploaded ${uploadedAt} by ${uploadedBy}`, "✅");
+      document.getElementById("fuel-last-sync").textContent = uploadedAt ? "Upload: "+uploadedAt : "";
+      return; // Use Firestore data, skip Google Sheets
+    }
+  } catch(e) { /* Fall through to Google Sheets */ }
+
   const isGid=/^\d+$/.test(identifier);
   const param=isGid?`gid=${identifier}`:`sheet=${encodeURIComponent(identifier)}`;
   try{
@@ -3105,6 +3121,56 @@ window._generateReport = function() {
     setTimeout(function() { win.print(); }, 500);
   };
 };
+
+/* ══════════════════════════════════════
+   FUEL DATA — Firestore persistence
+   Saves merged fuel data so all users see latest upload
+══════════════════════════════════════ */
+async function saveFuelDataToFirestore(data) {
+  // Store as single document in 'fuelUploads' collection
+  // Key by month tab so different months don't overwrite each other
+  const sel     = document.getElementById("fuel-month-select");
+  const monthKey= sel?.value || "current";
+  const docId   = "fuel_" + monthKey.replace(/[^a-zA-Z0-9]/g, "_");
+
+  const payload = {
+    vehicles:  data.vehicles  || [],
+    monthly:   data.monthly   || [],
+    deptSummary: data.deptSummary || [],
+    sheetTab:  data.sheetTab  || "",
+    sheetDate: data.sheetDate || "",
+    monthKey:  monthKey,
+    updatedAt: new Date().toISOString(),
+    updatedBy: currentUser?.email || "admin"
+  };
+
+  await setDoc(doc(db, "fuelUploads", docId), payload);
+  return docId;
+}
+
+async function loadFuelDataFromFirestore() {
+  const sel      = document.getElementById("fuel-month-select");
+  const monthKey = sel?.value || "current";
+  const docId    = "fuel_" + monthKey.replace(/[^a-zA-Z0-9]/g, "_");
+
+  try {
+    const snap = await getDoc(doc(db, "fuelUploads", docId));
+    if (snap.exists()) {
+      const data = snap.data();
+      return {
+        vehicles:    data.vehicles    || [],
+        monthly:     data.monthly     || [],
+        deptSummary: data.deptSummary || [],
+        sheetTab:    data.sheetTab    || "",
+        sheetDate:   data.sheetDate   || "",
+        updatedAt:   data.updatedAt   || "",
+        updatedBy:   data.updatedBy   || ""
+      };
+    }
+  } catch(e) { console.log("No Firestore fuel data:", e.message); }
+  return null;
+}
+
 
 window._exportFuelExcel = window.exportFuelExcel = () => {
   if(!fuelData.vehicles.length){alert("No fuel data to export.");return;}
