@@ -1595,7 +1595,7 @@ window._doLogin = window.doLogin = async () => {
     await signInWithEmailAndPassword(auth, email, pass);
     sessionStorage.setItem("xcorp_login_time", Date.now().toString());
     // Store encoded credential for passkey flow (session only)
-    sessionStorage.setItem("xcorp_enc_" + btoa(email).replace(/=/g,"").replace(/=/g,""), btoa(pass));
+    localStorage.setItem("xcorp_enc_" + btoa(email).replace(/=/g,""), btoa(pass));
     // Offer to register passkey after successful password login
     try {
       const supported = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
@@ -1915,8 +1915,8 @@ window._loginWithPasskey = async function() {
     if (!matched?.email) throw new Error("Passkey not recognised");
 
     const email    = matched.email;
-    const encKey   = "xcorp_enc_" + btoa(email).replace(/=/g,"").replace(/=/g,"");
-    const storedPw = sessionStorage.getItem(encKey);
+    const encKey   = "xcorp_enc_" + btoa(email).replace(/=/g,"");
+    const storedPw = localStorage.getItem(encKey);
 
     if (!storedPw) {
       // No password in session — ask user to login with password once
@@ -1960,7 +1960,7 @@ window._doLogout = window.doLogout = async () => {
   try { 
     sessionStorage.removeItem("xcorp_login_time");
     // Clear passkey stored creds
-    Object.keys(sessionStorage).filter(k=>k.startsWith("xcorp_enc_")).forEach(k=>sessionStorage.removeItem(k));
+    // Passkey credentials kept in localStorage for next session
   } catch(e){}
   try { stopSessionTimer(); } catch(e){}
   try { hideTimeoutModal(); } catch(e){}
