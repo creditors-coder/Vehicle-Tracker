@@ -1594,8 +1594,8 @@ window._doLogin = window.doLogin = async () => {
     await setPersistence(auth, browserSessionPersistence);
     await signInWithEmailAndPassword(auth, email, pass);
     sessionStorage.setItem("xcorp_login_time", Date.now().toString());
-    // Store encoded cred for passkey flow (session only, cleared on logout)
-    sessionStorage.setItem("xcorp_enc_" + btoa(email), btoa(pass));
+    // Store encoded credential for passkey flow (session only)
+    sessionStorage.setItem("xcorp_enc_" + btoa(email).replace(/=/g,"").replace(/=/g,""), btoa(pass));
     // Offer to register passkey after successful password login
     try {
       const supported = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
@@ -1822,118 +1822,72 @@ window._toggleTheme = function() {
 /* ══════════════════════════════════════
    PASSKEY / WEBAUTHN
 ══════════════════════════════════════ */
-const PASSKEY_KEY = "xcorp_passkeys"; // localStorage key
-
-// Check if browser supports passkeys
-function isPasskeySupported() {
-  return window.PublicKeyCredential !== undefined
-    && typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === "function";
-}
-
-// Show passkey button if supported and passkey registered
-async function initPasskeyUI() {
-  try {
-    const supported = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-    const stored    = getStoredPasskeys();
-    const wrap      = document.getElementById("passkey-wrap");
-    if (supported && wrap) {
-      wrap.style.display = "block";
-      // Update button text based on what's stored
-      const btn = document.getElementById("passkey-btn");
-      if (stored.length > 0) {
-        btn.innerHTML = '<span>🔑</span> Sign in with Passkey';
-      } else {
-        btn.style.display = "none"; // No passkey registered yet
-      }
-    }
-  } catch(e) { /* Not supported */ }
-}
+const PASSKEY_KEY = "xcorp_passkeys";
 
 function getStoredPasskeys() {
-  try {
-    return JSON.parse(localStorage.getItem(PASSKEY_KEY) || "[]");
-  } catch(e) { return []; }
+  try { return JSON.parse(localStorage.getItem(PASSKEY_KEY) || "[]"); } catch(e) { return []; }
 }
 
-function savePasskey(passkey) {
-  const stored = getStoredPasskeys();
-  stored.push(passkey);
-  localStorage.setItem(PASSKEY_KEY, JSON.stringify(stored));
+function savePasskey(p) {
+  const arr = getStoredPasskeys(); arr.push(p);
+  localStorage.setItem(PASSKEY_KEY, JSON.stringify(arr));
 }
 
-// Register a passkey after successful password login
-async function registerPasskeyForUser(email) {
-  try {
-    const supported = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-    if (!supported) return;
+async function passkeySupported() {
+  try { return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(); }
+  catch(e) { return false; }
+}
 
-    // Generate challenge
+// Show passkey button if passkeys registered on this device
+async function initPasskeyUI() {
+  const supported = await passkeySupported();
+  const stored    = getStoredPasskeys();
+  const wrap      = document.getElementById("passkey-wrap");
+  const btn       = document.getElementById("passkey-btn");
+  if (!wrap) return;
+  if (supported && stored.length > 0) {
+    wrap.style.display = "block";
+    if (btn) btn.style.display = "flex";
+  } else {
+    wrap.style.display = "none";
+  }
+}
+
+// Register passkey — called after successful password login
+window._registerPasskey = async function(email) {
+  try {
     const challenge = new Uint8Array(32);
     crypto.getRandomValues(challenge);
-
-    const userId = new TextEncoder().encode(email);
-
-    const credential = await navigator.credentials.create({
+    const cred = await navigator.credentials.create({
       publicKey: {
         challenge,
-        rp: { name: "X-Corp Vehicle Tracker", id: location.hostname },
-        user: {
-          id: userId,
-          name: email,
-          displayName: email.split("@")[0]
-        },
-        pubKeyCredParams: [
-          { alg: -7,  type: "public-key" }, // ES256
-          { alg: -257, type: "public-key" } // RS256
-        ],
-        authenticatorSelection: {
-          authenticatorAttachment: "platform",
-          userVerification: "required",
-          requireResidentKey: true
-        },
+        rp:   { name: "X-Corp Vehicle Tracker", id: location.hostname },
+        user: { id: new TextEncoder().encode(email), name: email, displayName: email.split("@")[0] },
+        pubKeyCredParams: [{alg:-7,type:"public-key"},{alg:-257,type:"public-key"}],
+        authenticatorSelection: { authenticatorAttachment:"platform", userVerification:"required", requireResidentKey:true },
         timeout: 60000
       }
     });
-
-    if (credential) {
-      // Store credential ID mapped to email
-      savePasskey({
-        id: btoa(String.fromCharCode(...new Uint8Array(credential.rawId))),
-        email: email,
-        created: new Date().toISOString()
-      });
-      console.log("Passkey registered for", email);
+    if (cred) {
+      const id = btoa(String.fromCharCode(...new Uint8Array(cred.rawId)));
+      savePasskey({ id, email, created: new Date().toISOString() });
+      // Show passkey button
+      const wrap = document.getElementById("passkey-wrap");
+      const btn  = document.getElementById("passkey-btn");
+      if (wrap) wrap.style.display = "block";
+      if (btn)  btn.style.display  = "flex";
       return true;
     }
-  } catch(e) {
-    console.log("Passkey registration skipped:", e.message);
-  }
+  } catch(e) { console.log("Passkey register:", e.message); }
   return false;
-}
-
-// Login with passkey
-window._registerPasskey = async function(email) {
-  const success = await registerPasskeyForUser(email || currentUser?.email);
-  if (success) {
-    // Show passkey button now
-    const wrap = document.getElementById("passkey-wrap");
-    const btn  = document.getElementById("passkey-btn");
-    if (wrap) wrap.style.display = "block";
-    if (btn)  btn.style.display  = "flex";
-  }
 };
 
+// Login with passkey — verifies biometric then signs in via Firebase
 window._loginWithPasskey = async function() {
   const statusEl = document.getElementById("passkey-status");
   const btn      = document.getElementById("passkey-btn");
   const stored   = getStoredPasskeys();
-
-  if (!stored.length) {
-    statusEl.textContent = "No passkey registered. Sign in with password first.";
-    statusEl.style.color = "var(--warn)";
-    statusEl.style.display = "block";
-    return;
-  }
+  if (!stored.length) return;
 
   try {
     statusEl.textContent = "Waiting for biometric...";
@@ -1943,8 +1897,6 @@ window._loginWithPasskey = async function() {
 
     const challenge = new Uint8Array(32);
     crypto.getRandomValues(challenge);
-
-    // Build allowCredentials from stored passkeys
     const allowCredentials = stored.map(p => ({
       id: Uint8Array.from(atob(p.id), c => c.charCodeAt(0)),
       type: "public-key",
@@ -1952,81 +1904,52 @@ window._loginWithPasskey = async function() {
     }));
 
     const assertion = await navigator.credentials.get({
-      publicKey: {
-        challenge,
-        allowCredentials,
-        userVerification: "required",
-        timeout: 60000
-      }
+      publicKey: { challenge, allowCredentials, userVerification:"required", timeout:60000 }
     });
 
-    if (assertion) {
-      // Find which email this credential belongs to
-      const credId  = btoa(String.fromCharCode(...new Uint8Array(assertion.rawId)));
-      const matched = stored.find(p => p.id === credId);
-      const email   = matched?.email;
+    if (!assertion) throw new Error("No credential returned");
 
-      if (!email || !USERS[email]) {
-        throw new Error("Passkey not recognised. Please sign in with password.");
-      }
+    // Match credential to stored passkey
+    const credId   = btoa(String.fromCharCode(...new Uint8Array(assertion.rawId)));
+    const matched  = stored.find(p => p.id === credId);
+    if (!matched?.email) throw new Error("Passkey not recognised");
 
-      statusEl.textContent = "✅ Verified! Signing in...";
-      statusEl.style.color = "var(--ok)";
+    const email    = matched.email;
+    const encKey   = "xcorp_enc_" + btoa(email).replace(/=/g,"").replace(/=/g,"");
+    const storedPw = sessionStorage.getItem(encKey);
 
-      // Sign in with Firebase using stored credentials
-      await setPersistence(auth, browserSessionPersistence);
-      // We trust the biometric — sign in directly
-      // Re-use the SHA-256 hash comparison approach by signing in via Firebase
-      // Since we verified biometric = device owner = authorised user
-      // Use signInWithEmailAndPassword with a special flow
-      
-      // Store email for showApp to use after biometric auth
-      sessionStorage.setItem("xcorp_login_time", Date.now().toString());
-      
-      // Show email field and trigger normal login flow
-      // User has proven identity via biometric - populate email and use stored hash
+    if (!storedPw) {
+      // No password in session — ask user to login with password once
+      statusEl.textContent = "⚠️ Please sign in with your password once to activate passkey for this session";
+      statusEl.style.color = "var(--warn)";
+      btn.disabled = false;
+      // Pre-fill email field
       const emailEl = document.getElementById("lin-email");
-      const errEl   = document.getElementById("lerr");
       if (emailEl) emailEl.value = email;
-      if (errEl)   errEl.style.display = "none";
-      
-      // Sign in via Firebase properly (required for session/signOut to work)
-      statusEl.textContent = "✅ Biometric verified — signing in...";
-      // We need Firebase auth - use signInWithEmailAndPassword
-      // For passkey flow, we use a Firebase custom token approach via the stored hash
-      // Simplest safe approach: populate the email field and re-use doLogin with stored creds
-      // Actually: passkey proves device ownership = trust the login
-      // Use Firebase signInWithEmailAndPassword with the email - but we need password
-      // Best approach: store encrypted credentials in sessionStorage during password login
-      const storedCred = sessionStorage.getItem("xcorp_enc_" + btoa(email));
-      if (storedCred) {
-        try {
-          const pass = atob(storedCred);
-          await setPersistence(auth, browserSessionPersistence);
-          await signInWithEmailAndPassword(auth, email, pass);
-        } catch(e2) {
-          // Credential expired - ask for password
-          statusEl.textContent = "Session expired — please sign in with password once to refresh passkey";
-          statusEl.style.color = "var(--warn)";
-          btn.disabled = false;
-        }
-      } else {
-        // No stored cred - inform user
-        statusEl.textContent = "Please sign in with password once to activate passkey on this session";
-        statusEl.style.color = "var(--warn)";
-        btn.disabled = false;
-      }
+      return;
     }
+
+    statusEl.textContent = "✅ Verified! Signing in...";
+    statusEl.style.color = "var(--ok)";
+
+    // Use stored password to do real Firebase sign in
+    const pass = atob(storedPw);
+    await setPersistence(auth, browserSessionPersistence);
+    await signInWithEmailAndPassword(auth, email, pass);
+    sessionStorage.setItem("xcorp_login_time", Date.now().toString());
+    // onAuthStateChanged will call showApp()
+
   } catch(e) {
-    statusEl.textContent = e.message.includes("cancel") || e.message.includes("abort")
+    const msg = e.message || "";
+    statusEl.textContent = msg.includes("cancel") || msg.includes("abort") || msg.includes("NotAllowed")
       ? "Cancelled — try again or use password"
-      : "❌ " + e.message;
+      : "❌ " + msg;
     statusEl.style.color = "var(--danger)";
     btn.disabled = false;
   }
 };
 
-// Call after page loads to show passkey button if available
+// Init on page load
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", initPasskeyUI);
 } else {
