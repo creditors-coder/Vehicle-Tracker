@@ -1107,7 +1107,15 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
           <div class="tw" style="max-height:260px;overflow-y:auto"><table class="dt"><thead><tr><th>Month</th><th>Spend (R)</th><th>Litres</th></tr></thead><tbody id="fuel-month-tbody"><tr><td colspan="3" class="es">No data</td></tr></tbody></table></div>
         </div>
       </div>
-      <div class="alt">Per Vehicle Detail</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem">
+        <div class="alt" style="margin-bottom:0">Per Vehicle Detail</div>
+        <select id="fuel-dept-filter" onchange="applyFuelDeptFilter()" style="background:var(--surf2);border:1px solid var(--border);color:var(--text);padding:.4rem .75rem;border-radius:var(--r);font-family:var(--font);font-size:.78rem">
+          <option value="">All Departments</option>
+          <option value="Technical">Technical</option>
+          <option value="Sales">Sales</option>
+          <option value="Finance">Finance</option>
+        </select>
+      </div>
       <div class="tw"><table class="dt"><thead><tr><th>Registration</th><th>Vehicle</th><th>Driver</th><th>Department</th><th>Spend (R)</th><th>Limit (R)</th><th>Mileage (km)</th><th>% of Limit</th></tr></thead><tbody id="fuel-veh-tbody"><tr><td colspan="8" class="es">Sync Google Sheet or upload a file</td></tr></tbody></table></div>
     </section>
 
@@ -1440,6 +1448,7 @@ function toggleTheme(){ if(window._toggleTheme) window._toggleTheme(); }
 function syncFromDashboard(){ if(window._syncFromDashboard) window._syncFromDashboard(); }
 function generateReport(){ if(window._generateReport) window._generateReport(); }
 function confirmUpload(){ if(window._confirmUpload) window._confirmUpload(); }
+function applyFuelDeptFilter(){ if(window._applyFuelDeptFilter) window._applyFuelDeptFilter(); }
 function focusAsset(id,lat,lng){ if(window._focusAsset) window._focusAsset(id,lat,lng); }
 function openInspectModal(){ if(window._openInspectModal) window._openInspectModal(); }
 function saveInspection(){ if(window._saveInspection) window._saveInspection(); }
@@ -3367,6 +3376,41 @@ async function loadFuelDataFromFirestore() {
   return null;
 }
 
+
+window._applyFuelDeptFilter = function() {
+  const sel    = document.getElementById("fuel-dept-filter");
+  const filter = sel ? sel.value : "";
+  const allVehs= fuelData.vehicles || [];
+  const vehs   = filter ? allVehs.filter(v => v.dept === filter) : allVehs;
+  const deptColors = {"Finance":"#4a7fff","Sales":"#22c55e","Technical":"#f59e0b"};
+
+  if (!vehs.length) {
+    document.getElementById("fuel-veh-tbody").innerHTML =
+      '<tr><td colspan="8" class="es">No vehicles in this department</td></tr>';
+    return;
+  }
+
+  document.getElementById("fuel-veh-tbody").innerHTML = vehs.map(v => {
+    const pct = v.limit > 0 ? ((v.spend/v.limit)*100) : 0;
+    const pctDisplay = v.limit > 0 ? pct.toFixed(0)+"%" : "—";
+    const pctClass   = pct > 100 ? "danger" : pct > 75 ? "warn" : "";
+    const barWidth   = v.limit > 0 ? Math.min(pct,100) : 0;
+    const col        = deptColors[v.dept] || "#8899bb";
+    const overLimit  = pct > 100 ? '<span style="font-size:0.68rem;background:var(--danger-dim);color:var(--danger);padding:2px 6px;border-radius:4px;font-weight:700;margin-left:4px">OVER</span>' : "";
+    return '<tr>'
+      + '<td><span class="rp">'+(v.reg||"—")+'</span></td>'
+      + '<td style="font-size:.82rem">'+(v.vehicle||"—")+'</td>'
+      + '<td>'+(v.driver||"—")+'</td>'
+      + '<td><span class="dc" style="color:'+col+';border-color:'+col+'33">'+(v.dept||"—")+'</span></td>'
+      + '<td style="font-family:var(--mono);color:'+(v.spend>0?"var(--ok)":"var(--muted)")+'">R'+v.spend.toLocaleString("en-ZA",{minimumFractionDigits:2})+'</td>'
+      + '<td style="font-family:var(--mono)">R'+v.limit.toLocaleString("en-ZA",{minimumFractionDigits:2})+'</td>'
+      + '<td style="font-family:var(--mono)">'+(v.mileage>0?v.mileage.toLocaleString("en-ZA"):"—")+'</td>'
+      + '<td style="min-width:150px">'+(v.limit>0
+          ? '<div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:.75rem;font-family:var(--mono);min-width:2.8rem;color:'+(pct>100?"var(--danger)":pct>75?"var(--warn)":"var(--text)")+'">'+pctDisplay+'</span><div class="flb" style="flex:1"><div class="flf '+pctClass+'" style="width:'+barWidth+'%"></div></div>'+overLimit+'</div>'
+          : "—")+'</td>'
+      + '</tr>';
+  }).join("");
+};
 
 window._exportFuelExcel = window.exportFuelExcel = () => {
   if(!fuelData.vehicles.length){alert("No fuel data to export.");return;}
