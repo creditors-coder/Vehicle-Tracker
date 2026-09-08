@@ -2130,14 +2130,15 @@ function showApp() {
     fuelDeptFilter = "Sales";
     // Detect current month and load it directly
     const now = new Date();
-    const MONTH_GIDS = {
-      "2026-08": {gid:"", name:"August 26 Summary", label:"August 2026"},
-      "2026-07": {gid:"348279363", name:"July 26 Summary", label:"July 2026"},
-      "2026-06": {gid:"", name:"June 26 Summary", label:"June 2026"},
-      "2026-05": {gid:"", name:"May 26 Summary", label:"May 2026"},
+    // Auto-detect current month
+    const yr2 = String(now.getFullYear()).slice(2);
+    const monthInfo = {
+      gid:   "",
+      name:  now.toLocaleString("en-ZA",{month:"long"}) + " " + yr2 + " Summary",
+      label: now.toLocaleString("en-ZA",{month:"long"}) + " " + now.getFullYear()
     };
-    const monthKey = now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0");
-    const monthInfo = MONTH_GIDS[monthKey] || {gid:"348279363", name:"July 26 Summary", label:"July 2026"};
+    // Override with known GIDs
+    if (monthInfo.label === "July 2026") monthInfo.gid = "348279363";
     const sel = document.getElementById("fuel-month-select");
     if (sel) {
       sel.innerHTML = `<option value="${monthInfo.gid||monthInfo.name}" data-name="${monthInfo.name}">${monthInfo.label}</option>`;
@@ -2690,27 +2691,31 @@ function fuelStatus(msg, icon="ℹ️", isError=false) {
 
 async function loadSheetTabs(deptFilter="") {
   fuelDeptFilter=deptFilter;
-  const KNOWN_MONTHS=[
-    {label:"August 2026",    gid:"",          name:"August 26 Summary"},
-    {label:"July 2026",      gid:"348279363", name:"July 26 Summary"},
-    {label:"June 2026",      gid:"",          name:"June 26 Summary"},
-    {label:"May 2026",       gid:"",          name:"May 26 Summary"},
-    {label:"April 2026",     gid:"",          name:"April 26 Summary"},
-    {label:"March 2026",     gid:"",          name:"March 26 Summary"},
-    {label:"February 2026",  gid:"",          name:"February 26 Summary"},
-    {label:"January 2026",   gid:"",          name:"January 26 Summary"},
-    {label:"December 2025",  gid:"",          name:"December 25 Summary"},
-    {label:"November 2025",  gid:"",          name:"November 25 Summary"},
-    {label:"October 2025",   gid:"",          name:"October 25 Summary"},
-    {label:"September 2025", gid:"",          name:"September 25 Summary"},
-    {label:"August 2025",    gid:"",          name:"August 25 Summary"},
-    {label:"July 2025",      gid:"",          name:"July 25 Summary"},
-  ];
+  // Auto-generate months list dynamically — always includes current month
+  function genMonths() {
+    const now = new Date();
+    const KNOWN_GIDS = { "July 2026": "348279363" }; // add GIDs here as you discover them
+    const months = [];
+    for (let i = 0; i < 18; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const yr2 = String(d.getFullYear()).slice(2);
+      const label = d.toLocaleString("en-ZA", {month:"long"}) + " " + d.getFullYear();
+      const name  = d.toLocaleString("en-ZA", {month:"long"}) + " " + yr2 + " Summary";
+      months.push({ label, gid: KNOWN_GIDS[label] || "", name });
+    }
+    return months;
+  }
+  const KNOWN_MONTHS = genMonths();
 
   const sel=document.getElementById("fuel-month-select");
 
   // For sales or any login — load July 2026 immediately, then discover others in background
-  sel.innerHTML=`<option value="348279363" data-name="July 26 Summary">July 2026</option>`;
+  // Default to current month
+    const _now=new Date(), _yr2=String(_now.getFullYear()).slice(2);
+    const _curLabel=_now.toLocaleString("en-ZA",{month:"long"})+" "+_now.getFullYear();
+    const _curName=_now.toLocaleString("en-ZA",{month:"long"})+" "+_yr2+" Summary";
+    const _curGid=_curLabel==="July 2026"?"348279363":"";
+    sel.innerHTML=`<option value="${_curGid||_curName}" data-name="${_curName}">${_curLabel}</option>`;
   fuelStatus("Loading fuel data...","🔄");
 
   // Sync immediately with July 2026
@@ -2745,7 +2750,7 @@ async function loadSheetTabs(deptFilter="") {
 
 window._syncGoogleSheet = window.syncGoogleSheet = async () => {
   const sel=document.getElementById("fuel-month-select");
-  const identifier=sel.value||"348279363";
+  const identifier=sel.value||sel.options[0]?.value||"348279363";
   const sheetTab=sel.options[sel.selectedIndex]?.dataset?.name||identifier;
   fuelStatus(`Syncing "${sheetTab}"...`,"🔄");
 
