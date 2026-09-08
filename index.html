@@ -1932,11 +1932,13 @@ window._loginWithPasskey = async function() {
     statusEl.textContent = "✅ Verified! Signing in...";
     statusEl.style.color = "var(--ok)";
 
+    // Set login time BEFORE Firebase sign in so onAuthStateChanged allows it
+    sessionStorage.setItem("xcorp_login_time", Date.now().toString());
+
     // Use stored password to do real Firebase sign in
     const pass = atob(storedPw);
     await setPersistence(auth, browserSessionPersistence);
     await signInWithEmailAndPassword(auth, email, pass);
-    sessionStorage.setItem("xcorp_login_time", Date.now().toString());
     // onAuthStateChanged will call showApp()
 
   } catch(e) {
