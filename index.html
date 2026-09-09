@@ -806,7 +806,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
 <div id="login-pg" class="page active" style="z-index:500;position:relative">
   <div class="lw">
     <div class="lc">
-      <img src="https://lirp.cdn-website.com/f67b9f7d/dms3rep/multi/opt/Screenshot+2026-01-15+140923-241w.png" alt="X-Corp"/>
+      <img src="https://lirp.cdn-website.com/f67b9f7d/dms3rep/multi/opt/Screenshot+2026-01-15+140923-241w.png" alt="X-Corp" style="background:#fff;border-radius:8px;padding:4px"/>
       <div class="lt">Vehicle Tracker</div>
       <div class="ls">X-Corp Business Solutions</div>
       <hr class="ldiv"/>
@@ -1945,16 +1945,32 @@ window._loginWithPasskey = async function() {
     sessionStorage.setItem("xcorp_login_time", Date.now().toString());
 
     // Use stored password to do real Firebase sign in
-    const pass = atob(storedPw);
+    let pass;
+    try { pass = atob(storedPw); } catch(e2) {
+      // Corrupted stored cred - clear and ask for password
+      localStorage.removeItem(encKey);
+      statusEl.textContent = "⚠️ Passkey expired — please sign in with password once to refresh";
+      statusEl.style.color = "var(--warn)";
+      btn.disabled = false;
+      return;
+    }
     await setPersistence(auth, browserSessionPersistence);
     await signInWithEmailAndPassword(auth, email, pass);
     // onAuthStateChanged will call showApp()
 
   } catch(e) {
     const msg = e.message || "";
-    statusEl.textContent = msg.includes("cancel") || msg.includes("abort") || msg.includes("NotAllowed")
-      ? "Cancelled — try again or use password"
-      : "❌ " + msg;
+    console.error("Passkey login error:", e);
+    if (msg.includes("cancel") || msg.includes("abort") || msg.includes("NotAllowed")) {
+      statusEl.textContent = "Cancelled — try again or use password";
+    } else if (msg.includes("auth/") || msg.includes("password") || msg.includes("credential")) {
+      // Firebase auth error - stored password may be stale
+      statusEl.textContent = "⚠️ Passkey credential expired. Please sign in with password once to refresh.";
+      // Clear stale stored password
+      try { const k = getStoredPasskeys(); k.forEach(p => localStorage.removeItem("xcorp_enc_" + btoa(p.email).replace(/=/g,""))); } catch(e2){}
+    } else {
+      statusEl.textContent = "❌ " + msg;
+    }
     statusEl.style.color = "var(--danger)";
     btn.disabled = false;
   }
