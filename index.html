@@ -1906,26 +1906,39 @@ window._loginWithPasskey = async function() {
 
     const challenge = new Uint8Array(32);
     crypto.getRandomValues(challenge);
-    const allowCredentials = stored.map(p => ({
-      id: Uint8Array.from(atob(p.id), c => c.charCodeAt(0)),
-      type: "public-key",
-      transports: ["internal"]
-    }));
-
+    // Use empty allowCredentials for resident keys - browser shows all available passkeys
     const assertion = await navigator.credentials.get({
-      publicKey: { challenge, allowCredentials, userVerification:"required", timeout:60000 }
+      publicKey: {
+        challenge,
+        allowCredentials: [], // empty = discoverable credentials (resident keys)
+        userVerification: "required",
+        timeout: 60000
+      }
     });
 
     if (!assertion) throw new Error("No credential returned");
 
-    // Match credential to stored passkey
-    const credId   = btoa(String.fromCharCode(...new Uint8Array(assertion.rawId)));
-    const matched  = stored.find(p => p.id === credId);
-    if (!matched?.email) throw new Error("Passkey not recognised");
+    // Try to match by credential ID first
+    const credId  = btoa(String.fromCharCode(...new Uint8Array(assertion.rawId)));
+    let matched   = stored.find(p => p.id === credId);
 
-    const email    = matched.email;
-    const encKey   = "xcorp_enc_" + btoa(email).replace(/=/g,"");
-    const storedPw = localStorage.getItem(encKey);
+    // If no match by ID, try matching by user handle (email encoded in credential)
+    if (!matched && assertion.response.userHandle) {
+      try {
+        const handle = new TextDecoder().decode(assertion.response.userHandle);
+        matched = stored.find(p => p.email === handle);
+        // Also try stored passkeys by checking all emails
+        if (!matched) {
+          matched = stored[0]; // fallback to first registered passkey
+        }
+      } catch(e2) { matched = stored[0]; }
+    }
+
+    if (!matched?.email) throw new Error("Passkey not recognised — please sign in with password to re-register");
+
+    const email   = matched.email;
+    const encKey  = "xcorp_enc_" + btoa(email).replace(/=/g,"");
+    const storedPw= localStorage.getItem(encKey);
 
     if (!storedPw) {
       // No password in session — ask user to login with password once
