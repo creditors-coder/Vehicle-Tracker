@@ -1206,10 +1206,12 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
     <!-- REPORTS -->
     <section id="sec-reports" class="sec">
       <div class="sh">
-        <div><h2>Reports</h2><div class="sh-sub">Fuel Deduction Report — Sales Department</div></div>
+        <div><h2>Reports</h2><div class="sh-sub">Fuel Deduction Report — Per Driver</div></div>
       </div>
-      <div style="background:var(--surf);border:1px solid var(--border);border-radius:var(--rlg);padding:1.25rem;margin-bottom:1.25rem">
-        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--sub);margin-bottom:.85rem">Report Settings</div>
+
+      <!-- Settings -->
+      <div style="background:var(--surf);border:1px solid var(--border);border-radius:var(--rlg);padding:1.25rem;margin-bottom:1rem">
+        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--sub);margin-bottom:.85rem">⚙️ Report Settings</div>
         <div style="display:flex;flex-wrap:wrap;gap:.85rem;align-items:flex-end">
           <div class="fg" style="margin-bottom:0;flex:1;min-width:140px">
             <label>Month</label>
@@ -1226,32 +1228,55 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
               <option value="">All Departments</option>
             </select>
           </div>
-          <div class="fg" style="margin-bottom:0;width:110px">
-            <label>Deduction %</label>
-            <input type="number" id="rpt-pct" value="100" min="1" max="100" style="background:var(--surf2);border:1px solid var(--border);color:var(--text);padding:.5rem .75rem;border-radius:var(--r);font-family:var(--font);font-size:.83rem;width:100%"/>
+          <div class="fg" style="margin-bottom:0;width:120px">
+            <label>Rate (R/km)</label>
+            <input type="number" id="rpt-rate" value="1.80" min="0" step="0.01" style="background:var(--surf2);border:1px solid var(--border);color:var(--text);padding:.5rem .75rem;border-radius:var(--r);font-family:var(--font);font-size:.83rem;width:100%"/>
           </div>
           <button class="btn-p" onclick="generateDeductionReport()" style="height:38px;flex-shrink:0">Generate Report</button>
         </div>
       </div>
+
+      <!-- Business KM entry table -->
+      <div id="rpt-km-section" style="display:none;background:var(--surf);border:1px solid var(--border);border-radius:var(--rlg);padding:1.1rem;margin-bottom:1rem">
+        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--sub);margin-bottom:.75rem">📍 Enter Business KM per Driver</div>
+        <div class="tw" style="margin-bottom:.75rem">
+          <table class="dt" id="rpt-km-table">
+            <thead><tr><th>Driver</th><th>Vehicle</th><th>Total KM (Month)</th><th>Business KM</th><th>Personal KM</th></tr></thead>
+            <tbody id="rpt-km-tbody"></tbody>
+          </table>
+        </div>
+        <button class="btn-p" onclick="calcDeductionReport()">Calculate Deductions →</button>
+      </div>
+
+      <!-- Empty state -->
       <div id="rpt-empty" style="background:var(--surf);border:1px solid var(--border);border-radius:var(--rlg);padding:2.5rem;text-align:center;color:var(--sub)">
         <div style="font-size:2rem;margin-bottom:.75rem">📑</div>
         <div style="font-size:.9rem;font-weight:600;margin-bottom:.35rem">Fuel Deduction Report</div>
         <div style="font-size:.82rem">Select a month and department, then click Generate Report</div>
       </div>
+
+      <!-- Report output -->
       <div id="rpt-output" style="display:none">
-        <div class="sg" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-bottom:1rem">
-          <div class="sc cr"><div class="sv" id="rpt-total-drivers">0</div><div class="sl">Drivers</div></div>
-          <div class="sc cw"><div class="sv" id="rpt-total-spend">R0</div><div class="sl">Total Spend</div></div>
-          <div class="sc cd"><div class="sv" id="rpt-total-deduct">R0</div><div class="sl">Total Deduction</div></div>
-          <div class="sc cp"><div class="sv" id="rpt-pct-disp">100%</div><div class="sl">Deduction Rate</div></div>
+        <div class="sg" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));margin-bottom:1rem">
+          <div class="sc cr"><div class="sv" id="rpt-s-drivers">0</div><div class="sl">Drivers</div></div>
+          <div class="sc cw"><div class="sv" id="rpt-s-total-km">0</div><div class="sl">Total KM</div></div>
+          <div class="sc co"><div class="sv" id="rpt-s-biz-km">0</div><div class="sl">Business KM</div></div>
+          <div class="sc cd"><div class="sv" id="rpt-s-pers-km">0</div><div class="sl">Personal KM</div></div>
+          <div class="sc cp"><div class="sv" id="rpt-s-deduct">R0</div><div class="sl">Total Deduction</div></div>
         </div>
         <div style="display:flex;gap:.5rem;margin-bottom:.85rem">
           <button class="btn-ex" onclick="exportReportPDF()">📄 Export PDF</button>
           <button class="btn-ex" onclick="exportReportCSV()">📊 Export CSV</button>
+          <button class="btn-g" onclick="editKmEntries()" style="font-size:.78rem">✏️ Edit KM</button>
         </div>
         <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--sub);margin-bottom:.6rem" id="rpt-label">Fuel Deduction Report</div>
         <div class="tw"><table class="dt">
-          <thead><tr><th>#</th><th>Driver</th><th>Vehicle</th><th>Registration</th><th>Department</th><th>Fuel Spend (R)</th><th>Deduction %</th><th>Deduction (R)</th></tr></thead>
+          <thead><tr>
+            <th>Driver</th><th>Vehicle</th><th>Registration</th>
+            <th>Total KM</th><th>Business KM</th><th>Personal KM</th>
+            <th>Rate (R/km)</th><th>Fuel Spend (R)</th>
+            <th>Business Amount</th><th>Personal Deduction</th>
+          </tr></thead>
           <tbody id="rpt-tbody"></tbody>
         </table></div>
         <div style="margin-top:.75rem;padding:.75rem 1rem;background:var(--surf2);border-radius:var(--r);font-size:.78rem;color:var(--muted)" id="rpt-note"></div>
@@ -1530,6 +1555,9 @@ function generateReport(){ if(window._generateReport) window._generateReport(); 
 function confirmUpload(){ if(window._confirmUpload) window._confirmUpload(); }
 function applyFuelDeptFilter(){ if(window._applyFuelDeptFilter) window._applyFuelDeptFilter(); }
 function generateDeductionReport(){ if(window._generateDeductionReport) window._generateDeductionReport(); }
+function calcDeductionReport(){ if(window.calcDeductionReport) window.calcDeductionReport(); }
+function editKmEntries(){ if(window.editKmEntries) window.editKmEntries(); }
+function updatePersonalKm(i){ if(window.updatePersonalKm) window.updatePersonalKm(i); }
 function exportReportPDF(){ if(window._exportReportPDF) window._exportReportPDF(); }
 function exportReportCSV(){ if(window._exportReportCSV) window._exportReportCSV(); }
 function focusAsset(id,lat,lng){ if(window._focusAsset) window._focusAsset(id,lat,lng); }
@@ -3547,60 +3575,55 @@ window._applyFuelDeptFilter = function() {
    FUEL DEDUCTION REPORT
 ══════════════════════════════════════ */
 
-// Populate month dropdown when Reports tab opens
+let rptFuelData  = []; // fuel vehicles loaded
+let rptRows      = []; // final calculated rows
+let rptMonthLabel= "";
+
+// Populate month dropdown
 function initReportsTab() {
   const sel = document.getElementById("rpt-month");
   if (!sel || sel.options.length > 1) return;
-  // Generate last 18 months
   const now = new Date();
   sel.innerHTML = "";
-  for (let i = 0; i < 18; i++) {
-    const d   = new Date(now.getFullYear(), now.getMonth() - i, 1);
+  for (let i=0; i<18; i++) {
+    const d   = new Date(now.getFullYear(), now.getMonth()-i, 1);
     const yr2 = String(d.getFullYear()).slice(2);
-    const lbl = d.toLocaleString("en-ZA", {month:"long"}) + " " + d.getFullYear();
-    const nm  = d.toLocaleString("en-ZA", {month:"long"}) + " " + yr2 + " Summary";
-    const gid = lbl === "July 2026" ? "348279363" : "";
+    const lbl = d.toLocaleString("en-ZA",{month:"long"}) + " " + d.getFullYear();
+    const nm  = d.toLocaleString("en-ZA",{month:"long"}) + " " + yr2 + " Summary";
+    const gid = lbl==="July 2026" ? "348279363" : "";
     const opt = document.createElement("option");
-    opt.value = JSON.stringify({gid: gid||nm, name: nm, label: lbl});
+    opt.value = JSON.stringify({gid:gid||nm, name:nm, label:lbl});
     opt.textContent = lbl;
     sel.appendChild(opt);
   }
 }
 
-let rptData = []; // current report rows
-
+// Step 1: Load fuel data and show KM entry table
 window._generateDeductionReport = async function() {
-  const sel   = document.getElementById("rpt-month");
-  const dept  = document.getElementById("rpt-dept").value;
-  const pct   = parseFloat(document.getElementById("rpt-pct").value) || 100;
-  const empty = document.getElementById("rpt-empty");
-  const out   = document.getElementById("rpt-output");
-
+  const sel  = document.getElementById("rpt-month");
+  const dept = document.getElementById("rpt-dept").value;
   if (!sel.value) { alert("Please select a month."); return; }
 
   const monthInfo = JSON.parse(sel.value);
-  const label     = sel.options[sel.selectedIndex].textContent;
+  rptMonthLabel   = sel.options[sel.selectedIndex].textContent;
+  const HIDDEN    = ["sheldon","steve"];
 
-  // Show loading state
-  empty.style.display = "none";
-  out.style.display   = "block";
-  document.getElementById("rpt-tbody").innerHTML = '<tr><td colspan="8" class="es">Loading fuel data...</td></tr>';
-  document.getElementById("rpt-label").textContent = "Loading...";
+  document.getElementById("rpt-empty").style.display  = "none";
+  document.getElementById("rpt-output").style.display = "none";
+  document.getElementById("rpt-km-section").style.display = "none";
 
-  // Fetch fuel data for selected month
-  let fuelVehicles = [];
-
+  // Load fuel data
+  rptFuelData = [];
   try {
-    // Try Firestore saved upload first
-    const docId   = "fuel_" + (monthInfo.gid||monthInfo.name).replace(/[^a-zA-Z0-9]/g, "_");
-    const snap    = await getDoc(doc(db, "fuelUploads", docId));
+    const docId = "fuel_" + (monthInfo.gid||monthInfo.name).replace(/[^a-zA-Z0-9]/g,"_");
+    const snap  = await getDoc(doc(db,"fuelUploads",docId));
     if (snap.exists() && snap.data().vehicles?.length) {
-      fuelVehicles = snap.data().vehicles;
+      rptFuelData = snap.data().vehicles;
     }
   } catch(e) {}
 
-  // Fallback to Google Sheets
-  if (!fuelVehicles.length) {
+  if (!rptFuelData.length) {
+    // Try Google Sheets
     try {
       const isGid = /^\d+$/.test(monthInfo.gid);
       const param = isGid ? "gid="+monthInfo.gid : "sheet="+encodeURIComponent(monthInfo.gid);
@@ -3610,153 +3633,216 @@ window._generateDeductionReport = async function() {
       const m     = t.match(/google\.visualization\.Query\.setResponse\(([\s\S]*?)\);?\s*$/);
       if (m) {
         const parsed = JSON.parse(m[1]);
-        const rows   = parsed.table?.rows || [];
-        rows.forEach(row => {
-          const c   = row.c || [];
+        (parsed.table?.rows||[]).forEach(row => {
+          const c   = row.c||[];
           const reg = c[0]?.v ? String(c[0].v).trim() : "";
-          if (!reg || reg.toLowerCase().includes("total") || reg.toLowerCase().includes("grand")) return;
-          const spend = typeof c[1]?.v === "number" ? c[1].v : parseFloat(String(c[1]?.v||"0").replace(/[^0-9.-]/g,"")) || 0;
-          fuelVehicles.push({
-            reg,
-            spend,
-            dept:    String(c[2]?.v||"").trim(),
-            driver:  String(c[3]?.v||"").trim(),
-            vehicle: String(c[4]?.v||"").trim(),
-            limit:   typeof c[5]?.v === "number" ? c[5].v : 0,
-          });
+          if (!reg||reg.toLowerCase().includes("total")||reg.toLowerCase().includes("grand")) return;
+          const spend = typeof c[1]?.v==="number" ? c[1].v : parseFloat(String(c[1]?.v||"0").replace(/[^0-9.-]/g,""))||0;
+          rptFuelData.push({reg,spend,dept:String(c[2]?.v||"").trim(),driver:String(c[3]?.v||"").trim(),vehicle:String(c[4]?.v||"").trim()});
         });
       }
     } catch(e2) {
-      document.getElementById("rpt-tbody").innerHTML = '<tr><td colspan="8" class="es">❌ Could not load fuel data. Please sync the Fuel Tracker first.</td></tr>';
+      alert("Could not load fuel data. Please sync the Fuel Tracker first.");
+      document.getElementById("rpt-empty").style.display = "block";
       return;
     }
   }
 
-  // Filter by department
-  const filtered = dept ? fuelVehicles.filter(v => v.dept === dept) : fuelVehicles;
+  // Filter by dept and exclude managers
+  const filtered = (dept ? rptFuelData.filter(v=>v.dept===dept) : rptFuelData)
+    .filter(v => v.driver && !HIDDEN.includes(v.driver.toLowerCase().split(" ")[0]));
 
-  // Filter out blank drivers and managers (Sheldon/Steve for Sales)
-  const HIDDEN = ["sheldon","steve"];
-  const rows   = filtered.filter(v => v.driver && !HIDDEN.includes(v.driver.toLowerCase().split(" ")[0]));
-
-  if (!rows.length) {
-    document.getElementById("rpt-tbody").innerHTML = '<tr><td colspan="8" class="es">No drivers found for this selection</td></tr>';
-    document.getElementById("rpt-label").textContent = label + (dept?" · "+dept:"") + " — No data";
+  if (!filtered.length) {
+    alert("No drivers found for this selection.");
+    document.getElementById("rpt-empty").style.display = "block";
     return;
   }
 
-  // Sort by driver name
-  rows.sort((a,b) => (a.driver||"").localeCompare(b.driver||""));
+  filtered.sort((a,b) => (a.driver||"").localeCompare(b.driver||""));
 
-  const fmt       = n => "R"+n.toLocaleString("en-ZA",{minimumFractionDigits:2,maximumFractionDigits:2});
-  const totalSpend= rows.reduce((s,v) => s+v.spend, 0);
-  const totalDeduct= rows.reduce((s,v) => s+(v.spend*(pct/100)), 0);
-
-  // Update summary tiles
-  document.getElementById("rpt-total-drivers").textContent = rows.length;
-  document.getElementById("rpt-total-spend").textContent   = fmt(totalSpend);
-  document.getElementById("rpt-total-deduct").textContent  = fmt(totalDeduct);
-  document.getElementById("rpt-pct-disp").textContent      = pct+"%";
-  document.getElementById("rpt-label").textContent         = "Fuel Deduction — "+(dept||"All Depts")+" · "+label;
-  document.getElementById("rpt-note").textContent          = "Report generated: "+new Date().toLocaleString("en-ZA")+" · Deduction rate: "+pct+"% of fuel spend · "+rows.length+" driver(s)";
-
-  // Build table
-  rptData = rows;
-  document.getElementById("rpt-tbody").innerHTML = rows.map((v,i) => {
-    const deduct = v.spend * (pct/100);
+  // Show KM entry table
+  document.getElementById("rpt-km-section").style.display = "block";
+  document.getElementById("rpt-km-tbody").innerHTML = filtered.map((v,i) => {
+    const storedBiz = localStorage.getItem("rpt_biz_"+v.reg) || "";
     return "<tr>"
-      + "<td style='color:var(--sub);font-size:.78rem'>"+(i+1)+"</td>"
       + "<td style='font-weight:600'>"+(v.driver||"—")+"</td>"
       + "<td style='font-size:.8rem'>"+(v.vehicle||"—")+"</td>"
-      + "<td><span class='rp'>"+(v.reg||"—")+"</span></td>"
-      + "<td><span class='dc'>"+(v.dept||"—")+"</span></td>"
-      + "<td style='font-family:var(--mono);color:var(--ok)'>"+fmt(v.spend)+"</td>"
-      + "<td style='font-family:var(--mono);color:var(--warn)'>"+pct+"%</td>"
-      + "<td style='font-family:var(--mono);font-weight:700;color:var(--danger)'>"+fmt(deduct)+"</td>"
+      + "<td style='font-family:var(--mono);color:var(--muted)'>— km</td>"
+      + "<td><input type='number' id='biz-km-"+i+"' data-idx='"+i+"' value='"+storedBiz+"' min='0' step='0.01'"
+      +   " oninput='updatePersonalKm("+i+")'"
+      +   " style='background:var(--surf2);border:1px solid var(--border);color:var(--text);padding:.35rem .6rem;border-radius:6px;font-family:var(--mono);font-size:.82rem;width:110px'/></td>"
+      + "<td style='font-family:var(--mono);color:var(--danger)' id='pers-km-"+i+"'>—</td>"
+      + "</tr>";
+  }).join("");
+
+  // Store filtered data for calc step
+  window._rptFiltered = filtered;
+};
+
+window.updatePersonalKm = function(i) {
+  const bizEl  = document.getElementById("biz-km-"+i);
+  const persEl = document.getElementById("pers-km-"+i);
+  const biz    = parseFloat(bizEl.value) || 0;
+  // Personal = negative of business (as per your example: -328.73)
+  persEl.textContent = biz > 0 ? "-"+biz.toFixed(2)+" km" : "—";
+};
+
+// Step 2: Calculate deductions
+window.calcDeductionReport = function() {
+  const filtered = window._rptFiltered || [];
+  const rate     = parseFloat(document.getElementById("rpt-rate").value) || 1.80;
+  const dept     = document.getElementById("rpt-dept").value || "All Departments";
+  const fmt      = n => "R"+n.toLocaleString("en-ZA",{minimumFractionDigits:2,maximumFractionDigits:2});
+  const fmtKm    = n => n.toLocaleString("en-ZA",{minimumFractionDigits:2,maximumFractionDigits:2})+" km";
+
+  rptRows = filtered.map((v,i) => {
+    const bizKm   = parseFloat(document.getElementById("biz-km-"+i)?.value) || 0;
+    const persKm  = -bizKm; // Personal KM is negative
+    const bizAmt  = bizKm * rate;
+    const persAmt = v.spend - bizAmt; // Personal pays back the rest
+    // Save biz km for this vehicle
+    if (bizKm > 0) localStorage.setItem("rpt_biz_"+v.reg, bizKm);
+    return { ...v, bizKm, persKm, bizAmt, persAmt, rate };
+  });
+
+  // Summary tiles
+  const totalBizKm   = rptRows.reduce((s,r)=>s+r.bizKm,0);
+  const totalPersKm  = rptRows.reduce((s,r)=>s+Math.abs(r.persKm),0);
+  const totalDeduct  = rptRows.reduce((s,r)=>s+r.persAmt,0);
+
+  document.getElementById("rpt-s-drivers").textContent  = rptRows.length;
+  document.getElementById("rpt-s-total-km").textContent = (totalBizKm+totalPersKm).toFixed(0)+" km";
+  document.getElementById("rpt-s-biz-km").textContent   = totalBizKm.toFixed(0)+" km";
+  document.getElementById("rpt-s-pers-km").textContent  = totalPersKm.toFixed(0)+" km";
+  document.getElementById("rpt-s-deduct").textContent   = fmt(totalDeduct);
+  document.getElementById("rpt-label").textContent      = "Fuel Deduction — "+(dept)+" · "+rptMonthLabel;
+  document.getElementById("rpt-note").textContent       = "Rate: R"+rate.toFixed(2)+"/km · Business amount = Business KM × Rate · Personal deduction = Fuel Spend − Business Amount · Generated: "+new Date().toLocaleString("en-ZA");
+
+  // Build results table
+  const totalSpend = rptRows.reduce((s,r)=>s+r.spend,0);
+  const totalBizAmt= rptRows.reduce((s,r)=>s+r.bizAmt,0);
+
+  document.getElementById("rpt-tbody").innerHTML = rptRows.map(r => {
+    return "<tr>"
+      + "<td style='font-weight:600'>"+(r.driver||"—")+"</td>"
+      + "<td style='font-size:.8rem'>"+(r.vehicle||"—")+"</td>"
+      + "<td><span class='rp'>"+(r.reg||"—")+"</span></td>"
+      + "<td style='font-family:var(--mono)'>"+(r.bizKm+Math.abs(r.persKm)).toFixed(2)+" km</td>"
+      + "<td style='font-family:var(--mono);color:var(--ok)'>"+r.bizKm.toFixed(2)+" km</td>"
+      + "<td style='font-family:var(--mono);color:var(--danger)'>"+r.persKm.toFixed(2)+" km</td>"
+      + "<td style='font-family:var(--mono)'>R"+r.rate.toFixed(2)+"/km</td>"
+      + "<td style='font-family:var(--mono)'>"+fmt(r.spend)+"</td>"
+      + "<td style='font-family:var(--mono);color:var(--ok)'>"+fmt(r.bizAmt)+"</td>"
+      + "<td style='font-family:var(--mono);font-weight:700;color:var(--danger)'>"+fmt(r.persAmt)+"</td>"
       + "</tr>";
   }).join("")
   + "<tr style='background:var(--surf2);border-top:2px solid var(--border)'>"
-  + "<td colspan='5' style='font-weight:700;font-size:.83rem'>TOTAL</td>"
-  + "<td style='font-family:var(--mono);font-weight:700;color:var(--ok)'>"+fmt(totalSpend)+"</td>"
-  + "<td style='font-family:var(--mono);font-weight:700;color:var(--warn)'>"+pct+"%</td>"
+  + "<td colspan='7' style='font-weight:700'>TOTAL</td>"
+  + "<td style='font-family:var(--mono);font-weight:700'>"+fmt(totalSpend)+"</td>"
+  + "<td style='font-family:var(--mono);font-weight:700;color:var(--ok)'>"+fmt(totalBizAmt)+"</td>"
   + "<td style='font-family:var(--mono);font-weight:700;color:var(--danger)'>"+fmt(totalDeduct)+"</td>"
   + "</tr>";
+
+  document.getElementById("rpt-km-section").style.display = "none";
+  document.getElementById("rpt-output").style.display     = "block";
+};
+
+window.editKmEntries = function() {
+  document.getElementById("rpt-km-section").style.display = "block";
+  document.getElementById("rpt-output").style.display     = "none";
 };
 
 // Export PDF
 window._exportReportPDF = function() {
-  if (!rptData.length) { alert("Generate a report first."); return; }
-  const pct      = parseFloat(document.getElementById("rpt-pct").value) || 100;
-  const dept     = document.getElementById("rpt-dept").value || "All Departments";
-  const label    = document.getElementById("rpt-label").textContent;
-  const genDate  = new Date().toLocaleDateString("en-ZA",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
-  const fmt      = n => "R"+n.toLocaleString("en-ZA",{minimumFractionDigits:2,maximumFractionDigits:2});
-  const totalSpend  = rptData.reduce((s,v)=>s+v.spend,0);
-  const totalDeduct = rptData.reduce((s,v)=>s+(v.spend*(pct/100)),0);
+  if (!rptRows.length) { alert("Generate a report first."); return; }
+  const dept    = document.getElementById("rpt-dept").value||"All Departments";
+  const rate    = parseFloat(document.getElementById("rpt-rate").value)||1.80;
+  const genDate = new Date().toLocaleDateString("en-ZA",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
+  const fmt     = n => "R"+n.toLocaleString("en-ZA",{minimumFractionDigits:2,maximumFractionDigits:2});
+  const totalSpend  = rptRows.reduce((s,r)=>s+r.spend,0);
+  const totalBizAmt = rptRows.reduce((s,r)=>s+r.bizAmt,0);
+  const totalDeduct = rptRows.reduce((s,r)=>s+r.persAmt,0);
 
-  const html = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>"+label+"</title><style>"
+  const html = "<!DOCTYPE html><html><head><meta charset='UTF-8'>"
+    + "<title>Fuel Deduction — "+rptMonthLabel+"</title><style>"
     + "*{margin:0;padding:0;box-sizing:border-box}"
-    + "body{font-family:Arial,sans-serif;font-size:11px;color:#1a2040;background:#fff}"
+    + "body{font-family:Arial,sans-serif;font-size:11px;color:#1a2040}"
     + "@page{size:A4;margin:15mm}"
     + "@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}"
-    + ".hdr{background:#0d1829;color:#fff;padding:18px 22px;margin-bottom:18px;border-radius:6px;display:flex;justify-content:space-between;align-items:center}"
-    + ".hdr h1{font-size:18px;font-weight:800;color:#fff}.hdr p{font-size:10px;color:#8899bb;margin-top:3px}"
-    + ".meta{text-align:right}.meta .ttl{font-size:13px;font-weight:700;color:#fff}.meta .dt{font-size:9px;color:#8899bb;margin-top:3px}"
+    + ".hdr{background:#0d1829;color:#fff;padding:18px 22px;margin-bottom:16px;border-radius:6px;display:flex;justify-content:space-between;align-items:center}"
+    + ".hdr h1{font-size:18px;font-weight:800}.hdr p{font-size:10px;color:#8899bb;margin-top:3px}"
+    + ".meta .ttl{font-size:13px;font-weight:700}.meta .dt{font-size:9px;color:#8899bb;margin-top:3px}"
     + ".conf{font-size:9px;color:#e03a2f;font-weight:700;margin-top:2px;text-transform:uppercase}"
-    + ".info{background:#f0f4f8;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:10px;color:#4a5a80}"
-    + "table{width:100%;border-collapse:collapse;margin-bottom:14px}"
+    + ".info{background:#f0f4f8;border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:10px;color:#4a5a80;display:flex;gap:24px}"
+    + ".info div{display:flex;flex-direction:column;gap:2px}"
+    + ".info .val{font-size:13px;font-weight:700;color:#0d1829}"
+    + "table{width:100%;border-collapse:collapse;font-size:10px}"
     + "thead tr{background:#0d1829}"
-    + "thead th{color:#fff;padding:7px 10px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;text-align:left}"
+    + "thead th{color:#fff;padding:7px 8px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;text-align:left}"
     + "tbody tr:nth-child(even){background:#f7f9fc}"
-    + "td{padding:6px 10px;border-bottom:1px solid #e8edf5;font-size:10px}"
+    + "td{padding:6px 8px;border-bottom:1px solid #e8edf5}"
     + ".tot td{background:#e8edf5;font-weight:700;border-top:2px solid #0d1829}"
-    + ".reg{font-family:monospace;background:#e8edf5;padding:2px 6px;border-radius:4px;font-weight:700}"
-    + ".ded{color:#c93636;font-weight:700;font-family:monospace}"
-    + ".spd{color:#16a34a;font-family:monospace}"
-    + ".ftr{margin-top:16px;padding-top:10px;border-top:1px solid #e0e8f0;display:flex;justify-content:space-between;font-size:9px;color:#8899bb}"
+    + ".reg{font-family:monospace;background:#e8edf5;padding:2px 5px;border-radius:3px;font-size:9px}"
+    + ".ok{color:#16a34a;font-family:monospace}.dn{color:#c93636;font-weight:700;font-family:monospace}"
+    + ".mn{font-family:monospace}"
+    + ".ftr{margin-top:14px;padding-top:8px;border-top:1px solid #e0e8f0;display:flex;justify-content:space-between;font-size:9px;color:#8899bb}"
     + "</style></head><body>"
     + "<div class='hdr'><div><h1>X-CORP</h1><p>Fuel Deduction Report — "+dept+"</p></div>"
-    + "<div class='meta'><div class='ttl'>"+label+"</div><div class='dt'>Generated: "+genDate+"</div><div class='conf'>⚠ Confidential</div></div></div>"
-    + "<div class='info'>Deduction rate: <strong>"+pct+"%</strong> of total fuel spend per driver · "+rptData.length+" driver(s) · Total deduction: <strong>"+fmt(totalDeduct)+"</strong></div>"
-    + "<table><thead><tr><th>#</th><th>Driver</th><th>Vehicle</th><th>Registration</th><th>Fuel Spend</th><th>Rate</th><th>Deduction Amount</th></tr></thead><tbody>"
-    + rptData.map((v,i) => {
-        const d = v.spend*(pct/100);
-        return "<tr><td style='color:#8899bb'>"+(i+1)+"</td><td><strong>"+v.driver+"</strong></td><td>"+v.vehicle+"</td><td><span class='reg'>"+v.reg+"</span></td><td class='spd'>"+fmt(v.spend)+"</td><td>"+pct+"%</td><td class='ded'>"+fmt(d)+"</td></tr>";
-      }).join("")
-    + "<tr class='tot'><td colspan='4'>TOTAL</td><td class='spd'>"+fmt(totalSpend)+"</td><td>"+pct+"%</td><td class='ded'>"+fmt(totalDeduct)+"</td></tr>"
+    + "<div class='meta' style='text-align:right'><div class='ttl'>"+rptMonthLabel+"</div><div class='dt'>"+genDate+"</div><div class='conf'>⚠ Confidential</div></div></div>"
+    + "<div class='info'>"
+    + "<div><span style='font-size:9px;color:#8899bb;text-transform:uppercase;letter-spacing:.06em'>Drivers</span><span class='val'>"+rptRows.length+"</span></div>"
+    + "<div><span style='font-size:9px;color:#8899bb;text-transform:uppercase;letter-spacing:.06em'>Rate</span><span class='val'>R"+rate.toFixed(2)+"/km</span></div>"
+    + "<div><span style='font-size:9px;color:#8899bb;text-transform:uppercase;letter-spacing:.06em'>Total Fuel Spend</span><span class='val'>"+fmt(totalSpend)+"</span></div>"
+    + "<div><span style='font-size:9px;color:#8899bb;text-transform:uppercase;letter-spacing:.06em'>Business Amount</span><span class='val ok'>"+fmt(totalBizAmt)+"</span></div>"
+    + "<div><span style='font-size:9px;color:#8899bb;text-transform:uppercase;letter-spacing:.06em'>Personal Deduction</span><span class='val dn'>"+fmt(totalDeduct)+"</span></div>"
+    + "</div>"
+    + "<table><thead><tr><th>Driver</th><th>Vehicle</th><th>Reg</th><th>Total KM</th><th>Business KM</th><th>Personal KM</th><th>Rate</th><th>Fuel Spend</th><th>Biz Amount</th><th>Personal Deduction</th></tr></thead><tbody>"
+    + rptRows.map(r => "<tr>"
+        + "<td><strong>"+r.driver+"</strong></td>"
+        + "<td>"+r.vehicle+"</td>"
+        + "<td><span class='reg'>"+r.reg+"</span></td>"
+        + "<td class='mn'>"+(r.bizKm+Math.abs(r.persKm)).toFixed(2)+" km</td>"
+        + "<td class='ok'>"+r.bizKm.toFixed(2)+" km</td>"
+        + "<td style='color:#c93636;font-family:monospace'>"+r.persKm.toFixed(2)+" km</td>"
+        + "<td class='mn'>R"+r.rate.toFixed(2)+"/km</td>"
+        + "<td class='mn'>"+fmt(r.spend)+"</td>"
+        + "<td class='ok'>"+fmt(r.bizAmt)+"</td>"
+        + "<td class='dn'>"+fmt(r.persAmt)+"</td>"
+        + "</tr>").join("")
+    + "<tr class='tot'><td colspan='7'>TOTAL</td><td class='mn'>"+fmt(totalSpend)+"</td><td class='ok'>"+fmt(totalBizAmt)+"</td><td class='dn'>"+fmt(totalDeduct)+"</td></tr>"
     + "</tbody></table>"
     + "<div class='ftr'><div><strong>X-Corp Business Solutions</strong> — Vehicle Tracker · "+genDate+"</div><div style='color:#e03a2f;font-weight:700'>CONFIDENTIAL — Internal Use Only</div></div>"
     + "</body></html>";
 
   const win = window.open("","_blank");
-  if (!win) { alert("Please allow popups to generate PDF."); return; }
-  win.document.write(html);
-  win.document.close();
-  win.onload = function() { setTimeout(function(){ win.print(); }, 400); };
+  if (!win) { alert("Please allow popups."); return; }
+  win.document.write(html); win.document.close();
+  win.onload = function(){ setTimeout(function(){ win.print(); },400); };
 };
 
 // Export CSV
 window._exportReportCSV = function() {
-  if (!rptData.length) { alert("Generate a report first."); return; }
-  const pct   = parseFloat(document.getElementById("rpt-pct").value) || 100;
-  const label = document.getElementById("rpt-label").textContent;
-  const fmt   = n => n.toFixed(2);
-  const headers = ["#","Driver","Vehicle","Registration","Department","Fuel Spend (R)","Deduction %","Deduction Amount (R)"];
-  const rows    = rptData.map((v,i) => [
-    i+1, v.driver, v.vehicle, v.reg, v.dept,
-    fmt(v.spend), pct, fmt(v.spend*(pct/100))
+  if (!rptRows.length) { alert("Generate a report first."); return; }
+  const rate = parseFloat(document.getElementById("rpt-rate").value)||1.80;
+  const fmt  = n => n.toFixed(2);
+  const hdrs = ["Driver","Vehicle","Registration","Total KM","Business KM","Personal KM","Rate (R/km)","Fuel Spend (R)","Business Amount (R)","Personal Deduction (R)"];
+  const rows = rptRows.map(r => [
+    r.driver, r.vehicle, r.reg,
+    fmt(r.bizKm+Math.abs(r.persKm)), fmt(r.bizKm), fmt(r.persKm),
+    fmt(r.rate), fmt(r.spend), fmt(r.bizAmt), fmt(r.persAmt)
   ]);
-  const total = ["TOTAL","","","","",
-    fmt(rptData.reduce((s,v)=>s+v.spend,0)), pct,
-    fmt(rptData.reduce((s,v)=>s+(v.spend*(pct/100)),0))
+  const tot = ["TOTAL","","",
+    fmt(rptRows.reduce((s,r)=>s+r.bizKm+Math.abs(r.persKm),0)),
+    fmt(rptRows.reduce((s,r)=>s+r.bizKm,0)),
+    fmt(rptRows.reduce((s,r)=>s+r.persKm,0)),
+    fmt(rate),
+    fmt(rptRows.reduce((s,r)=>s+r.spend,0)),
+    fmt(rptRows.reduce((s,r)=>s+r.bizAmt,0)),
+    fmt(rptRows.reduce((s,r)=>s+r.persAmt,0))
   ];
-  const csv = [headers,...rows,total]
-    .map(r => r.map(c => '"'+String(c).replace(/"/g,'""')+'"').join(",")).join("\n");
+  const csv = [hdrs,...rows,tot].map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(",")).join("\n");
   const blob = new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"});
-  const a    = Object.assign(document.createElement("a"),{
-    href: URL.createObjectURL(blob),
-    download: "Fuel-Deduction-"+new Date().toLocaleDateString("en-ZA").replace(/\//g,"-")+".csv"
-  });
+  const a    = Object.assign(document.createElement("a"),{href:URL.createObjectURL(blob),download:"Fuel-Deduction-"+new Date().toLocaleDateString("en-ZA").replace(/\//g,"-")+".csv"});
   a.click(); URL.revokeObjectURL(a.href);
 };
 
