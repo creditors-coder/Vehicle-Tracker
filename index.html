@@ -3598,6 +3598,37 @@ function initReportsTab() {
   }
 }
 
+// Fetch logbook KM from TG Tracking via proxy
+async function fetchLogbookKm(assetId, monthLabel) {
+  try {
+    // Build date range for the selected month
+    const parts = monthLabel.split(" ");
+    const month = new Date(monthLabel+" 1").getMonth();
+    const year  = parseInt(parts[parts.length-1]);
+    const from  = new Date(year, month, 1).toISOString().split("T")[0];
+    const to    = new Date(year, month+1, 0).toISOString().split("T")[0];
+    const qs    = new URLSearchParams({action:"logbook", assetId, from, to}).toString();
+    const r     = await fetch(TG_PROXY+"?"+qs);
+    if (!r.ok) return null;
+    const w = await r.json();
+    if (w.status !== 200 || !w.data) return null;
+    const data = JSON.parse(w.data);
+    // Sum business KM from logbook entries marked as business
+    let bizKm   = 0;
+    let totalKm = 0;
+    const entries = Array.isArray(data) ? data : (data.entries||data.trips||[]);
+    entries.forEach(e => {
+      const dist = e.distanceKm || e.distance || e.DistanceKm || 0;
+      totalKm += dist;
+      const type = (e.tripType||e.TripType||e.type||"").toLowerCase();
+      if (type.includes("business") || type.includes("biz")) bizKm += dist;
+    });
+    return { bizKm: parseFloat(bizKm.toFixed(2)), totalKm: parseFloat(totalKm.toFixed(2)) };
+  } catch(e) {
+    return null;
+  }
+}
+
 // Step 1: Load fuel data and show KM entry table
 window._generateDeductionReport = async function() {
   const sel  = document.getElementById("rpt-month");
@@ -3660,20 +3691,67 @@ window._generateDeductionReport = async function() {
 
   filtered.sort((a,b) => (a.driver||"").localeCompare(b.driver||""));
 
-  // Show KM entry table
+  // Show KM entry table with loading state
   document.getElementById("rpt-km-section").style.display = "block";
   document.getElementById("rpt-km-tbody").innerHTML = filtered.map((v,i) => {
     const storedBiz = localStorage.getItem("rpt_biz_"+v.reg) || "";
-    return "<tr>"
+    return "<tr id='rpt-row-"+i+"'>"
       + "<td style='font-weight:600'>"+(v.driver||"—")+"</td>"
       + "<td style='font-size:.8rem'>"+(v.vehicle||"—")+"</td>"
-      + "<td style='font-family:var(--mono);color:var(--muted)'>— km</td>"
-      + "<td><input type='number' id='biz-km-"+i+"' data-idx='"+i+"' value='"+storedBiz+"' min='0' step='0.01'"
-      +   " oninput='updatePersonalKm("+i+")'"
-      +   " style='background:var(--surf2);border:1px solid var(--border);color:var(--text);padding:.35rem .6rem;border-radius:6px;font-family:var(--mono);font-size:.82rem;width:110px'/></td>"
+      + "<td style='font-family:var(--mono);color:var(--muted)' id='total-km-"+i+"'>Loading...</td>"
+      + "<td>"
+      +   "<div style='display:flex;align-items:center;gap:.4rem'>"
+      +     "<input type='number' id='biz-km-"+i+"' data-idx='"+i+"' value='"+storedBiz+"' min='0' step='0.01'"
+      +       " oninput='updatePersonalKm("+i+")'"
+      +       " style='background:var(--surf2);border:1px solid var(--border);color:var(--text);padding:.35rem .6rem;border-radius:6px;font-family:var(--mono);font-size:.82rem;width:110px'/>"
+      +     "<span id='biz-src-"+i+"' style='font-size:.65rem;color:var(--sub)'></span>"
+      +   "</div>"
+      + "</td>"
       + "<td style='font-family:var(--mono);color:var(--danger)' id='pers-km-"+i+"'>—</td>"
       + "</tr>";
   }).join("");
+
+  // Try to fetch logbook KM from TG Tracking for each vehicle
+  window._rptFiltered = filtered;
+  const assetList = window._tgAssets || [];
+
+  filtered.forEach(async (v, i) => {
+    const totalKmEl = document.getElementById("total-km-"+i);
+    const bizKmEl   = document.getElementById("biz-km-"+i);
+    const bizSrcEl  = document.getElementById("biz-src-"+i);
+    const persEl    = document.getElementById("pers-km-"+i);
+
+    // Find matching TG asset by registration
+    const asset = assetList.find(a =>
+      (a.code||"").replace(/\s/g,"").toUpperCase() === v.reg.replace(/\s/g,"").toUpperCase() ||
+      (a.name||"").toUpperCase().includes(v.reg.replace(/\s/g,"").toUpperCase())
+    );
+
+    if (asset) {
+      // Show total odometer KM as reference
+      const odo = asset.odometerMeters ? Math.round(asset.odometerMeters/1000).toLocaleString("en-ZA")+" km total" : "— km";
+      if (totalKmEl) totalKmEl.textContent = odo;
+
+      // Try fetching logbook
+      const logbook = await fetchLogbookKm(asset.id, rptMonthLabel);
+      if (logbook && logbook.totalKm > 0) {
+        if (totalKmEl) totalKmEl.textContent = logbook.totalKm.toFixed(2)+" km";
+        if (!bizKmEl.value && logbook.bizKm > 0) {
+          bizKmEl.value = logbook.bizKm;
+          if (bizSrcEl) bizSrcEl.textContent = "📍 TG";
+        } else if (bizSrcEl) {
+          bizSrcEl.textContent = logbook.totalKm > 0 ? "📍 TG" : "";
+        }
+        updatePersonalKm(i);
+      } else {
+        if (totalKmEl) totalKmEl.textContent = odo;
+        if (bizSrcEl)  bizSrcEl.textContent  = "✏️ Manual";
+      }
+    } else {
+      if (totalKmEl) totalKmEl.textContent = "— km";
+      if (bizSrcEl)  bizSrcEl.textContent  = "✏️ Manual";
+    }
+  });
 
   // Store filtered data for calc step
   window._rptFiltered = filtered;
@@ -3921,7 +3999,7 @@ window.addEventListener("resize", () => {
 /* ══════════════════════════════════════
    LIVE TRACKING — TG Tracking v3
 ══════════════════════════════════════ */
-const TG_PROXY = "https://script.google.com/macros/s/AKfycbzpmYF3QzowoErAM4VbP3RgsdlRQ1nSj_FUK3az4GiQhumSjrvxMkBoUoqulCiCSCKm1Q/exec";
+const TG_PROXY = "https://script.google.com/macros/s/AKfycbwrGONPusx6tTOUbI3WgFhpqQosttnsJ2SJPHZ1dxYW0knv3kTBeGI_OnKunBbwGm08/exec";
 
 let tgMap          = null;
 let tgMarkers      = {};
