@@ -821,6 +821,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
     <button class="mob-btn" id="mn-fuel"      onclick="mobNav('fuel',this)" aria-label="Fuel Tracker"><span class="i" aria-hidden="true">⛽</span>Fuel</button>
     <button class="mob-btn" id="mn-tracking"  onclick="mobNav('tracking',this);setTimeout(initTracking,300)"><span class="i">🗺️</span>Tracking</button>
     <button class="mob-btn" id="mn-inspect"   onclick="mobNav('inspect',this)"><span class="i">📋</span>Inspect</button>
+    <button class="mob-btn" id="mn-reports"   onclick="mobNav('reports',this)"><span class="i">📑</span>Reports</button>
     <button class="mob-btn" id="mn-alerts"    onclick="mobNav('alerts',this)"><span class="i">🔔</span>Alerts</button>
   </div>
 </div>
@@ -884,6 +885,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
       <a class="nav-a"     onclick="navTo('fuel',this)"><span class="nav-icon">⛽</span>Fuel Tracker</a>
       <a class="nav-a"     onclick="navTo('tracking',this);setTimeout(initTracking,300)"><span class="nav-icon">🗺️</span>Live Tracking</a>
       <a class="nav-a"     onclick="navTo('inspect',this)"><span class="nav-icon">📋</span>Inspection</a>
+      <a class="nav-a"     onclick="navTo('reports',this)"><span class="nav-icon">📑</span>Reports</a>
       <a class="nav-a"     onclick="navTo('alerts',this)"><span class="nav-icon">🔔</span>Alerts<span class="ab" id="ab">0</span></a>
     </nav>
     <div id="sb-foot">
@@ -1201,6 +1203,61 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
       </table></div>
     </section>
 
+    <!-- REPORTS -->
+    <section id="sec-reports" class="sec">
+      <div class="sh">
+        <div><h2>Reports</h2><div class="sh-sub">Fuel Deduction Report — Sales Department</div></div>
+      </div>
+      <div style="background:var(--surf);border:1px solid var(--border);border-radius:var(--rlg);padding:1.25rem;margin-bottom:1.25rem">
+        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--sub);margin-bottom:.85rem">Report Settings</div>
+        <div style="display:flex;flex-wrap:wrap;gap:.85rem;align-items:flex-end">
+          <div class="fg" style="margin-bottom:0;flex:1;min-width:140px">
+            <label>Month</label>
+            <select id="rpt-month" style="background:var(--surf2);border:1px solid var(--border);color:var(--text);padding:.5rem .75rem;border-radius:var(--r);font-family:var(--font);font-size:.83rem;width:100%">
+              <option value="">Loading...</option>
+            </select>
+          </div>
+          <div class="fg" style="margin-bottom:0;flex:1;min-width:130px">
+            <label>Department</label>
+            <select id="rpt-dept" style="background:var(--surf2);border:1px solid var(--border);color:var(--text);padding:.5rem .75rem;border-radius:var(--r);font-family:var(--font);font-size:.83rem;width:100%">
+              <option value="Sales">Sales</option>
+              <option value="Technical">Technical</option>
+              <option value="Finance">Finance</option>
+              <option value="">All Departments</option>
+            </select>
+          </div>
+          <div class="fg" style="margin-bottom:0;width:110px">
+            <label>Deduction %</label>
+            <input type="number" id="rpt-pct" value="100" min="1" max="100" style="background:var(--surf2);border:1px solid var(--border);color:var(--text);padding:.5rem .75rem;border-radius:var(--r);font-family:var(--font);font-size:.83rem;width:100%"/>
+          </div>
+          <button class="btn-p" onclick="generateDeductionReport()" style="height:38px;flex-shrink:0">Generate Report</button>
+        </div>
+      </div>
+      <div id="rpt-empty" style="background:var(--surf);border:1px solid var(--border);border-radius:var(--rlg);padding:2.5rem;text-align:center;color:var(--sub)">
+        <div style="font-size:2rem;margin-bottom:.75rem">📑</div>
+        <div style="font-size:.9rem;font-weight:600;margin-bottom:.35rem">Fuel Deduction Report</div>
+        <div style="font-size:.82rem">Select a month and department, then click Generate Report</div>
+      </div>
+      <div id="rpt-output" style="display:none">
+        <div class="sg" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-bottom:1rem">
+          <div class="sc cr"><div class="sv" id="rpt-total-drivers">0</div><div class="sl">Drivers</div></div>
+          <div class="sc cw"><div class="sv" id="rpt-total-spend">R0</div><div class="sl">Total Spend</div></div>
+          <div class="sc cd"><div class="sv" id="rpt-total-deduct">R0</div><div class="sl">Total Deduction</div></div>
+          <div class="sc cp"><div class="sv" id="rpt-pct-disp">100%</div><div class="sl">Deduction Rate</div></div>
+        </div>
+        <div style="display:flex;gap:.5rem;margin-bottom:.85rem">
+          <button class="btn-ex" onclick="exportReportPDF()">📄 Export PDF</button>
+          <button class="btn-ex" onclick="exportReportCSV()">📊 Export CSV</button>
+        </div>
+        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--sub);margin-bottom:.6rem" id="rpt-label">Fuel Deduction Report</div>
+        <div class="tw"><table class="dt">
+          <thead><tr><th>#</th><th>Driver</th><th>Vehicle</th><th>Registration</th><th>Department</th><th>Fuel Spend (R)</th><th>Deduction %</th><th>Deduction (R)</th></tr></thead>
+          <tbody id="rpt-tbody"></tbody>
+        </table></div>
+        <div style="margin-top:.75rem;padding:.75rem 1rem;background:var(--surf2);border-radius:var(--r);font-size:.78rem;color:var(--muted)" id="rpt-note"></div>
+      </div>
+    </section>
+
     <!-- ALERTS -->
     <section id="sec-alerts" class="sec">
       <div class="sh"><div><h2>Alerts</h2><div class="sh-sub">Licence &amp; service warnings</div></div></div>
@@ -1472,6 +1529,9 @@ function syncFromDashboard(){ if(window._syncFromDashboard) window._syncFromDash
 function generateReport(){ if(window._generateReport) window._generateReport(); }
 function confirmUpload(){ if(window._confirmUpload) window._confirmUpload(); }
 function applyFuelDeptFilter(){ if(window._applyFuelDeptFilter) window._applyFuelDeptFilter(); }
+function generateDeductionReport(){ if(window._generateDeductionReport) window._generateDeductionReport(); }
+function exportReportPDF(){ if(window._exportReportPDF) window._exportReportPDF(); }
+function exportReportCSV(){ if(window._exportReportCSV) window._exportReportCSV(); }
 function focusAsset(id,lat,lng){ if(window._focusAsset) window._focusAsset(id,lat,lng); }
 function openInspectModal(){ if(window._openInspectModal) window._openInspectModal(); }
 function saveInspection(){ if(window._saveInspection) window._saveInspection(); }
@@ -2233,6 +2293,7 @@ function showLogin() {
    NAVIGATION
 ══════════════════════════════════════ */
 window._navTo = window.navTo = (section, el) => {
+  if(section==="reports") { initReportsTab(); }
   if(section==="dashboard") {
     renderDashboard();
     // Auto-sync fuel if not yet loaded - dashboard updates via callback
@@ -3482,6 +3543,223 @@ window._applyFuelDeptFilter = function() {
   }).join("");
 };
 
+/* ══════════════════════════════════════
+   FUEL DEDUCTION REPORT
+══════════════════════════════════════ */
+
+// Populate month dropdown when Reports tab opens
+function initReportsTab() {
+  const sel = document.getElementById("rpt-month");
+  if (!sel || sel.options.length > 1) return;
+  // Generate last 18 months
+  const now = new Date();
+  sel.innerHTML = "";
+  for (let i = 0; i < 18; i++) {
+    const d   = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const yr2 = String(d.getFullYear()).slice(2);
+    const lbl = d.toLocaleString("en-ZA", {month:"long"}) + " " + d.getFullYear();
+    const nm  = d.toLocaleString("en-ZA", {month:"long"}) + " " + yr2 + " Summary";
+    const gid = lbl === "July 2026" ? "348279363" : "";
+    const opt = document.createElement("option");
+    opt.value = JSON.stringify({gid: gid||nm, name: nm, label: lbl});
+    opt.textContent = lbl;
+    sel.appendChild(opt);
+  }
+}
+
+let rptData = []; // current report rows
+
+window._generateDeductionReport = async function() {
+  const sel   = document.getElementById("rpt-month");
+  const dept  = document.getElementById("rpt-dept").value;
+  const pct   = parseFloat(document.getElementById("rpt-pct").value) || 100;
+  const empty = document.getElementById("rpt-empty");
+  const out   = document.getElementById("rpt-output");
+
+  if (!sel.value) { alert("Please select a month."); return; }
+
+  const monthInfo = JSON.parse(sel.value);
+  const label     = sel.options[sel.selectedIndex].textContent;
+
+  // Show loading state
+  empty.style.display = "none";
+  out.style.display   = "block";
+  document.getElementById("rpt-tbody").innerHTML = '<tr><td colspan="8" class="es">Loading fuel data...</td></tr>';
+  document.getElementById("rpt-label").textContent = "Loading...";
+
+  // Fetch fuel data for selected month
+  let fuelVehicles = [];
+
+  try {
+    // Try Firestore saved upload first
+    const docId   = "fuel_" + (monthInfo.gid||monthInfo.name).replace(/[^a-zA-Z0-9]/g, "_");
+    const snap    = await getDoc(doc(db, "fuelUploads", docId));
+    if (snap.exists() && snap.data().vehicles?.length) {
+      fuelVehicles = snap.data().vehicles;
+    }
+  } catch(e) {}
+
+  // Fallback to Google Sheets
+  if (!fuelVehicles.length) {
+    try {
+      const isGid = /^\d+$/.test(monthInfo.gid);
+      const param = isGid ? "gid="+monthInfo.gid : "sheet="+encodeURIComponent(monthInfo.gid);
+      const url   = "https://docs.google.com/spreadsheets/d/"+SHEET_ID+"/gviz/tq?tqx=out:json&"+param+"&range=A3:G25&headers=0";
+      const r     = await fetch(url);
+      const t     = await r.text();
+      const m     = t.match(/google\.visualization\.Query\.setResponse\(([\s\S]*?)\);?\s*$/);
+      if (m) {
+        const parsed = JSON.parse(m[1]);
+        const rows   = parsed.table?.rows || [];
+        rows.forEach(row => {
+          const c   = row.c || [];
+          const reg = c[0]?.v ? String(c[0].v).trim() : "";
+          if (!reg || reg.toLowerCase().includes("total") || reg.toLowerCase().includes("grand")) return;
+          const spend = typeof c[1]?.v === "number" ? c[1].v : parseFloat(String(c[1]?.v||"0").replace(/[^0-9.-]/g,"")) || 0;
+          fuelVehicles.push({
+            reg,
+            spend,
+            dept:    String(c[2]?.v||"").trim(),
+            driver:  String(c[3]?.v||"").trim(),
+            vehicle: String(c[4]?.v||"").trim(),
+            limit:   typeof c[5]?.v === "number" ? c[5].v : 0,
+          });
+        });
+      }
+    } catch(e2) {
+      document.getElementById("rpt-tbody").innerHTML = '<tr><td colspan="8" class="es">❌ Could not load fuel data. Please sync the Fuel Tracker first.</td></tr>';
+      return;
+    }
+  }
+
+  // Filter by department
+  const filtered = dept ? fuelVehicles.filter(v => v.dept === dept) : fuelVehicles;
+
+  // Filter out blank drivers and managers (Sheldon/Steve for Sales)
+  const HIDDEN = ["sheldon","steve"];
+  const rows   = filtered.filter(v => v.driver && !HIDDEN.includes(v.driver.toLowerCase().split(" ")[0]));
+
+  if (!rows.length) {
+    document.getElementById("rpt-tbody").innerHTML = '<tr><td colspan="8" class="es">No drivers found for this selection</td></tr>';
+    document.getElementById("rpt-label").textContent = label + (dept?" · "+dept:"") + " — No data";
+    return;
+  }
+
+  // Sort by driver name
+  rows.sort((a,b) => (a.driver||"").localeCompare(b.driver||""));
+
+  const fmt       = n => "R"+n.toLocaleString("en-ZA",{minimumFractionDigits:2,maximumFractionDigits:2});
+  const totalSpend= rows.reduce((s,v) => s+v.spend, 0);
+  const totalDeduct= rows.reduce((s,v) => s+(v.spend*(pct/100)), 0);
+
+  // Update summary tiles
+  document.getElementById("rpt-total-drivers").textContent = rows.length;
+  document.getElementById("rpt-total-spend").textContent   = fmt(totalSpend);
+  document.getElementById("rpt-total-deduct").textContent  = fmt(totalDeduct);
+  document.getElementById("rpt-pct-disp").textContent      = pct+"%";
+  document.getElementById("rpt-label").textContent         = "Fuel Deduction — "+(dept||"All Depts")+" · "+label;
+  document.getElementById("rpt-note").textContent          = "Report generated: "+new Date().toLocaleString("en-ZA")+" · Deduction rate: "+pct+"% of fuel spend · "+rows.length+" driver(s)";
+
+  // Build table
+  rptData = rows;
+  document.getElementById("rpt-tbody").innerHTML = rows.map((v,i) => {
+    const deduct = v.spend * (pct/100);
+    return "<tr>"
+      + "<td style='color:var(--sub);font-size:.78rem'>"+(i+1)+"</td>"
+      + "<td style='font-weight:600'>"+(v.driver||"—")+"</td>"
+      + "<td style='font-size:.8rem'>"+(v.vehicle||"—")+"</td>"
+      + "<td><span class='rp'>"+(v.reg||"—")+"</span></td>"
+      + "<td><span class='dc'>"+(v.dept||"—")+"</span></td>"
+      + "<td style='font-family:var(--mono);color:var(--ok)'>"+fmt(v.spend)+"</td>"
+      + "<td style='font-family:var(--mono);color:var(--warn)'>"+pct+"%</td>"
+      + "<td style='font-family:var(--mono);font-weight:700;color:var(--danger)'>"+fmt(deduct)+"</td>"
+      + "</tr>";
+  }).join("")
+  + "<tr style='background:var(--surf2);border-top:2px solid var(--border)'>"
+  + "<td colspan='5' style='font-weight:700;font-size:.83rem'>TOTAL</td>"
+  + "<td style='font-family:var(--mono);font-weight:700;color:var(--ok)'>"+fmt(totalSpend)+"</td>"
+  + "<td style='font-family:var(--mono);font-weight:700;color:var(--warn)'>"+pct+"%</td>"
+  + "<td style='font-family:var(--mono);font-weight:700;color:var(--danger)'>"+fmt(totalDeduct)+"</td>"
+  + "</tr>";
+};
+
+// Export PDF
+window._exportReportPDF = function() {
+  if (!rptData.length) { alert("Generate a report first."); return; }
+  const pct      = parseFloat(document.getElementById("rpt-pct").value) || 100;
+  const dept     = document.getElementById("rpt-dept").value || "All Departments";
+  const label    = document.getElementById("rpt-label").textContent;
+  const genDate  = new Date().toLocaleDateString("en-ZA",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
+  const fmt      = n => "R"+n.toLocaleString("en-ZA",{minimumFractionDigits:2,maximumFractionDigits:2});
+  const totalSpend  = rptData.reduce((s,v)=>s+v.spend,0);
+  const totalDeduct = rptData.reduce((s,v)=>s+(v.spend*(pct/100)),0);
+
+  const html = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>"+label+"</title><style>"
+    + "*{margin:0;padding:0;box-sizing:border-box}"
+    + "body{font-family:Arial,sans-serif;font-size:11px;color:#1a2040;background:#fff}"
+    + "@page{size:A4;margin:15mm}"
+    + "@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}"
+    + ".hdr{background:#0d1829;color:#fff;padding:18px 22px;margin-bottom:18px;border-radius:6px;display:flex;justify-content:space-between;align-items:center}"
+    + ".hdr h1{font-size:18px;font-weight:800;color:#fff}.hdr p{font-size:10px;color:#8899bb;margin-top:3px}"
+    + ".meta{text-align:right}.meta .ttl{font-size:13px;font-weight:700;color:#fff}.meta .dt{font-size:9px;color:#8899bb;margin-top:3px}"
+    + ".conf{font-size:9px;color:#e03a2f;font-weight:700;margin-top:2px;text-transform:uppercase}"
+    + ".info{background:#f0f4f8;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:10px;color:#4a5a80}"
+    + "table{width:100%;border-collapse:collapse;margin-bottom:14px}"
+    + "thead tr{background:#0d1829}"
+    + "thead th{color:#fff;padding:7px 10px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;text-align:left}"
+    + "tbody tr:nth-child(even){background:#f7f9fc}"
+    + "td{padding:6px 10px;border-bottom:1px solid #e8edf5;font-size:10px}"
+    + ".tot td{background:#e8edf5;font-weight:700;border-top:2px solid #0d1829}"
+    + ".reg{font-family:monospace;background:#e8edf5;padding:2px 6px;border-radius:4px;font-weight:700}"
+    + ".ded{color:#c93636;font-weight:700;font-family:monospace}"
+    + ".spd{color:#16a34a;font-family:monospace}"
+    + ".ftr{margin-top:16px;padding-top:10px;border-top:1px solid #e0e8f0;display:flex;justify-content:space-between;font-size:9px;color:#8899bb}"
+    + "</style></head><body>"
+    + "<div class='hdr'><div><h1>X-CORP</h1><p>Fuel Deduction Report — "+dept+"</p></div>"
+    + "<div class='meta'><div class='ttl'>"+label+"</div><div class='dt'>Generated: "+genDate+"</div><div class='conf'>⚠ Confidential</div></div></div>"
+    + "<div class='info'>Deduction rate: <strong>"+pct+"%</strong> of total fuel spend per driver · "+rptData.length+" driver(s) · Total deduction: <strong>"+fmt(totalDeduct)+"</strong></div>"
+    + "<table><thead><tr><th>#</th><th>Driver</th><th>Vehicle</th><th>Registration</th><th>Fuel Spend</th><th>Rate</th><th>Deduction Amount</th></tr></thead><tbody>"
+    + rptData.map((v,i) => {
+        const d = v.spend*(pct/100);
+        return "<tr><td style='color:#8899bb'>"+(i+1)+"</td><td><strong>"+v.driver+"</strong></td><td>"+v.vehicle+"</td><td><span class='reg'>"+v.reg+"</span></td><td class='spd'>"+fmt(v.spend)+"</td><td>"+pct+"%</td><td class='ded'>"+fmt(d)+"</td></tr>";
+      }).join("")
+    + "<tr class='tot'><td colspan='4'>TOTAL</td><td class='spd'>"+fmt(totalSpend)+"</td><td>"+pct+"%</td><td class='ded'>"+fmt(totalDeduct)+"</td></tr>"
+    + "</tbody></table>"
+    + "<div class='ftr'><div><strong>X-Corp Business Solutions</strong> — Vehicle Tracker · "+genDate+"</div><div style='color:#e03a2f;font-weight:700'>CONFIDENTIAL — Internal Use Only</div></div>"
+    + "</body></html>";
+
+  const win = window.open("","_blank");
+  if (!win) { alert("Please allow popups to generate PDF."); return; }
+  win.document.write(html);
+  win.document.close();
+  win.onload = function() { setTimeout(function(){ win.print(); }, 400); };
+};
+
+// Export CSV
+window._exportReportCSV = function() {
+  if (!rptData.length) { alert("Generate a report first."); return; }
+  const pct   = parseFloat(document.getElementById("rpt-pct").value) || 100;
+  const label = document.getElementById("rpt-label").textContent;
+  const fmt   = n => n.toFixed(2);
+  const headers = ["#","Driver","Vehicle","Registration","Department","Fuel Spend (R)","Deduction %","Deduction Amount (R)"];
+  const rows    = rptData.map((v,i) => [
+    i+1, v.driver, v.vehicle, v.reg, v.dept,
+    fmt(v.spend), pct, fmt(v.spend*(pct/100))
+  ]);
+  const total = ["TOTAL","","","","",
+    fmt(rptData.reduce((s,v)=>s+v.spend,0)), pct,
+    fmt(rptData.reduce((s,v)=>s+(v.spend*(pct/100)),0))
+  ];
+  const csv = [headers,...rows,total]
+    .map(r => r.map(c => '"'+String(c).replace(/"/g,'""')+'"').join(",")).join("\n");
+  const blob = new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"});
+  const a    = Object.assign(document.createElement("a"),{
+    href: URL.createObjectURL(blob),
+    download: "Fuel-Deduction-"+new Date().toLocaleDateString("en-ZA").replace(/\//g,"-")+".csv"
+  });
+  a.click(); URL.revokeObjectURL(a.href);
+};
+
 window._exportFuelExcel = window.exportFuelExcel = () => {
   if(!fuelData.vehicles.length){alert("No fuel data to export.");return;}
   const headers=["Registration","Vehicle","Driver","Department","Spend (R)","Limit (R)","Mileage (km)","% of Limit"];
@@ -3506,6 +3784,7 @@ window.bdClose=(e,id)=>{if(e.target===document.getElementById(id))closeModal(id)
 const isMob = () => window.innerWidth <= 768;
 
 window._mobNav = window.mobNav = (sec, el) => {
+  if(sec==="reports") { initReportsTab(); }
   if(sec==="dashboard") {
     renderDashboard();
     if(!fuelData || !fuelData.vehicles || !fuelData.vehicles.length) {
