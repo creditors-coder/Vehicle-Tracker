@@ -3593,8 +3593,9 @@ async function fetchLogbookKm(assetId, monthLabel) {
     const month = new Date(monthLabel+" 1").getMonth();
     const from  = new Date(year, month, 1).toISOString().split("T")[0];
     const to    = new Date(year, month+1, 0).toISOString().split("T")[0];
+    const _proxy = "https://script.google.com/macros/s/AKfycbwrGONPusx6tTOUbI3WgFhpqQosttnsJ2SJPHZ1dxYW0knv3kTBeGI_OnKunBbwGm08/exec";
     const qs    = new URLSearchParams({action:"logbook", assetId, from, to}).toString();
-    const r     = await fetch(TG_PROXY+"?"+qs);
+    const r     = await fetch(_proxy+"?"+qs);
     if (!r.ok) return null;
     const w = await r.json();
     if (!w.data) return null;
@@ -3708,10 +3709,11 @@ window._generateDeductionReport = async function() {
   });
 
   // Fetch asset list from TG proxy
+  const RPT_PROXY = "https://script.google.com/macros/s/AKfycbwrGONPusx6tTOUbI3WgFhpqQosttnsJ2SJPHZ1dxYW0knv3kTBeGI_OnKunBbwGm08/exec";
   let assetList = [];
   try {
     const qs = new URLSearchParams({action:"assets"}).toString();
-    const r  = await fetch(TG_PROXY+"?"+qs);
+    const r  = await fetch(RPT_PROXY+"?"+qs);
     const w  = await r.json();
     if (w.data) assetList = JSON.parse(w.data);
     if (!Array.isArray(assetList)) assetList = [];
