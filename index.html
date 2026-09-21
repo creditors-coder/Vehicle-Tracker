@@ -3584,6 +3584,8 @@ function initReportsTab() {
 }
 
 // Fetch logbook KM from TG Tracking via proxy
+// TG columns: [6]Distance(km) [7]Business/Private [8]BusinessDistance(km)
+// Formula: Personal KM = Total KM - Business KM
 async function fetchLogbookKm(assetId, monthLabel) {
   try {
     const parts = monthLabel.split(" ");
@@ -3595,66 +3597,20 @@ async function fetchLogbookKm(assetId, monthLabel) {
     const r     = await fetch(TG_PROXY+"?"+qs);
     if (!r.ok) return null;
     const w = await r.json();
-    console.log("TG Logbook raw:", JSON.stringify(w).substring(0,500));
     if (!w.data) return null;
     const data = JSON.parse(w.data);
-    console.log("TG Logbook parsed:", JSON.stringify(data).substring(0,500));
-
-    let bizKm   = 0;
-    let totalKm = 0;
-
-    // Try top-level summary fields first (most common in TG API)
-    if (data.totalBusinessDistanceKm !== undefined) {
-      bizKm   = parseFloat(data.totalBusinessDistanceKm) || 0;
-      totalKm = parseFloat(data.totalDistanceKm || data.totalKm || 0);
-      console.log("TG Logbook summary: bizKm="+bizKm+" totalKm="+totalKm);
-
-    } else if (data.businessDistance !== undefined) {
-      bizKm   = parseFloat(data.businessDistance) || 0;
-      totalKm = parseFloat(data.totalDistance || 0);
-
-    } else {
-      // Fall through to entries array
-      const entries = Array.isArray(data) ? data
-        : (data.entries || data.trips || data.logbookEntries || data.items || []);
-
-      entries.forEach(function(e) {
-        // Total KM per entry
-        const dist = parseFloat(
-          e.distanceKm || e.distance || e.DistanceKm ||
-          e.totalDistanceKm || e.km || 0
-        );
-        totalKm += dist;
-
-        // Business KM per entry — check dedicated field first
-        const bizDist = parseFloat(
-          e.businessDistanceKm || e.businessDistance ||
-          e.BusinessDistanceKm || e.business_distance || 0
-        );
-        if (bizDist > 0) {
-          bizKm += bizDist;
-        } else {
-          // Fall back to tripType
-          const type = (
-            e.tripType || e.TripType || e.type ||
-            e.journeyType || e.category || ""
-          ).toString().toLowerCase();
-          if (type.includes("business") || type === "1" || type === "b") {
-            bizKm += dist;
-          }
-        }
-      });
-      console.log("TG Logbook entries: "+entries.length+" bizKm="+bizKm+" totalKm="+totalKm);
-    }
-
-    return {
-      bizKm:   parseFloat(bizKm.toFixed(2)),
-      totalKm: parseFloat(totalKm.toFixed(2))
-    };
-  } catch(e) {
-    console.error("fetchLogbookKm error:", e);
-    return null;
-  }
+    const entries = Array.isArray(data) ? data : (data.entries||data.trips||data.items||[]);
+    let bizKm = 0, totalKm = 0;
+    entries.forEach(function(e) {
+      const dist = parseFloat(e["Distance (km)"]||e.distanceKm||e.distance||e.km||0);
+      const biz  = parseFloat(e["Business Distance (km)"]||e.businessDistanceKm||e.businessDistance||0);
+      totalKm += dist;
+      bizKm   += biz;
+    });
+    const persKm = totalKm - bizKm;
+    console.log("TG Logbook: trips="+entries.length+" total="+totalKm.toFixed(2)+" biz="+bizKm.toFixed(2)+" pers="+persKm.toFixed(2));
+    return { totalKm:parseFloat(totalKm.toFixed(2)), bizKm:parseFloat(bizKm.toFixed(2)), persKm:parseFloat(persKm.toFixed(2)) };
+  } catch(e) { console.error("fetchLogbookKm:",e); return null; }
 }
 
 // Step 1: Load fuel data and show KM entry table
