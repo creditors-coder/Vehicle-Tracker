@@ -3729,63 +3729,38 @@ window._generateDeductionReport = async function() {
       var bizEl   = document.getElementById("biz-km-"+i);
       var persEl  = document.getElementById("pers-km-"+i);
       var srcEl   = document.getElementById("biz-src-"+i);
-      if (totalEl) totalEl.textContent = km.totalKm.toFixed(2)+" km";
-      if (bizEl)   { bizEl.value = km.bizKm.toFixed(2); bizEl.dataset.totalKm = km.totalKm; bizEl.dataset.persKm = persKm; }
+      if (totalEl) totalEl.value = km.totalKm.toFixed(2);
+      if (bizEl)   { bizEl.value = km.bizKm.toFixed(2); bizEl.dataset.totalKm = km.totalKm; }
       if (persEl)  persEl.textContent = persKm.toFixed(2)+" km";
       if (srcEl)   srcEl.textContent  = "📍 TG";
+      updatePersonalKm(i);
     });
     if (statusEl) { statusEl.textContent = "✅ "+matched+" driver"+(matched>1?"s":"")+" matched from logbook"; statusEl.style.color="var(--ok)"; }
   }
 
   document.getElementById("rpt-km-tbody").innerHTML = filtered.map((v,i) => {
     const stored = localStorage.getItem("rpt_biz_"+v.reg) || "";
+    const storedTotal = localStorage.getItem("rpt_total_"+v.reg) || "";
     return "<tr>"
       + "<td style='font-weight:600'>"+(v.driver||"—")+"</td>"
       + "<td style='font-size:.8rem'>"+(v.vehicle||"—")+"</td>"
       + "<td><span class='rp'>"+(v.reg||"—")+"</span></td>"
-      + "<td style='font-family:var(--mono);color:var(--muted)' id='total-km-"+i+"'>⏳</td>"
+      + "<td><input type='number' id='total-km-"+i+"' value='"+storedTotal+"' min='0' step='0.01'"
+      +   " oninput='updatePersonalKm("+i+")'"
+      +   " placeholder='Enter total km'"
+      +   " style='background:var(--surf2);border:1px solid var(--border);color:var(--text);padding:.35rem .6rem;border-radius:6px;font-family:var(--mono);font-size:.82rem;width:120px'/></td>"
       + "<td><div style='display:flex;align-items:center;gap:.4rem'>"
       +   "<input type='number' id='biz-km-"+i+"' value='"+stored+"' min='0' step='0.01'"
       +     " oninput='updatePersonalKm("+i+")'"
-      +     " style='background:var(--surf2);border:1px solid var(--border);color:var(--text);padding:.35rem .6rem;border-radius:6px;font-family:var(--mono);font-size:.82rem;width:110px'/>"
+      +     " placeholder='Enter biz km'"
+      +     " style='background:var(--surf2);border:1px solid var(--border);color:var(--text);padding:.35rem .6rem;border-radius:6px;font-family:var(--mono);font-size:.82rem;width:120px'/>"
       +   "<span id='biz-src-"+i+"' style='font-size:.65rem;color:var(--sub)'>"+(stored?"💾":"✏️")+"</span>"
       + "</div></td>"
       + "<td style='font-family:var(--mono);color:var(--danger)' id='pers-km-"+i+"'>—</td>"
       + "</tr>";
   }).join("");
 
-  // Fetch TG assets to get current odometer per vehicle
-  (async function() {
-    try {
-      const RPT_PROXY2 = "https://script.google.com/macros/s/AKfycbwrGONPusx6tTOUbI3WgFhpqQosttnsJ2SJPHZ1dxYW0knv3kTBeGI_OnKunBbwGm08/exec";
-      const r = await fetch(RPT_PROXY2+"?action=assets");
-      const w = await r.json();
-      if (!w.data) return;
-      const assets = JSON.parse(w.data);
-      if (!Array.isArray(assets)) return;
 
-      filtered.forEach((v, i) => {
-        const regClean = v.reg.replace(/\s/g,"").toUpperCase();
-        const asset    = assets.find(a => (a.code||"").replace(/\s/g,"").toUpperCase() === regClean);
-        const el       = document.getElementById("total-km-"+i);
-        if (asset && el) {
-          // odometerLocalized is current total odometer in km
-          el.textContent = asset.odometerLocalized
-            ? asset.odometerLocalized.toLocaleString("en-ZA")+" km (total)"
-            : "— km";
-          el.title = "Current total odometer — upload TG Logbook Excel for monthly KM";
-        } else if (el) {
-          el.textContent = "— km";
-        }
-      });
-    } catch(e) {
-      console.log("Odometer fetch failed:", e);
-      filtered.forEach((v,i) => {
-        const el = document.getElementById("total-km-"+i);
-        if (el) el.textContent = "— km";
-      });
-    }
-  })();
 
   // Store filtered data for calc step
   window._rptFiltered = filtered;
@@ -3793,11 +3768,20 @@ window._generateDeductionReport = async function() {
 
 
 window.updatePersonalKm = function(i) {
-  const bizEl  = document.getElementById("biz-km-"+i);
-  const persEl = document.getElementById("pers-km-"+i);
-  const biz    = parseFloat(bizEl.value) || 0;
-  // Personal = negative of business (as per your example: -328.73)
-  persEl.textContent = biz > 0 ? "-"+biz.toFixed(2)+" km" : "—";
+  const totalEl = document.getElementById("total-km-"+i);
+  const bizEl   = document.getElementById("biz-km-"+i);
+  const persEl  = document.getElementById("pers-km-"+i);
+  const total   = parseFloat(totalEl?.value) || 0;
+  const biz     = parseFloat(bizEl?.value)   || 0;
+  const pers    = total - biz;
+  if (total > 0 && biz > 0) {
+    persEl.textContent = pers.toFixed(2)+" km";
+    persEl.style.color = pers < 0 ? "var(--danger)" : "var(--warn)";
+    // Save total km for this vehicle
+    localStorage.setItem("rpt_total_"+document.getElementById("biz-km-"+i)?.closest("tr")?.dataset?.reg||"", total);
+  } else {
+    persEl.textContent = "—";
+  }
 };
 
 // Step 2: Calculate deductions
@@ -3814,7 +3798,8 @@ window.calcDeductionReport = function() {
     const bizAmt  = bizKm * rate;
     const persAmt = v.spend - bizAmt; // Personal pays back the rest
     // Save biz km for this vehicle
-    if (bizKm > 0) localStorage.setItem("rpt_biz_"+v.reg, bizKm);
+    if (bizKm > 0)   localStorage.setItem("rpt_biz_"+v.reg, bizKm);
+    if (totalKm > 0) localStorage.setItem("rpt_total_"+v.reg, totalKm);
     return { ...v, bizKm, persKm, bizAmt, persAmt, rate };
   });
 
