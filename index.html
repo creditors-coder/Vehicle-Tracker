@@ -1221,16 +1221,24 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
         </div>
       </div>
 
-      <!-- Business KM entry table -->
+      <!-- Step 2: Upload TG Logbook -->
       <div id="rpt-km-section" style="display:none;background:var(--surf);border:1px solid var(--border);border-radius:var(--rlg);padding:1.1rem;margin-bottom:1rem">
-        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--sub);margin-bottom:.75rem">📍 Enter Business KM per Driver</div>
-        <div class="tw" style="margin-bottom:.75rem">
-          <table class="dt" id="rpt-km-table">
-            <thead><tr><th>Driver</th><th>Vehicle</th><th>Total KM (Month)</th><th>Business KM</th><th>Personal KM</th></tr></thead>
+        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--sub);margin-bottom:.85rem">Step 2 — Upload TG Logbook</div>
+
+
+
+        <!-- KM table -->
+        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--sub);margin-bottom:.5rem">KM Summary per Driver</div>
+        <div class="tw" style="margin-bottom:.85rem">
+          <table class="dt">
+            <thead><tr><th>Driver</th><th>Vehicle</th><th>Registration</th><th>Total KM</th><th>Business KM</th><th>Personal KM</th></tr></thead>
             <tbody id="rpt-km-tbody"></tbody>
           </table>
         </div>
-        <button class="btn-p" onclick="calcDeductionReport()">Calculate Deductions →</button>
+        <div style="display:flex;align-items:center;gap:.75rem">
+          <button class="btn-p" onclick="calcDeductionReport()">Calculate Deductions →</button>
+          <span style="font-size:.75rem;color:var(--sub)">You can also enter KM manually in the table above</span>
+        </div>
       </div>
 
       <!-- Empty state -->
@@ -1543,6 +1551,7 @@ function generateDeductionReport(){ if(window._generateDeductionReport) window._
 function calcDeductionReport(){ if(window.calcDeductionReport) window.calcDeductionReport(); }
 function editKmEntries(){ if(window.editKmEntries) window.editKmEntries(); }
 function updatePersonalKm(i){ if(window.updatePersonalKm) window.updatePersonalKm(i); }
+function handleLogbookUpload(e){ if(window.handleLogbookUpload) window.handleLogbookUpload(e); }
 function exportReportPDF(){ if(window._exportReportPDF) window._exportReportPDF(); }
 function exportReportCSV(){ if(window._exportReportCSV) window._exportReportCSV(); }
 function focusAsset(id,lat,lng){ if(window._focusAsset) window._focusAsset(id,lat,lng); }
@@ -3596,11 +3605,16 @@ async function fetchLogbookKm(assetId, monthLabel) {
     const _proxy = "https://script.google.com/macros/s/AKfycbwrGONPusx6tTOUbI3WgFhpqQosttnsJ2SJPHZ1dxYW0knv3kTBeGI_OnKunBbwGm08/exec";
     const qs    = new URLSearchParams({action:"logbook", assetId, from, to}).toString();
     const r     = await fetch(_proxy+"?"+qs);
-    if (!r.ok) return null;
+    if (!r.ok) { console.error("Logbook HTTP error:", r.status); return null; }
     const w = await r.json();
-    if (!w.data) return null;
+    console.log("Logbook proxy response:", JSON.stringify(w).substring(0,300));
+    if (w.error)  { console.error("Logbook proxy error:", w.error); return null; }
+    if (!w.data)  { console.error("Logbook no data returned"); return null; }
+    if (w.status !== 200) { console.error("Logbook TG API status:", w.status, w.data); return null; }
     const data = JSON.parse(w.data);
-    const entries = Array.isArray(data) ? data : (data.entries||data.trips||data.items||[]);
+    console.log("Logbook data type:", typeof data, Array.isArray(data) ? "array len="+data.length : "keys="+Object.keys(data).join(","));
+    if (typeof data === "string") { console.error("Logbook data is string:", data.substring(0,200)); return null; }
+    const entries = Array.isArray(data) ? data : (data.entries||data.trips||data.items||data.logEntries||[]);
     let bizKm = 0, totalKm = 0;
     entries.forEach(function(e) {
       const dist = parseFloat(e["Distance (km)"]||e.distanceKm||e.distance||e.km||0);
@@ -3697,69 +3711,48 @@ window._generateDeductionReport = async function() {
   }).join("");
 
 
-  // Fetch TG assets directly (don't rely on Live Tracking tab being open)
+  // Show KM entry table - user uploads TG logbook Excel
   window._rptFiltered = filtered;
 
-  // Show loading for all rows
-  filtered.forEach((v, i) => {
-    const el = document.getElementById("total-km-"+i);
-    const bs = document.getElementById("biz-src-"+i);
-    if (el) el.textContent = "⏳ Loading...";
-    if (bs) bs.textContent = "";
-  });
-
-  // Fetch asset list from TG proxy
-  const RPT_PROXY = "https://script.google.com/macros/s/AKfycbwrGONPusx6tTOUbI3WgFhpqQosttnsJ2SJPHZ1dxYW0knv3kTBeGI_OnKunBbwGm08/exec";
-  let assetList = [];
-  try {
-    const qs = new URLSearchParams({action:"assets"}).toString();
-    const r  = await fetch(RPT_PROXY+"?"+qs);
-    const w  = await r.json();
-    if (w.data) assetList = JSON.parse(w.data);
-    if (!Array.isArray(assetList)) assetList = [];
-    console.log("TG Assets loaded for report:", assetList.length);
-  } catch(e) { console.error("TG asset fetch failed:", e); }
-
-  // For each driver vehicle, match to TG asset and fetch logbook
-  for (let i = 0; i < filtered.length; i++) {
-    const v         = filtered[i];
-    const totalKmEl = document.getElementById("total-km-"+i);
-    const bizKmEl   = document.getElementById("biz-km-"+i);
-    const bizSrcEl  = document.getElementById("biz-src-"+i);
-    const persEl    = document.getElementById("pers-km-"+i);
-    const regClean  = v.reg.replace(/\s/g,"").toUpperCase();
-
-    // Match by registration code or name
-    const asset = assetList.find(a =>
-      (a.code||"").replace(/\s/g,"").toUpperCase() === regClean ||
-      (a.name||"").replace(/\s/g,"").toUpperCase().includes(regClean)
-    );
-
-    if (!asset) {
-      if (totalKmEl) totalKmEl.textContent = "— km";
-      if (bizSrcEl)  bizSrcEl.textContent  = "✏️ Manual";
-      const stored = localStorage.getItem("rpt_biz_"+v.reg);
-      if (stored && bizKmEl) { bizKmEl.value = stored; updatePersonalKm(i); }
-      continue;
-    }
-
-    if (totalKmEl) totalKmEl.textContent = "⏳ Fetching logbook...";
-    const logbook = await fetchLogbookKm(asset.id, rptMonthLabel);
-
-    if (logbook && logbook.totalKm > 0) {
-      if (totalKmEl) totalKmEl.textContent = logbook.totalKm.toFixed(2)+" km";
-      bizKmEl.value                        = logbook.bizKm.toFixed(2);
-      bizKmEl.dataset.totalKm              = logbook.totalKm;
-      bizKmEl.dataset.persKm               = logbook.persKm;
-      if (bizSrcEl) bizSrcEl.textContent   = "📍 TG";
-      if (persEl)   persEl.textContent     = logbook.persKm.toFixed(2)+" km";
-    } else {
-      if (totalKmEl) totalKmEl.textContent = "— km";
-      if (bizSrcEl)  bizSrcEl.textContent  = "✏️ Manual";
-      const stored = localStorage.getItem("rpt_biz_"+v.reg);
-      if (stored && bizKmEl) { bizKmEl.value = stored; updatePersonalKm(i); }
-    }
+  // If logbook was pre-uploaded, apply it now automatically
+  if (window._rptLogbookData && Object.keys(window._rptLogbookData).length > 0) {
+    var statusEl = document.getElementById("rpt-upload-status");
+    var matched  = 0;
+    filtered.forEach(function(v, i) {
+      var regClean = v.reg.replace(/\s/g,"").toUpperCase();
+      var foundKey = Object.keys(window._rptLogbookData).find(function(r){ return r === regClean; });
+      if (!foundKey) return;
+      matched++;
+      var km      = window._rptLogbookData[foundKey];
+      var persKm  = km.totalKm - km.bizKm;
+      var totalEl = document.getElementById("total-km-"+i);
+      var bizEl   = document.getElementById("biz-km-"+i);
+      var persEl  = document.getElementById("pers-km-"+i);
+      var srcEl   = document.getElementById("biz-src-"+i);
+      if (totalEl) totalEl.textContent = km.totalKm.toFixed(2)+" km";
+      if (bizEl)   { bizEl.value = km.bizKm.toFixed(2); bizEl.dataset.totalKm = km.totalKm; bizEl.dataset.persKm = persKm; }
+      if (persEl)  persEl.textContent = persKm.toFixed(2)+" km";
+      if (srcEl)   srcEl.textContent  = "📍 TG";
+    });
+    if (statusEl) { statusEl.textContent = "✅ "+matched+" driver"+(matched>1?"s":"")+" matched from logbook"; statusEl.style.color="var(--ok)"; }
   }
+
+  document.getElementById("rpt-km-tbody").innerHTML = filtered.map((v,i) => {
+    const stored = localStorage.getItem("rpt_biz_"+v.reg) || "";
+    return "<tr>"
+      + "<td style='font-weight:600'>"+(v.driver||"—")+"</td>"
+      + "<td style='font-size:.8rem'>"+(v.vehicle||"—")+"</td>"
+      + "<td><span class='rp'>"+(v.reg||"—")+"</span></td>"
+      + "<td style='font-family:var(--mono);color:var(--muted)' id='total-km-"+i+"'>— km</td>"
+      + "<td><div style='display:flex;align-items:center;gap:.4rem'>"
+      +   "<input type='number' id='biz-km-"+i+"' value='"+stored+"' min='0' step='0.01'"
+      +     " oninput='updatePersonalKm("+i+")'"
+      +     " style='background:var(--surf2);border:1px solid var(--border);color:var(--text);padding:.35rem .6rem;border-radius:6px;font-family:var(--mono);font-size:.82rem;width:110px'/>"
+      +   "<span id='biz-src-"+i+"' style='font-size:.65rem;color:var(--sub)'>"+(stored?"💾":"✏️")+"</span>"
+      + "</div></td>"
+      + "<td style='font-family:var(--mono);color:var(--danger)' id='pers-km-"+i+"'>—</td>"
+      + "</tr>";
+  }).join("");
 
   // Store filtered data for calc step
   window._rptFiltered = filtered;
@@ -3932,6 +3925,107 @@ window._exportReportCSV = function() {
   const a    = Object.assign(document.createElement("a"),{href:URL.createObjectURL(blob),download:"Fuel-Deduction-"+new Date().toLocaleDateString("en-ZA").replace(/\//g,"-")+".csv"});
   a.click(); URL.revokeObjectURL(a.href);
 };
+
+/* ── TG Logbook Excel Upload ── */
+window.handleLogbookUpload = function(e) {
+  const file     = e.target.files[0];
+  const statusEl = document.getElementById("rpt-upload-status");
+  if (!file) return;
+  e.target.value = "";
+  if (typeof XLSX === "undefined") { statusEl.textContent = "❌ Excel reader not loaded — refresh page"; return; }
+  statusEl.textContent = "⏳ Reading logbook...";
+  statusEl.style.color = "var(--muted)";
+
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      const wb   = XLSX.read(new Uint8Array(ev.target.result), {type:"array"});
+      const ws   = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:"", raw:false});
+
+      // Find header row containing "Registration" or "Distance"
+      let hIdx = -1;
+      for (let i=0; i<Math.min(rows.length,20); i++) {
+        const row = rows[i].map(c => String(c).toLowerCase());
+        if (row.some(c => c.includes("registration") || c.includes("distance"))) {
+          hIdx = i; break;
+        }
+      }
+      if (hIdx === -1) {
+        statusEl.textContent = "❌ Header row not found — make sure this is a TG Logbook export";
+        statusEl.style.color = "var(--danger)";
+        return;
+      }
+
+      const headers = rows[hIdx].map(c => String(c).trim());
+      console.log("TG Logbook headers:", headers);
+
+      // Find column indices - TG uses "Distance (km)" and "Business Distance (km)"
+      const colReg  = headers.findIndex(h => /registration/i.test(h));
+      const colDist = headers.findIndex(h => /^distance/i.test(h) && !/business/i.test(h));
+      const colBiz  = headers.findIndex(h => /business.*distance/i.test(h));
+
+      if (colReg === -1)  { statusEl.textContent = "❌ Registration column not found"; statusEl.style.color="var(--danger)"; return; }
+      if (colDist === -1) { statusEl.textContent = "❌ Distance column not found"; statusEl.style.color="var(--danger)"; return; }
+
+      console.log("Cols: reg="+colReg+" dist="+colDist+" biz="+colBiz);
+
+      // Sum KM per registration
+      const kmByReg = {};
+      rows.slice(hIdx+1).forEach(row => {
+        const reg  = String(row[colReg]||"").trim().toUpperCase().replace(/\s/g,"");
+        if (!reg || reg.length < 4 || /total|grand/i.test(reg)) return;
+        const dist = parseFloat(String(row[colDist]||"0").replace(/[^0-9.-]/g,"")) || 0;
+        const biz  = colBiz>=0 ? parseFloat(String(row[colBiz]||"0").replace(/[^0-9.-]/g,"")) || 0 : 0;
+        if (!kmByReg[reg]) kmByReg[reg] = {totalKm:0, bizKm:0};
+        kmByReg[reg].totalKm += dist;
+        kmByReg[reg].bizKm   += biz;
+      });
+
+      console.log("KM by reg:", kmByReg);
+
+      // Match to report drivers and fill in
+      const filtered = window._rptFiltered || [];
+      let matched = 0;
+      filtered.forEach((v, i) => {
+        const regClean  = v.reg.replace(/\s/g,"").toUpperCase();
+        const foundKey  = Object.keys(kmByReg).find(r => r === regClean);
+        if (!foundKey) return;
+        matched++;
+        const km        = kmByReg[foundKey];
+        const persKm    = km.totalKm - km.bizKm;
+        const totalEl   = document.getElementById("total-km-"+i);
+        const bizEl     = document.getElementById("biz-km-"+i);
+        const persEl    = document.getElementById("pers-km-"+i);
+        const srcEl     = document.getElementById("biz-src-"+i);
+        if (totalEl) totalEl.textContent  = km.totalKm.toFixed(2)+" km";
+        if (bizEl)  {
+          bizEl.value                     = km.bizKm.toFixed(2);
+          bizEl.dataset.totalKm           = km.totalKm;
+          bizEl.dataset.persKm            = persKm;
+        }
+        if (persEl) persEl.textContent    = persKm.toFixed(2)+" km";
+        if (srcEl)  srcEl.textContent     = "📍 TG";
+      });
+
+      const unmatched = filtered.length - matched;
+      // Store logbook data globally for re-use after generate
+      window._rptLogbookData = kmByReg;
+
+      statusEl.style.color = matched > 0 ? "var(--ok)" : "var(--danger)";
+      statusEl.textContent = matched > 0
+        ? "✅ "+matched+" driver"+(matched>1?"s":"")+" matched"+(unmatched>0?" · "+unmatched+" not found in logbook":"")
+        : "❌ No vehicles matched — check registrations match TG Tracker";
+
+    } catch(err) {
+      statusEl.textContent = "❌ " + err.message;
+      statusEl.style.color = "var(--danger)";
+      console.error("Logbook upload:", err);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+};
+
 
 window._exportFuelExcel = window.exportFuelExcel = () => {
   if(!fuelData.vehicles.length){alert("No fuel data to export.");return;}
