@@ -3743,7 +3743,7 @@ window._generateDeductionReport = async function() {
       + "<td style='font-weight:600'>"+(v.driver||"—")+"</td>"
       + "<td style='font-size:.8rem'>"+(v.vehicle||"—")+"</td>"
       + "<td><span class='rp'>"+(v.reg||"—")+"</span></td>"
-      + "<td style='font-family:var(--mono);color:var(--muted)' id='total-km-"+i+"'>— km</td>"
+      + "<td style='font-family:var(--mono);color:var(--muted)' id='total-km-"+i+"'>⏳</td>"
       + "<td><div style='display:flex;align-items:center;gap:.4rem'>"
       +   "<input type='number' id='biz-km-"+i+"' value='"+stored+"' min='0' step='0.01'"
       +     " oninput='updatePersonalKm("+i+")'"
@@ -3753,6 +3753,39 @@ window._generateDeductionReport = async function() {
       + "<td style='font-family:var(--mono);color:var(--danger)' id='pers-km-"+i+"'>—</td>"
       + "</tr>";
   }).join("");
+
+  // Fetch TG assets to get current odometer per vehicle
+  (async function() {
+    try {
+      const RPT_PROXY2 = "https://script.google.com/macros/s/AKfycbwrGONPusx6tTOUbI3WgFhpqQosttnsJ2SJPHZ1dxYW0knv3kTBeGI_OnKunBbwGm08/exec";
+      const r = await fetch(RPT_PROXY2+"?action=assets");
+      const w = await r.json();
+      if (!w.data) return;
+      const assets = JSON.parse(w.data);
+      if (!Array.isArray(assets)) return;
+
+      filtered.forEach((v, i) => {
+        const regClean = v.reg.replace(/\s/g,"").toUpperCase();
+        const asset    = assets.find(a => (a.code||"").replace(/\s/g,"").toUpperCase() === regClean);
+        const el       = document.getElementById("total-km-"+i);
+        if (asset && el) {
+          // odometerLocalized is current total odometer in km
+          el.textContent = asset.odometerLocalized
+            ? asset.odometerLocalized.toLocaleString("en-ZA")+" km (total)"
+            : "— km";
+          el.title = "Current total odometer — upload TG Logbook Excel for monthly KM";
+        } else if (el) {
+          el.textContent = "— km";
+        }
+      });
+    } catch(e) {
+      console.log("Odometer fetch failed:", e);
+      filtered.forEach((v,i) => {
+        const el = document.getElementById("total-km-"+i);
+        if (el) el.textContent = "— km";
+      });
+    }
+  })();
 
   // Store filtered data for calc step
   window._rptFiltered = filtered;
